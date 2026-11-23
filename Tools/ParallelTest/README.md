@@ -114,7 +114,7 @@ It still differs from `swift test` in three ways worth knowing:
 | `-j N` | processes; default 6, or half the cores if fewer |
 | `--calibrate` | one serial run that re-measures the weight table |
 | `--plan-only` | print the partition and its proof, run nothing |
-| `--filter REGEX` | restrict to matching test IDs (`Module.Suite/test()`) |
+| `--filter REGEX` | restrict to matching test IDs (`Module.Suite/test()`); a suite the filter cuts into runs only its selected tests |
 | `--no-build` | skip `swift build --build-tests` |
 | `--scratch-path DIR` | the build directory, when not `.build` (each toolchain building into its own) |
 | `--build-system NAME` | SwiftPM's `--build-system` (`native`, `swiftbuild`), when not its default |
@@ -162,6 +162,12 @@ Speed is worthless if a process quietly runs nothing, so every run is gated on:
 
 * the union of test IDs equals the enumerated suite exactly — no missing, no
   extra, nothing run twice;
+* before anything runs, each group's pattern is proved against every test the
+  binaries list, filtered or not, since that is what the binary matches it
+  against. A suite is kept whole only when the filter selected all of it;
+  otherwise its selected tests are named one by one. (Until H-56 the proof saw
+  only the filtered tests, so one test of a three-test suite was "proved" as
+  the whole suite, ran three, and failed the count check below.)
 * every process ran exactly the number of tests the static proof predicted;
 * every process produced a parseable summary line, and any process that
   reports a failure is accounted for by a named failing test.
@@ -566,9 +572,10 @@ the compiler crashing somewhere new each time, as one compile takes up to
 python3 Tools/ParallelTest/test_parallel_test.py
 ```
 
-89 tests covering the parts that can be tested without running the suite: ID
+94 tests covering the parts that can be tested without running the suite: ID
 escaping and pattern anchoring, the partition proof rejecting a gap or an
-overlap, bin packing, both weight paths, all eight shapes of the summary line
+overlap, a filter narrower than a suite running only its selected tests, bin
+packing, both weight paths, all eight shapes of the summary line
 in both their singular and plural wordings, the malformed-xunit recovery, the
 event-stream duration join, and the run lock making a second run wait. And,
 for the toolchains: `$SWIFT` parsing; the macOS environment for each of the

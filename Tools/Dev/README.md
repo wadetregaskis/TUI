@@ -14,9 +14,12 @@ Tools/Dev/quick.py all -- SuiteA SuiteB      # all three
 ```
 
 It runs suites through `Tools/ParallelTest/parallel_test.py`, never bare `swift test`, which doesn't set up the
-environment CI tests in, so colour tests fail spuriously. It reads a parallel_test "FAILED" that comes only from a
-filter matching more tests than planned (every group passed) as the pass it is. And it gives SwiftLint Xcode's
-toolchain, without which SwiftLint crashes loading SourceKit. `TUI_RUN_WRAPPER` prefixes the heavy steps with a
+environment CI tests in, so colour tests fail spuriously. Its pass is parallel_test's: every group ran exactly the
+tests the filter selects, and at least one test ran; "tests ok (0)" is never printed. (Until H-56 it read a
+parallel_test "FAILED" whose groups all passed as a pass, to excuse a filter narrower than a suite running the whole
+suite; that also passed a group that ran fewer tests than planned, or none. parallel_test now runs exactly the filtered
+tests, so nothing is excused.) And it gives SwiftLint Xcode's toolchain, without which SwiftLint crashes loading
+SourceKit. `TUI_RUN_WRAPPER` prefixes the heavy steps with a
 command of yours, such as a machine-wide build slot.
 
 On Windows, run it with `python Tools\Dev\quick.py …` (there is no shebang there), with the toolchain that builds on

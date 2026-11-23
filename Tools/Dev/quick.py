@@ -13,8 +13,8 @@ Why it exists (see README.md): the plain commands print thousands of lines that 
 has a trap that cost a whole build-and-run to find:
 - Bare `swift test` doesn't set up the environment CI uses, and colour tests fail spuriously (at 256 colours or none).
   This runs `Tools/ParallelTest/parallel_test.py`, which does.
-- parallel_test.py reports FAILED when a filter selects more tests than its partition predicted (a RECONCILIATION
-  line), though every group passed. That case is reported here as a pass, with the count.
+- A run that ran no tests is not a pass: "tests ok (0)" is never printed. A filter matching nothing, or a run whose
+  count does not reconcile, is "tests FAILED".
 - SwiftLint crashes ("Loading sourcekitdInProc.framework … failed") when DEVELOPER_DIR names the Command Line Tools.
   This points it at Xcode's when that is installed and nothing else was set.
 
@@ -82,32 +82,44 @@ def test(suites, build_first=True):
     command = [sys.executable, "Tools/ParallelTest/parallel_test.py", "-j", "4", "--no-build",
                "--filter", "|".join(suites)]
     code, out = run(command)
-    issues = []
+    ok, lines = test_verdict(code, out)
+    for line in lines:
+        print(line)
+    return ok
+
+
+def test_verdict(code, out):
+    """parallel_test.py's exit code and output -> (passed, the lines to print, the verdict last).
+
+    A pass is parallel_test's own: exit 0 and a summary that says "passed", which it gives only when every group
+    ran exactly the tests the partition proved it selects. Nothing here overrides a FAILED. An earlier version
+    passed a FAILED whose only problems were RECONCILIATION lines, to excuse a filter narrower than a suite
+    running the whole suite; that also passed a group that ran FEWER tests than planned, or none (H-56). The
+    partition selects exactly the filtered tests now, so there is nothing left to excuse.
+    """
+    issues, lines = [], []
     for line in out.splitlines():
         if "recorded an issue" in line or re.search(r"\bFatal error\b|\bcrashed\b|signal \d+", line):
             issue = re.sub(r"^\s*\S*\s*Test ", "Test ", line.strip())
             issue = re.sub(r" with \d+ arguments?", "", issue)
             if issue not in issues:
                 issues.append(issue)
-    summary = next((l for l in reversed(out.splitlines()) if l.startswith("parallel-test:") and "tests in" in l), "")
-    groups_ok = all(" ok" in l for l in out.splitlines() if re.match(r"\s+group g\d+:", l)) and \
-        any(re.match(r"\s+group g\d+:", l) for l in out.splitlines())
-    reconciliation_only = "FAILED" in summary and not issues and groups_ok and "RECONCILIATION" in out
+    # "1 test in 1 suite" as well as "14 tests in 3 suites".
+    summary_re = re.compile(r"^parallel-test: (\d+) tests? in \d+ suites? (passed|FAILED) in ")
+    summary = next((m for m in map(summary_re.match, reversed(out.splitlines())) if m), None)
     for issue in issues[:30]:
-        print(issue[:240])
+        lines.append(issue[:240])
     if len(issues) > 30:
-        print(f"… {len(issues) - 30} more")
-    count = re.search(r"(\d+) tests in", summary)
-    n = count.group(1) if count else "?"
-    if (code == 0 and "passed" in summary) or reconciliation_only:
-        print(f"tests ok ({n})" + (" — the filter matched tests beyond its plan; every group passed"
-                                    if reconciliation_only else ""))
-        return True
+        lines.append(f"… {len(issues) - 30} more")
+    n = int(summary.group(1)) if summary else None
+    if code == 0 and summary and summary.group(2) == "passed" and n:
+        lines.append(f"tests ok ({n})")
+        return True, lines
     if not issues:
         tail = [l for l in out.splitlines() if l.strip()][-12:]
-        print("\n".join(relative(l)[:240] for l in tail))
-    print(f"tests FAILED ({n})")
-    return False
+        lines.extend(relative(l)[:240] for l in tail)
+    lines.append(f"tests FAILED ({'?' if n is None else n})" + (": no test ran" if n == 0 else ""))
+    return False, lines
 
 
 def lint(base=None):

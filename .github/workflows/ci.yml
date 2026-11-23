@@ -273,6 +273,12 @@ jobs:
       - name: Compiler warnings check tests
         run: python3 -m unittest discover -s Tools -p 'test_check_compiler_warnings.py'
 
+      # quick.py's verdicts (what it calls a pass) on parallel_test output the
+      # tests write: no build, no toolchain, under a second.
+      # Tools/Dev/README.md.
+      - name: Dev loop script tests
+        run: python3 -m unittest discover -s Tools/Dev -p 'test_*.py'
+
       # Fails on a new unexplained gap, on a gap CLOSED but not recorded, on a
       # new argument-label deviation, and on a map entry that has gone stale.
       # The last two are the ones no human notices: a map nobody audits stops

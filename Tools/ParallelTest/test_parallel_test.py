@@ -14,6 +14,7 @@ known issues out of runs that had 21).
 
 import importlib.util
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -162,6 +163,54 @@ class TestPacking(unittest.TestCase):
             self.assertEqual(len(bins), len(loads))
             proof = pt.prove([pt.group_pattern(b) for b in bins], ids)
             self.assertTrue(proof["exact"], proof["dupes"][:3])
+
+
+class TestNarrowFilter(unittest.TestCase):
+    """A `--filter` narrower than a suite (H-56, TOOLS-5).
+
+    The binary matches each group's pattern against EVERY test it holds, so a
+    suite kept whole for one selected test of three ran all three, failed the
+    count check, and quick.py then passed the run anyway. The partition must
+    select exactly the filtered tests out of the full enumeration."""
+    ALL = ["M.A/a()", "M.A/b()", "M.A/c()", "M.B/d()", "M.B/e()"]
+
+    def partition(self, flt, jobs=4):
+        ids = pt.select_ids(self.ALL, flt)
+        _, _, patterns, proof, _, _ = pt.partition(ids, self.ALL, {t: 1.0 for t in ids}, jobs)
+        return ids, patterns, proof
+
+    def selected(self, patterns):
+        """Each pattern's selection out of the full list, as the binary makes it."""
+        return [{i for i in self.ALL if re.search(p, i)} for p in patterns]
+
+    def test_one_test_of_two_suites_runs_that_one_test(self):
+        ids, patterns, proof = self.partition(r"M\.A/a\(")
+        self.assertEqual(ids, ["M.A/a()"])
+        self.assertEqual(self.selected(patterns), [{"M.A/a()"}])
+        self.assertTrue(proof["exact"], proof["extra"])
+        self.assertEqual(proof["counts"], [1])
+
+    def test_one_test_from_each_suite_runs_two_tests(self):
+        ids, patterns, proof = self.partition(r"M\.A/a\(|M\.B/d\(")
+        got = self.selected(patterns)
+        self.assertEqual(sorted(len(g) for g in got), [1, 1])
+        self.assertEqual(set().union(*got), set(ids))
+        self.assertTrue(proof["exact"], proof["extra"])
+
+    def test_a_wholly_selected_suite_is_still_kept_whole(self):
+        _, patterns, proof = self.partition(r"^M\.A/", jobs=1)
+        self.assertEqual(patterns, [pt.group_pattern([("suite", "M.A")])])
+        self.assertTrue(proof["exact"])
+
+    def test_the_proof_sees_what_a_suite_pattern_selects_beyond_the_filter(self):
+        proof = pt.prove([pt.group_pattern([("suite", "M.A")])], ["M.A/a()"], self.ALL)
+        self.assertFalse(proof["exact"])
+        self.assertEqual(proof["extra"], ["M.A/b()", "M.A/c()"])
+
+    def test_the_plan_predicts_what_the_binary_will_run(self):
+        _, patterns, _ = self.partition(r"M\.A/a\(")
+        plan = pt.plan_invocations(patterns, {t: "P" for t in self.ALL}, {"P": "/p"})
+        self.assertEqual([i["selected"] for i in plan], [1])
 
 
 class TestSummaryParsing(unittest.TestCase):

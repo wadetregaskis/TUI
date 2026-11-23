@@ -333,25 +333,36 @@ def lpt(items, n):
     return [bins[i] for i in kept], [loads[i] for i in kept]
 
 
-def build_items(ids, weights, n):
+def build_items(ids, weights, n, enumerated=None):
     """Group tests into packable items, splitting only the suites that need it.
 
     A suite is kept whole — related tests share fixtures and cache lines — but a
     suite heavier than one bin's fair share would set the critical path all by
     itself, so those are exploded into individual tests. The floor is then the
     single slowest TEST, which nothing can split further.
+
+    `enumerated` is every test the binaries list, filtered or not. A suite's
+    pattern selects ALL of that suite's tests, so a suite is kept whole only
+    when every one of its enumerated tests is in `ids`; one a `--filter` cut
+    into is given as its selected tests. Without `enumerated`, `ids` is taken
+    to be the whole enumeration (an unfiltered run).
     """
     by_suite = {}
     for tid in ids:
         by_suite.setdefault(suite_of(tid), []).append(tid)
+    in_suite = defaultdict(int)
+    for tid in (ids if enumerated is None else enumerated):
+        in_suite[suite_of(tid)] += 1
     suite_weight = {s: sum(weights.get(t, 0.0) for t in ts)
                     for s, ts in by_suite.items()}
     total = sum(suite_weight.values())
     fair = total / n if n else total
     items, split = [], []
     for s, ts in by_suite.items():
-        if suite_weight[s] > fair and len(ts) > 1:
-            split.append(s)
+        heavy = suite_weight[s] > fair and len(ts) > 1
+        if heavy or len(ts) < in_suite[s]:
+            if heavy:
+                split.append(s)
             items += [(("test", t), weights.get(t, 0.0)) for t in ts]
         else:
             items.append((("suite", s), suite_weight[s]))
@@ -367,19 +378,26 @@ def group_pattern(keys):
     return "^(?:" + "|".join(bodies) + ")"
 
 
-def prove(patterns, ids):
+def prove(patterns, ids, enumerated=None):
     """Re-derive what each pattern selects and refuse anything but a partition.
 
     The proof runs in Python's regex engine while the selection will run in
     Swift's. They agree on this dialect, but 'agree' is an assumption, so the
     runtime `check_selection` gate re-checks the counts against these numbers
     from the processes' own output.
+
+    Each pattern is matched against `enumerated`, every test the binaries
+    hold, because that is what the binary will match it against: proved over
+    the filtered `ids` alone, a suite's pattern looked exact while it ran the
+    suite's unselected tests too. A test outside `ids` that a pattern selects
+    is `extra`.
     """
     ids = set(ids)
+    universe = ids if enumerated is None else ids | set(enumerated)
     seen, dupes, counts = set(), set(), []
     for pat in patterns:
         rx = re.compile(pat)
-        sel = {i for i in ids if rx.search(i)}
+        sel = {i for i in universe if rx.search(i)}
         dupes |= seen & sel
         seen |= sel
         counts.append(len(sel))
@@ -391,6 +409,16 @@ def prove(patterns, ids):
         "dupes": sorted(dupes),
         "exact": seen == ids and not dupes,
     }
+
+
+def partition(ids, enumerated, weights, jobs):
+    """-> (bins, loads, patterns, proof, split, total): the groups a run makes of the
+    selected `ids` out of every `enumerated` test, and the proof that each
+    group's pattern selects exactly its own tests out of all of them."""
+    items, split, total = build_items(ids, weights, jobs, enumerated)
+    bins, loads = lpt(items, jobs)
+    patterns = [group_pattern(b) for b in bins]
+    return bins, loads, patterns, prove(patterns, ids, enumerated), split, total
 
 
 # ---------------------------------------------------------------- environment
@@ -1313,11 +1341,12 @@ def main():
               % (" ".join(swift), len(binaries), "y" if len(binaries) == 1 else "ies",
                  tc.where))
 
+    # Every test, filtered or not: a group's pattern is matched against all of
+    # them by the binary, so the partition and its proof must see all of them.
     owner = list_tests(tc, binaries)
     ids = select_ids(sorted(owner), args.filter)
     if not ids:
         sys.exit("parallel-test: --filter %r matched no tests" % args.filter)
-    owner = {t: owner[t] for t in ids}
     # A process per test at most: more would only be empty groups.
     jobs = max(1, min(jobs, len(ids)))
     print("parallel-test: %s in %s, %d process%s"
@@ -1334,11 +1363,8 @@ def main():
         print("parallel-test: no weight cache — splitting by test count. "
               "Run --calibrate once to measure them.")
 
-    items, split, total = build_items(ids, weights, jobs)
-    bins, loads = lpt(items, jobs)
+    bins, loads, patterns, proof, split, total = partition(ids, sorted(owner), weights, jobs)
     jobs = len(bins)  # fewer when there are fewer items (a suite kept whole) than processes
-    patterns = [group_pattern(b) for b in bins]
-    proof = prove(patterns, ids)
 
     if not proof["exact"]:
         print("parallel-test: PARTITION PROOF FAILED — refusing to run")
