@@ -34,8 +34,9 @@ extension LocalizationService {
             .last.flatMap(Language.init(rawValue:))
     }
 
-    /// The languages the environment asks for, as language codes (`"pt"`),
-    /// most preferred first: each one up to and including the first this
+    /// The languages the environment asks for, as language codes (`"pt"`,
+    /// and `"zh-Hant"` for Chinese in Traditional characters), most preferred
+    /// first: each one up to and including the first this
     /// framework has translations of — ``systemPreferredLanguage(environment:preferredLanguages:)``
     /// — or every one, where it has none of them.
     ///
@@ -119,17 +120,15 @@ extension LocalizationService {
         return nil
     }
 
-    /// The language code a locale name begins with, or `nil` where it names
-    /// none.
-    ///
-    /// The letters up to the territory, script, encoding or modifier:
-    /// `de_DE.UTF-8@euro` is German, `zh-Hans-CN` Chinese. NOT `prefix(2)`, which would read the
-    /// neutral `C` and `POSIX` locales — they mean "no language preference" —
-    /// as the codes "c" and "po", and Filipino (`fil`) as Finnish. A code is
-    /// two or three letters (ISO 639-1 or -2), so anything else names none.
+    /// The language a locale name asks for, as the code TUI's strings are
+    /// keyed by, or `nil` where it names none (``LanguageTag``): the language
+    /// code, with the script where it is not the language's own.
+    /// `de_DE.UTF-8@euro` is German (`de`), `zh-Hans-CN` Chinese (`zh`), and
+    /// `zh_TW.UTF-8` and `zh-Hant` Traditional Chinese (`zh-Hant`), which
+    /// TUI's Chinese, being Simplified, does not answer: the walk goes on to
+    /// the next language the user names, and the app's own `zh-Hant` strings
+    /// are still read first. The neutral `C` and `POSIX` locales name none.
     private static func languageCode(of name: some StringProtocol) -> String? {
-        let code = name.prefix { !"-_.@".contains($0) }
-        guard (2...3).contains(code.count), code.allSatisfy(\.isLetter) else { return nil }
-        return code.lowercased()
+        LanguageTag(name)?.bare
     }
 }

@@ -118,15 +118,11 @@ struct TimeSpanLanguage {
 
     /// The locale's language, if the framework has it; English otherwise.
     /// Chinese written in Traditional characters takes English too, the
-    /// framework's Chinese being Simplified.
+    /// framework's Chinese being Simplified: the same rule as the language
+    /// TUI's words are read in (``LocalizationService/Language/init(reading:)``),
+    /// so `zh_TW` and `zh-Hant` are Traditional and Simplified Chinese written
+    /// for Taiwan (`zh-Hans-TW`) is not.
     init(_ locale: Locale) {
-        let code = locale.language.languageCode?.identifier ?? "en"
-        let traditional = locale.language.script?.identifier == "Hant"
-            || ["TW", "HK", "MO"].contains(locale.region?.identifier ?? "")
-        if code == "zh", traditional {
-            language = .english
-        } else {
-            language = LocalizationService.Language(rawValue: code) ?? .english
-        }
+        language = LanguageTag(locale.identifier).flatMap(LocalizationService.Language.init(reading:)) ?? .english
     }
 }

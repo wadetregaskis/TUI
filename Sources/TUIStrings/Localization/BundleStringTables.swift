@@ -23,7 +23,8 @@ import Foundation
 ///
 /// The language is TUI's, not the process's: ``string(for:tableName:bundle:language:)``
 /// reads the `.lproj` that best matches the language it is asked for (`zh`
-/// finds `zh-Hans.lproj`), and ``fallbackString(for:tableName:bundle:)`` reads
+/// finds `zh-Hans.lproj`, `zh-Hant` finds `zh-Hant.lproj` or `zh_TW.lproj`),
+/// and ``fallbackString(for:tableName:bundle:)`` reads
 /// as Foundation picks for the bundle on its own (its development region, or
 /// a table outside any `.lproj`), the last place a key is looked for.
 /// Switching the language at run time therefore switches these strings too.
@@ -201,29 +202,23 @@ final class BundleStringTables {
     /// The `.lproj` sub-bundle of `table`'s bundle that best matches the
     /// language `code` — `nil` where it has none in that language, rather
     /// than the fallback Foundation's matching offers.
+    ///
+    /// "In that language" is in its script too (``LanguageTag/bare``): a
+    /// Traditional Chinese code finds `zh-Hant.lproj` or `zh_TW.lproj`, never
+    /// `zh.lproj` or `zh-Hans.lproj`, as Foundation's own matching on Darwin
+    /// gives it none of those.
     private func localization(of table: Table, for code: String) -> Bundle? {
         if let known = table.localizations[code] { return known }
         var found: Bundle?
         let name: String? = {
             #if canImport(Darwin)
             let matches = Bundle.preferredLocalizations(from: table.bundle.localizations, forPreferences: [code])
-            if let name = matches.first, Locale(identifier: name).language.languageCode?.identifier == code {
+            if let name = matches.first, let wanted = LanguageTag(code), LanguageTag(name)?.bare == wanted.bare {
                 return name
             }
             return nil
             #else
-            if table.bundle.localizations.contains(code) {
-                return code
-            }
-            let targetLanguage = Locale(identifier: code).language.languageCode?.identifier ?? code
-            if let exactLang = table.bundle.localizations.first(where: {
-                Locale(identifier: $0).language.languageCode?.identifier == targetLanguage && $0 == targetLanguage
-            }) {
-                return exactLang
-            }
-            return table.bundle.localizations.first {
-                Locale(identifier: $0).language.languageCode?.identifier == targetLanguage
-            }
+            return Self.localization(for: code, among: table.bundle.localizations)
             #endif
         }()
         if let name, let path = table.bundle.path(forResource: name, ofType: "lproj") {
@@ -231,5 +226,21 @@ final class BundleStringTables {
         }
         table.localizations[code] = .some(found)
         return found
+    }
+
+    /// The one of `localizations` that the language `code` reads where
+    /// Foundation has no matching of its own to ask (swift-corelibs-foundation,
+    /// off Darwin): the folder named exactly so, else the one naming the same
+    /// tag however spelt (`zh_TW` for `zh-Hant-TW`), else one of the same
+    /// language and script (``LanguageTag/bare``), the one with no region
+    /// first. Its own function so either platform's tests can pose it.
+    static func localization(for code: String, among localizations: [String]) -> String? {
+        if localizations.contains(code) {
+            return code
+        }
+        guard let wanted = LanguageTag(code) else { return nil }
+        let alike = localizations.filter { LanguageTag($0)?.bare == wanted.bare }
+        return alike.first { LanguageTag($0) == wanted } ?? alike.first { LanguageTag($0)?.region == nil }
+            ?? alike.first
     }
 }

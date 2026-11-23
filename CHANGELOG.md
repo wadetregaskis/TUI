@@ -134,6 +134,13 @@ too: the rest of the row came back to full strength. Faint is stated again after
 behind lost its glyphs, but the cells the container draws between the members let it through, tinted: two legible
 stripes through a frosted pill. Those cells now frost with the first member's frost, as its own part does.
 
+**A reader of Traditional Chinese is no longer given TUI's Simplified Chinese.** Under `LANG=zh_TW.UTF-8`, or a
+Mac whose first language is `zh-Hant`, every one of TUI's words came out Simplified (文件, 编辑), beside English years
+and months: the language was read as its code alone, `zh`. A language is now its code with its script where that is
+not the language's own (`zh_TW` and `zh_HK` are `zh-Hant`, `zh-Hans-TW` is `zh`), so a Traditional reader gets TUI's
+words in their next language or English, and an app's own `zh-Hant` strings, registered or in `zh-Hant.lproj` (or
+`zh_TW.lproj`), first. Time spans written for Simplified Chinese in Taiwan are now Chinese, not English.
+
 **`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
 `handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
 `fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It
