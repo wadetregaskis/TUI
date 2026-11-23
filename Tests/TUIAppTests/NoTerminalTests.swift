@@ -167,6 +167,15 @@ struct NoTerminalTests {
         }
     }
 
+    /// An exit test, for a session and a controlling terminal of its own: the
+    /// test process's are the runner's, and `setsid` is not undone.
+    @Test("Pointed at the controlling terminal, stdin is a terminal the notifier can wait on, not input at its end")
+    func pointedAtControllingTerminal() async {
+        await #expect(processExitsWith: .exitCode(0)) {
+            exit(stdinPointedAtControllingTerminal())
+        }
+    }
+
     @Test("An integer literal is an exit status")
     func outcomeLiteral() {
         let outcome: NoTerminal.Outcome = 3
@@ -177,6 +186,42 @@ struct NoTerminalTests {
     private func readBytes(_ descriptor: Int32, _ bytes: inout [UInt8]) -> Int {
         bytes.withUnsafeMutableBytes { unsafe read(descriptor, $0.baseAddress, $0.count) }
     }
+}
+
+/// In an exit test's own process: a session of its own with a pseudo-terminal
+/// for its controlling terminal, stdin a pipe at its end and stdout the
+/// terminal, as in `cat data | app`; then what ``NoTerminal/Outcome/drawOnControllingTerminal``
+/// does. Returns 0 when stdin is then a terminal that `poll` can wait on and the
+/// stdin notifier does not take for input at its end, or the step that failed.
+///
+/// On Darwin, stdin pointed at `/dev/tty` failed both: `poll` answered
+/// `POLLNVAL`, which `isAtEndOfInput` took for readable with nothing to read,
+/// so the run loop watched nothing and never heard ⌃Q (18). A free function,
+/// as an exit test's body cannot capture the suite.
+private func stdinPointedAtControllingTerminal() -> Int32 {
+    guard setsid() >= 0 else { return 10 }
+    var controller: Int32 = -1
+    var device: Int32 = -1
+    guard unsafe openpty(&controller, &device, nil, nil, nil) == 0 else { return 11 }
+    #if canImport(Glibc) || canImport(Musl)
+        let makesControlling = ioctl(device, UInt(TIOCSCTTY), 0)
+    #else
+        let makesControlling = ioctl(device, TIOCSCTTY, 0)
+    #endif
+    guard makesControlling == 0 else { return 12 }
+    var ends: [Int32] = [-1, -1]
+    guard unsafe pipe(&ends) == 0 else { return 13 }
+    close(ends[1])
+    guard dup2(ends[0], STDIN_FILENO) >= 0 else { return 14 }
+    guard let situation = NoTerminal.current(output: device, environment: ["TERM": "xterm-256color"]),
+        situation.lacksInput, !situation.lacksOutput
+    else { return 15 }
+    guard situation.pointStandardStreamsAtControllingTerminal() else { return 16 }
+    guard isatty(STDIN_FILENO) == 1 else { return 17 }
+    // Nothing typed: not ready, where `/dev/tty` on Darwin answered POLLNVAL at once.
+    var probe = pollfd(fd: STDIN_FILENO, events: Int16(POLLIN), revents: 0)
+    guard unsafe poll(&probe, 1, 0) == 0 else { return 18 }
+    return StdinArrivalNotifier.isAtEndOfInput(STDIN_FILENO) ? 19 : 0
 }
 
 #endif

@@ -28,6 +28,12 @@ made, compared and measured for each: wrapping a whole document again, as a clic
 fifth of the time it did (102 to 24 ms for Stress's 3.2 MB `bigtext-find`), and a key in Stress's `bigtext` costs 18%
 less. A vertical `TextField` lays its text out the same way. Nothing an app sees changes.
 
+**An app drawing on its controlling terminal hears its keys again on macOS.** An app in a pipeline (`cat data |
+app`) that answered `runWithoutTerminal` with `.drawOnControllingTerminal` drew, but no key reached it, ⌃Q included,
+since 2026-11-10: its stdin was pointed at `/dev/tty`, which macOS's `poll` and `kqueue` cannot wait on, and the
+loop took it for input at its end. Stdin and stdout are now pointed at the terminal's own device (`/dev/ttys005`), as
+`ps` names it, on macOS; Linux keeps `/dev/tty`, which it waits on as any terminal.
+
 **A large `TextEditor` holds a fifth of the memory it did.** Its lines were kept as arrays of `Character`, 16 bytes a
 character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224 MB of
 heap once its editor had drawn, and takes about 44 MB (665 to 129 bytes a line; the lines' own share went from 518 to

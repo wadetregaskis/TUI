@@ -10,6 +10,7 @@
 import Foundation
 import TUICore
 import TUIFoundation
+import TUITerminalHost
 
 #if canImport(Glibc)
     import Glibc
@@ -307,12 +308,35 @@ extension NoTerminal {
     ///   `TERM` is `dumb`.
     func pointStandardStreamsAtControllingTerminal() -> Bool {
         guard environment["TERM"] != "dumb" else { return false }
-        let terminal = unsafe open("/dev/tty", O_RDWR | O_NOCTTY)
+        let terminal = Self.openControllingTerminal()
         guard terminal >= 0 else { return false }
         defer { close(terminal) }
         if lacksInput, dup2(terminal, STDIN_FILENO) < 0 { return false }
         if lacksOutput, dup2(terminal, STDOUT_FILENO) < 0 { return false }
         return true
+    }
+
+    /// The process's controlling terminal, opened to read and write, or -1
+    /// where it has none.
+    ///
+    /// On Darwin by the terminal's own device (`/dev/ttys005`), not by
+    /// `/dev/tty`: a descriptor of `/dev/tty` is one Darwin's `poll(2)` answers
+    /// `POLLNVAL` for and its `kqueue(2)` refuses, so nothing can wait on it
+    /// (TUITerminalHost's `ProcessAncestry.ownTerminalDevicePath()`). Pointed at it, stdin
+    /// read as input at its end (`StdinArrivalNotifier.isAtEndOfInput`, which
+    /// takes any answer from `poll` for readable), so no key was ever heard
+    /// and ⌃Q did not quit (CI 106 on, every macOS lane; no_terminal_smoke
+    /// case 6). `/dev/tty` where the device has no name, or the one named is
+    /// not this session's terminal.
+    static func openControllingTerminal() -> Int32 {
+        #if canImport(Darwin)
+            if let path = ProcessAncestry.ownTerminalDevicePath() {
+                let device = unsafe open(path, O_RDWR | O_NOCTTY)
+                if device >= 0, tcgetsid(device) == getsid(0) { return device }
+                if device >= 0 { close(device) }
+            }
+        #endif
+        return unsafe open("/dev/tty", O_RDWR | O_NOCTTY)
     }
 }
 

@@ -28,7 +28,7 @@ import WinSDK
 /// a walk costs microseconds. A process that has exited, or that the kernel
 /// will not describe to this user, reads as `nil`, and a walk that meets one
 /// says so rather than guessing past it.
-enum ProcessAncestry {
+package enum ProcessAncestry {
 
     /// A process as a chain reads it: its name, and the terminal it is
     /// attached to.
@@ -165,6 +165,27 @@ enum ProcessAncestry {
             return nil
         #endif
     }
+
+    #if canImport(Darwin)
+        /// The path of this process's controlling terminal's own device, as
+        /// `ps` names it (`/dev/ttys005`), or `nil` where it has none or the
+        /// device has no name in `/dev`.
+        ///
+        /// Darwin only, because only Darwin needs it: there a descriptor of
+        /// `/dev/tty`, the alias every process's controlling terminal has, is
+        /// one `poll(2)` answers `POLLNVAL` for and `kqueue(2)` refuses
+        /// (`EINVAL`), so nothing can wait on it (measured, macOS 15.6,
+        /// 2026-11-23). Linux waits on `/dev/tty` like any terminal.
+        package static func ownTerminalDevicePath() -> String? {
+            guard let info = unsafe kernelInfo(of: getpid()) else { return nil }
+            // `NODEV`, `(dev_t)-1`, as in ``link(of:)``.
+            let device = unsafe info.kp_eproc.e_tdev
+            guard device != -1, let name = unsafe devname(device, S_IFCHR) else { return nil }
+            let leaf = unsafe String(cString: name)
+            // `devname` answers "??" for a device it finds no node for.
+            return leaf.isEmpty || leaf == "??" ? nil : "/dev/" + leaf
+        }
+    #endif
 
     /// The links from `pid` up to the root (``chain(from:limit:reading:)``),
     /// `pid`'s own first, or `nil` where one could not be read.
