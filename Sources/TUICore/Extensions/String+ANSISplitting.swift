@@ -22,7 +22,9 @@ extension String {
     /// preserving all ANSI codes that appear before or within that range.
     ///
     /// Wide characters (emoji, CJK) count as 2 cells. If a wide character would
-    /// exceed the limit, it is excluded.
+    /// exceed the limit, it is excluded; where the cut leaves a styled run open
+    /// (and so closes it), the cell it would have half-filled is a space in
+    /// that run's styling (see ``ansiAwarePrefixWithWidth(visibleCount:)``).
     ///
     /// - Parameter visibleCount: The number of terminal cells to include.
     /// - Returns: A substring with ANSI codes intact up to the visible boundary.
@@ -53,10 +55,13 @@ extension String {
     /// the cut, and there are two things it does emit. One is a reset, where
     /// the last SGR before the cut left styling on (see
     /// ``ansiAwarePrefixWithWidth(visibleCount:)``): this path asks the same
-    /// question of the same bytes and appends the same reset. The other is the
-    /// closing sequence of a hyperlink the cut leaves open. The width re-scan
-    /// cannot see that — a closing sequence is zero cells — so a line carrying
-    /// any string-terminated escape is handed to the walk instead.
+    /// question of the same bytes and appends the same reset. (The walk's pad
+    /// for a wide glyph straddling the cut never arises here: this cut is in
+    /// plain spaces, and the byte scan declines any line that is not ASCII
+    /// before its cut.) The other is the closing sequence of a hyperlink the
+    /// cut leaves open. The width re-scan cannot see that — a closing sequence
+    /// is zero cells — so a line carrying any string-terminated escape is
+    /// handed to the walk instead.
     ///
     /// - Parameters:
     ///   - visibleCount: The number of terminal cells to include.
@@ -168,6 +173,13 @@ extension String {
     /// underline or reversal. A line that was already closed at the cut, a
     /// plain one, and one that fits come back byte for byte as before. The
     /// rule for "left anything on" is ``leavesSGROpen``'s.
+    ///
+    /// Where that close is made and a wide glyph straddled the cut, the
+    /// glyph's cell inside the cut is drawn as a space before the reset, in the
+    /// run's styling (a hyperlink is closed before it), and the width is
+    /// `visibleCount`: padded after the reset, the cell was a hole in the run's
+    /// fill. Without a close, the straddler leaves the width one short, as it
+    /// always has, for the caller to pad.
     public func ansiAwarePrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int) {
         ansiAwarePrefixWithWidth(visibleCount: visibleCount, closingStyling: true)
     }
@@ -416,14 +428,35 @@ extension String {
         }
 
         guard cut else { return (result, visible) }
-        return (result + Self.closing(after: lastSGR, if: closingStyling) + link.closingIfOpen, visible)
+        return Self.closingCut(
+            result, width: visible, of: visibleCount, after: lastSGR, if: closingStyling, link: link)
     }
 
-    /// A reset if `lastSGR` — the last SGR sequence before a cut — left styling
-    /// on and the caller wants it closed, else nothing.
-    private static func closing(after lastSGR: String?, if closingStyling: Bool) -> String {
-        guard closingStyling, let lastSGR, !isSGRReset(lastSGR) else { return "" }
-        return cutReset
+    /// The kept bytes of a cut, `width` cells of the `visibleCount` asked for,
+    /// closed: the hyperlink if one is open, and a reset if `lastSGR` — the
+    /// last SGR sequence before the cut — left styling on and the caller wants
+    /// it closed.
+    ///
+    /// Short of `visibleCount` only where a wide glyph straddled the cut and
+    /// was dropped. Its cell inside the cut is then drawn here, as spaces,
+    /// BEFORE the reset, so it wears the run's styling — the background,
+    /// reversal or underline the glyph would have drawn there — and the width
+    /// comes back whole. Padded by the caller after the reset, that cell was on
+    /// the page's background: a one-cell hole at the right end of a filled view
+    /// cut there. It is the rule ``ansiAwareSlice(visibleStart:visibleCount:)``
+    /// applies to a straddler (its in-window cells are spaces, in the run), so
+    /// a clipped line and a scrolled window of it draw that cell alike. The
+    /// link is closed before those spaces, not after: no glyph is there to be
+    /// the link's text, and a blank cell that opens a link when clicked would
+    /// be a surprise. A cut that leaves no styling on is left as it was, short,
+    /// for the caller's own padding — its cell has no run to wear.
+    private static func closingCut(
+        _ kept: String, width: Int, of visibleCount: Int, after lastSGR: String?, if closingStyling: Bool,
+        link: HyperlinkScan
+    ) -> (prefix: String, visibleWidth: Int) {
+        guard closingStyling, let lastSGR, !isSGRReset(lastSGR) else { return (kept + link.closingIfOpen, width) }
+        guard width < visibleCount else { return (kept + cutReset + link.closingIfOpen, width) }
+        return (kept + link.closingIfOpen + spaces(visibleCount - width) + cutReset, visibleCount)
     }
 
     /// A horizontal slice: the visible columns in
@@ -716,7 +749,7 @@ extension String {
         }
 
         guard cut else { return (result, visible) }
-        return (result + Self.closing(after: lastSGR, if: true) + link.closingIfOpen, visible)
+        return Self.closingCut(result, width: visible, of: visibleCount, after: lastSGR, if: true, link: link)
     }
 
     /// Returns the accumulated SGR (colour/style) state as of `visibleOffset` visible cells,

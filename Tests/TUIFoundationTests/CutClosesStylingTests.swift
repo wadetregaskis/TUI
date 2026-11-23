@@ -54,6 +54,42 @@ struct CutClosesStylingTests {
         #expect(!line.leavesSGROpen, "\(line.debugDescription)")
     }
 
+    @Test("A filled view cut through a wide glyph is filled to the cut, and no further")
+    func straddledCellWearsTheFill() throws {
+        // Five cells hold AAAA and half of 漢. The glyph is dropped and its kept
+        // cell is a blank; it is inside the Text and so inside its background.
+        // Padded after the cut's reset, it was on the page's background.
+        let view = HStack(spacing: 0) {
+            Text("AAAA漢漢").fixedSize().background(.blue).frame(width: 5, alignment: .leading)
+            Text("B")
+        }
+        let buffer = renderToBuffer(view, context: makeRenderContext(width: 10, height: 1))
+        let line = try #require(buffer.lines.first)
+        let styles = cellStyles(line)
+        try #require(line.stripped.hasPrefix("AAAA B"), "\(line.debugDescription)")
+        let fill = try #require(styles[0].backgroundColour, "\(line.debugDescription)")
+        #expect(styles[4].backgroundColour == fill, "\(line.debugDescription)")
+        #expect(styles[5].backgroundColour == nil, "\(line.debugDescription)")
+    }
+
+    @Test("A cut through a wide glyph in an open run pads inside the run; every other cut is as it was")
+    func straddlePadBytes() {
+        let esc = "\u{1B}"
+        let open = "\(esc)[44mAAAA漢\(esc)[0m"
+        let padded = ("\(esc)[44mAAAA \(esc)[0m", 5)
+        #expect(open.ansiAwarePrefixWithWidth(visibleCount: 5) == padded)
+        #expect(open.exactAnsiAwarePrefixForTerminalAppWithWidth(visibleCount: 5) == padded)
+        #expect(open.ansiAwarePrefixWithWidth(visibleCount: 5, closingStyling: false) == ("\(esc)[44mAAAA", 4))
+        // A cut on a glyph boundary, a closed run and a plain line: unchanged.
+        #expect(open.ansiAwarePrefixWithWidth(visibleCount: 4) == ("\(esc)[44mAAAA\(esc)[0m", 4))
+        #expect("\(esc)[44mAAAA\(esc)[0m漢".ansiAwarePrefixWithWidth(visibleCount: 5) == ("\(esc)[44mAAAA\(esc)[0m", 4))
+        #expect("AAAA漢".ansiAwarePrefixWithWidth(visibleCount: 5) == ("AAAA", 4))
+        // The link ends at the last glyph it labels; the blank is styled, not linked.
+        let linked = "\(esc)]8;;https://x\(esc)\\\(esc)[4mAAAA漢"
+        let linkedCut = "\(esc)]8;;https://x\(esc)\\\(esc)[4mAAAA\(TerminalHyperlink.closing) \(esc)[0m"
+        #expect(linked.ansiAwarePrefixWithWidth(visibleCount: 5) == (linkedCut, 5))
+    }
+
     @Test("A clamp closes a run it cuts, and leaves a closed line's bytes alone")
     func clampClosesOnce() {
         let open = FrameBuffer(lines: ["\u{1B}[44mAAAA\u{1B}[0m"]).clamped(toWidth: 2, height: 1)

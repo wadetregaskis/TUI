@@ -157,7 +157,9 @@ row showed the terminal's own background instead of the page's. Every spelling o
 drawn wider than the room it was given, a negative stack `spacing`, and every other clip of a line cut a styled run's
 closing reset off with the rest of the line, so a sibling to its right, the gap before it and the row's padding out
 to the terminal's edge were drawn in the run's background, underline or reverse video. A cut now closes what it
-leaves open. Lines that were already closed where they were cut are written exactly as before.
+leaves open, and a wide character it splits is left as a blank cell in the view's own styling, so a filled view is
+filled right up to the cut rather than one cell short. Lines that were already closed where they were cut are written
+exactly as before.
 
 **A tinted glass keeps its tint's transparency while the window is inactive.** `.glassEffect(.regular.tint(…))` with a
 translucent tint went more solid as the terminal lost focus, because greying the tint dropped its alpha. The colour

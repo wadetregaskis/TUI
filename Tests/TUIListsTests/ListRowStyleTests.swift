@@ -6,6 +6,8 @@
 
 import Testing
 
+@testable import TUIApp
+@testable import TUICore
 @testable import TUIFoundation
 import TUILists
 @testable import TUITestSupport
@@ -176,5 +178,81 @@ struct ListRowStyleTests {
             width: 24, height: 8)
         #expect(rendered.contains { $0.contains("alpha") })
         #expect(rendered.contains { $0.contains("beta") })
+    }
+
+    // MARK: - A row cut through a wide glyph
+
+    /// The background each cell of `line` is drawn on.
+    private func cellBackgrounds(_ line: String) -> [SGRState.Colour?] {
+        var state = SGRState()
+        var grounds: [SGRState.Colour?] = []
+        line.forEachANSISegment { segment in
+            switch segment {
+            case .ansi(let sequence, let isSGR):
+                if isSGR { state.apply(sequence) }
+            case .visible(let character):
+                for _ in 0..<max(0, character.terminalWidth) { grounds.append(state.backgroundColour) }
+            }
+            return true
+        }
+        return grounds
+    }
+
+    /// `list` rendered focused, as `ListRowFocusedAlphaTests` does: the focus
+    /// manager in the environment, and two passes, since a row cannot be
+    /// focused before it has registered. Focused, the scrolling list shows its
+    /// bar, which is what narrows its rows.
+    private func focused(_ list: some View, focusID: String, width: Int, height: Int) -> FrameBuffer {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        func pass() -> FrameBuffer {
+            var environment = EnvironmentValues()
+            environment.focusManager = focusManager
+            environment.applyRuntimeServices(from: tuiContext)
+            let context = RenderContext(
+                availableWidth: width, availableHeight: height, environment: environment, tuiContext: tuiContext)
+            tuiContext.preferences.beginRenderPass()
+            tuiContext.stateStorage.beginRenderPass()
+            tuiContext.renderCache.beginRenderPass()
+            focusManager.beginRenderPass()
+            let buffer = renderToBuffer(list, context: context)
+            focusManager.endRenderPass()
+            tuiContext.stateStorage.endRenderPass()
+            tuiContext.renderCache.removeInactive()
+            return buffer
+        }
+        _ = pass()
+        focusManager.focus(id: focusID)
+        return pass()
+    }
+
+    /// A guard (H-37): a cut closes the run it leaves open, so the blank a
+    /// dropped wide glyph leaves is drawn after the text's reset. A selected
+    /// row's fill and a row background are painted over the row after it is
+    /// cut, restated after every reset, so that blank is filled like the rest
+    /// of the row — in a short list and in a scrolling one, whose rows are cut
+    /// beside the bar.
+    @Test(
+        "A selected or backed row cut through a wide glyph is filled to its end",
+        arguments: [(width: 12, height: 8, rows: 2), (width: 13, height: 6, rows: 12)])
+    func straddledRowIsFilled(width: Int, height: Int, rows: Int) throws {
+        let name = "AAAAAAA漢漢漢漢"
+        let list = List(selection: .constant(Set([0]))) {
+            ForEach(0..<rows, id: \.self) { index in
+                Text(name).fixedSize().listRowBackground(index == 1 ? Color.blue : nil).tag(index)
+            }
+        }
+        .focusID("straddle-list")
+        let buffer = focused(list, focusID: "straddle-list", width: width, height: height)
+        for line in buffer.lines[1...2] {
+            let shown = line.stripped
+            let lastA = try #require(shown.lastIndex(of: "A"), "\(line.debugDescription)")
+            let column = shown.distance(from: shown.startIndex, to: lastA)
+            // The premise: the glyph after the last A was cut in half and dropped.
+            try #require(!shown.contains("漢"), "no straddle: \(line.debugDescription)")
+            let grounds = cellBackgrounds(line)
+            let fill = try #require(grounds[column], "the row is not filled: \(line.debugDescription)")
+            #expect(grounds[column + 1] == fill, "\(line.debugDescription)")
+        }
     }
 }

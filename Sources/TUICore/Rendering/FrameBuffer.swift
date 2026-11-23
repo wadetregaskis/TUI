@@ -1184,7 +1184,9 @@ extension FrameBuffer {
     /// ``String/ansiAwarePrefix(visibleCount:knownVisibleWidth:)``, so
     /// the cut counts terminal cells rather than characters, never splits a
     /// wide glyph, keeps the styling that was in force, and closes it where the
-    /// cut left it on, so what is drawn after the line is not drawn in it.
+    /// cut left it on, so what is drawn after the line is not drawn in it. A
+    /// wide glyph cut in half there leaves its kept cell blank but in the run's
+    /// styling, so a filled view cut through one is filled to the cut.
     ///
     /// Hit-test regions are trimmed to the surviving box and dropped when
     /// nothing of them remains — a clamp at a container edge is final, and a
