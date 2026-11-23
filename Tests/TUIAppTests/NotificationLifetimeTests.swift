@@ -73,6 +73,26 @@ private struct TwoWindowsApp: App {
     }
 }
 
+/// A page that posts ten toasts at once as it appears: more than fit.
+private struct BurstPage: View {
+    @Environment(\.notificationService) private var notifications
+
+    var body: some View {
+        Text("page").onAppear {
+            for name in BurstApp.names {
+                let message = "Upload of \(name) failed"
+                notifications?.post(message, style: .error, duration: 3)
+            }
+        }
+    }
+}
+
+private struct BurstApp: App {
+    static let names = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet"]
+    init() {}
+    var body: some Scene { WindowGroup { BurstPage() } }
+}
+
 /// A sheet over the page, and a sheet over that, up from the start.
 private struct NestedSheetsPage: View {
     @State private var outer = true
@@ -137,6 +157,18 @@ struct NotificationLifetimeTests {
         #expect(app.scenes.windows.count == 1)
         #expect(app.screen.contains("Saved"), "drawn in the main window: \(app.screen)")
         app.advance(by: .seconds(10))
+        #expect(app.notificationService.entryCount == 0)
+    }
+
+    @Test("Toasts that do not fit wait their turn, and every one of a burst is shown")
+    func burstAllShown() {
+        let app = TestApp(BurstApp(), width: 80, height: 12)
+        var seen: Set<String> = []
+        for _ in 0..<240 {
+            app.advance(by: .milliseconds(250))
+            for name in BurstApp.names where app.screen.contains("Upload of \(name) failed") { seen.insert(name) }
+        }
+        #expect(seen == Set(BurstApp.names), "never shown: \(Set(BurstApp.names).subtracting(seen).sorted())")
         #expect(app.notificationService.entryCount == 0)
     }
 

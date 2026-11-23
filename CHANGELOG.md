@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Every toast of a burst is shown: those that don't fit wait their turn, their timers too.** A stack showed the
+newest toasts that fit, and the older ones aged off screen, so in a burst (ten uploads failing at once) most expired
+unseen. A stack now shows the oldest toasts that fit, and the others wait for room with their timers stopped, so
+each is shown for its whole duration. The newest toast is no longer always the one on screen.
+
 **A toast from a sheet presented over a sheet stays on top once its sheet closes.** A sheet over a sheet that
 posted "Removed" and closed left the toast drawn dimmed under the sheet beneath, its timer stopped until that sheet
 closed too. A closed presentation's toasts now belong to what was beneath it.

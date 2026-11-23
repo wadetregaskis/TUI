@@ -529,7 +529,8 @@ NotificationService.current.dismiss(saving)
 
 Each ``NotificationPlacement`` — a corner, or the middle of the top or bottom
 edge — is a channel that stacks its own toasts, newest nearest its edge, so an
-app can use several at once. A post that names none goes to the service's
+app can use several at once. A stack shows the oldest toasts that fit; the rest
+wait for room, their timers too, so each is shown for its whole duration. A post that names none goes to the service's
 ``NotificationService/defaultPlacement``:
 
 ```swift

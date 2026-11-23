@@ -107,15 +107,19 @@ struct NotificationPlacementTests {
         #expect(service.activeEntries().map(\.message) == ["Stays"])
     }
 
-    @Test("A stack taller than the area keeps the newest toasts that fit, and drops none it shows by half")
-    func overflow() {
+    @Test("A stack taller than the area keeps the oldest toasts that fit, and drops none it shows by half")
+    func overflow() throws {
         let (service, clock) = service()
         for index in 1...8 { service.post("Toast \(index)", placement: .topTrailing) }
         let lines = screen(service, clock: clock, height: 12)
         let shown = (1...8).filter { index in lines.contains { $0.contains("Toast \(index)") } }
-        #expect(shown.contains(8), "the newest is always shown")
-        #expect(!shown.contains(1), "the oldest waits for room")
-        #expect(shown == Array(shown.first!...8), "the newest run that fits: \(shown)")
+        #expect(shown.contains(1), "the oldest is always shown")
+        #expect(!shown.contains(8), "the newest waits for room")
+        let last = try #require(shown.last)
+        #expect(shown == Array(1...last), "the oldest run that fits: \(shown)")
+        // Those that wait do so with their clocks stopped (CHROME-6).
+        let newest = try #require(service.activeEntries().first { $0.message == "Toast 8" })
+        #expect(newest.isCovered, "the newest's clock waits with it")
     }
 
     @Test("width sets how wide a toast is, and never below 8")

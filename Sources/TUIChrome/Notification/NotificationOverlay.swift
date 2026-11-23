@@ -91,6 +91,7 @@ enum NotificationOverlay {
             service: service, context: context, now: now, entries: activeEntries, covered: covered,
             overPresentation: coverage.presentation != nil)
         // A stack per placement, each its own channel; a layer per toast in it.
+        var waiting: Set<NotificationID> = []
         var shown: [NotificationEntry] = []
         var layers: [OverlayLayer] = []
         for placement in NotificationPlacement.allCases {
@@ -99,6 +100,7 @@ enum NotificationOverlay {
             let drawn = stack(channel, placement: placement, width: width, maxHeight: areaHeight - 2, toasts: toasts)
             guard !drawn.isEmpty else { continue }
             shown += drawn.map(\.entry)
+            waiting.formUnion(channel.map(\.id))
             let stackHeight = drawn.reduce(0) { $0 + $1.buffer.height }
             let stackWidth = drawn.map(\.buffer.width).max() ?? 0
             let origin = placement.origin(
@@ -123,6 +125,10 @@ enum NotificationOverlay {
                 y += toast.buffer.height
             }
         }
+        // The toasts that did not fit wait for room with their clocks stopped,
+        // as a covered one does: their time starts when they are first drawn.
+        waiting.subtract(shown.map(\.id))
+        if !waiting.isEmpty { service.setCovered(covered.union(waiting), atNanos: now) }
         // The keys that reach the buttons drawn, newest first: those of the
         // toasts nothing covers, which a presented surface does not stop.
         let reachable = shown.filter {
@@ -278,9 +284,18 @@ enum NotificationOverlay {
     /// with the newest nearest `placement`'s edge: first on the top edge, last
     /// on the bottom.
     ///
-    /// As many as fit in `maxHeight` rows, newest first, and always the newest:
-    /// the older ones wait off screen for room, rather than being cut in half
-    /// at the area's edge.
+    /// As many as fit in `maxHeight` rows, oldest first, and always the oldest:
+    /// the newer ones wait off screen for room, rather than being cut in half
+    /// at the area's edge, and their clocks wait with them (`layers` covers
+    /// them), so each is shown for its whole duration once there is room.
+    ///
+    /// Oldest first because the waiting is fair that way. Newest first, the
+    /// older toasts of a burst aged unseen and expired before any room came
+    /// (CHROME-6); with their clocks stopped they would instead have waited
+    /// for as long as new posts kept coming, and a toast drawn and then pushed
+    /// off by a newer one would come back half way through its life. Oldest
+    /// first, a toast once drawn stays drawn until it goes, and each waits only
+    /// for those posted before it.
     ///
     /// Each toast is drawn at an identity of its own, keyed by its
     /// notification, so what it holds keeps its state for its whole life
@@ -296,7 +311,7 @@ enum NotificationOverlay {
     ) -> [DrawnToast] {
         var drawn: [DrawnToast] = []
         var height = 0
-        for entry in entries.reversed() {
+        for entry in entries {
             let fade = NotificationTiming.opacity(
                 elapsed: entry.age(atNanos: context.now), visibleDuration: entry.duration)
             let opacity = min(max(fade, 0), 1)
@@ -311,7 +326,8 @@ enum NotificationOverlay {
             height += buffer.height
             drawn.append(DrawnToast(buffer: buffer, entry: entry, opacity: opacity))
         }
-        return placement.isTop ? drawn : drawn.reversed()
+        // Walked oldest first: the newest goes nearest the edge.
+        return placement.isTop ? drawn.reversed() : drawn
     }
 }
 

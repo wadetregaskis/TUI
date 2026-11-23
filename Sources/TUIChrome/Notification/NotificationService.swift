@@ -326,7 +326,8 @@ extension NotificationService {
     }
 
     /// Notes which notifications are covered at `now` — drawn under something
-    /// presented over what posted them, or posted for a window not in front —
+    /// presented over what posted them, posted for a window not in front, or
+    /// waiting for room in their stack —
     /// so their clocks stop there, and which are not, so theirs run again: the
     /// window in front's toasts, each frame they are drawn. A dismissed one is
     /// never covered.
