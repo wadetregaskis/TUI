@@ -80,17 +80,33 @@ struct HalfBlocksRenderTests {
     }
 
     /// Applies one SGR parameter string to the tracked background state.
+    ///
+    /// Walked parameter by parameter, a colour's `2;r;g;b` or `5;n` taken
+    /// whole: a foreground whose blue is 49, or a component of 0, is part of
+    /// a colour, not a `49` or a reset. (Matched anywhere in the list, they
+    /// were, once a picture's colours happened to include them.)
     private static func updatedBackground(_ current: String, _ params: String) -> String {
         let parts = params.split(separator: ";", omittingEmptySubsequences: false).map(String.init)
-        var background = (params.isEmpty || parts.contains("0")) ? "" : current
-        if let marker = parts.firstIndex(where: { $0 == "48" || $0 == "49" }) {
-            if parts[marker] == "49" {
-                background = "\u{1B}[49m"
-            } else if marker + 1 < parts.count, parts[marker + 1] == "2", marker + 4 < parts.count {
-                background = "\u{1B}[48;2;\(parts[marker + 2]);\(parts[marker + 3]);\(parts[marker + 4])m"
-            } else if marker + 1 < parts.count, parts[marker + 1] == "5", marker + 2 < parts.count {
-                background = "\u{1B}[48;5;\(parts[marker + 2])m"
+        var background = params.isEmpty ? "" : current
+        var index = 0
+        while index < parts.count {
+            let part = parts[index]
+            let isColour = part == "38" || part == "48" || part == "58"
+            if isColour, index + 4 < parts.count, parts[index + 1] == "2" {
+                if part == "48" {
+                    background = "\u{1B}[48;2;\(parts[index + 2]);\(parts[index + 3]);\(parts[index + 4])m"
+                }
+                index += 5
+                continue
             }
+            if isColour, index + 2 < parts.count, parts[index + 1] == "5" {
+                if part == "48" { background = "\u{1B}[48;5;\(parts[index + 2])m" }
+                index += 3
+                continue
+            }
+            if part == "0" || part.isEmpty { background = "" }
+            if part == "49" { background = "\u{1B}[49m" }
+            index += 1
         }
         return background
     }
