@@ -655,7 +655,10 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // `renderWindowedLadder`.
         if let windowed = renderWindowedLadder(context: context) { return windowed }
 
-        let children = resolveChildViews(from: content, context: context)
+        // A large keyed loop drawn from its first row is built only down to
+        // the fold its walk stops at (`StackFoldPrefix.swift`).
+        let prefix = foldPrefix(context: context)
+        let children = prefix?.children ?? resolveChildViews(from: content, context: context)
         guard !children.isEmpty else { return FrameBuffer() }
         let availableHeight = context.availableHeight
 
@@ -774,7 +777,9 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             }
         }
 
-        return assembleWindow(collected, of: children, context: context)
+        return assembleWindow(
+            collected, isRow: prefix?.isRow ?? WindowedRow.isAmong(children, under: context.identity),
+            context: context)
     }
 
     /// The saturated tail of the classic append-while-fits walk: the first
@@ -831,8 +836,8 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     }
 
     @MainActor private func assembleWindow(
-        _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)], of children: [ChildView],
-        context: RenderContext
+        _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)],
+        isRow: @autoclosure () -> @MainActor (WindowedRow) -> Bool, context: RenderContext
     ) -> FrameBuffer {
         let maxWidth = collected.map(\.buffer.width).max() ?? 0
 
@@ -875,9 +880,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         }
         // Drawn again in ascending z-index where a drawn row has one of its own
         // (`WindowedZOrder`).
-        return fade.finish(
-            drawingOver: zOrder.finish(result, context: context),
-            isRow: WindowedRow.isAmong(children, under: context.identity))
+        return fade.finish(drawingOver: zOrder.finish(result, context: context), isRow: isRow())
     }
 
     /// A pending scrollTo against EAGER (`.clip`) content: the stack renders

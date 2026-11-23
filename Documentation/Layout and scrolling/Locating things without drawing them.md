@@ -1394,6 +1394,16 @@ lazy stacks wherever columns hold them (`StackPulledColumn.swift`,
 draws down to the viewport's bottom only), and left design D's whole-stack walk
 only below containers that do not pull yet.
 
+**The measuring walk builds what it draws (H-12b, 2026-11-22).** Drawing down
+to the viewport's bottom, the walk still resolved the stack's every child to
+reach the rows it drew: an array of ten million children for a screenful, and
+for `ForEach(0..<Int.max)` a trap. A lazy stack past the threshold whose loop
+builds its rows on demand, drawn from its first row (under a measure, or with no
+window to take), now builds them one at a time down to the first that does not
+fit (`StackFoldPrefix.swift`); a spacer among them gives the stack back to the
+eager resolve, which distributes among every spacer, as the anchored measure
+declines on one in its sample.
+
 ## 12. What this does not solve
 
 - **Exact absolute position of item *i*** in variable-height content:

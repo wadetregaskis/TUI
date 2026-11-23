@@ -14,6 +14,7 @@ import Testing
 import TUI
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -434,7 +435,8 @@ private enum LayoutTraps {
     /// than `Int` counts: priced at the pitch, the stack's measure and total
     /// trapped before the first frame. Drawn through a scroll view's window
     /// and reply, as its content: at the top, at the end, and a step up from
-    /// it, the end being the offset the reply's total puts it at.
+    /// it, the end being the offset the reply's total puts it at. Then as an
+    /// app, to its end and back.
     static func endlessLazyStack() {
         func scroll<V: View>(_ stack: V) {
             let context = makeBareRenderContext(width: 20, height: 10)
@@ -456,6 +458,22 @@ private enum LayoutTraps {
             LazyVStack {
                 ForEach(0..<Int.max, id: \.self) { Text(verbatim: "row \($0)").frame(height: $0 % 3 + 1) }
             })
+        // As an app: its first frame's measuring walk built every row (H-12b).
+        // Wide enough for any row's number on one line, so the rows are one
+        // line each: End lands at the estimate's ceiling, a quarter of `Int`'s
+        // range in lines, past which no row is reached (H-12).
+        let app = TestApp(width: 40, height: 10) {
+            ScrollView { LazyVStack { ForEach(0..<Int.max, id: \.self) { Text(verbatim: "row \($0)") } } }
+        }
+        func topRow() -> Int? {
+            guard let line = app.screen.lines.first, let range = line.range(of: "row ") else { return nil }
+            return Int(line[range.upperBound...].prefix { $0.isNumber })
+        }
+        precondition(topRow() == 0)
+        app.press(.end)
+        precondition((topRow() ?? 0) > Int.max / 8)
+        app.press(.home)
+        precondition(topRow() == 0)
     }
 
     static func canvasShadow() {

@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**SwiftUI's endless list runs in an app.** `ScrollView { LazyVStack { ForEach(0..<Int.max, id: \.self) { … } } }`
+trapped on an app's first frame, and a lazy stack of ten million rows built ten million on it: the walk the first
+frame makes of the page to learn its bars drew the stack's top screenful from every one of its rows. Past 256 rows,
+a lazy stack drawn from its first row now builds only the rows down to the first that does not fit, so the first
+frame builds about a screenful, and so do End, Page Down and a scrollbar drag.
+
 **Every toast of a burst is shown: those that don't fit wait their turn, their timers too.** A stack showed the
 newest toasts that fit, and the older ones aged off screen, so in a burst (ten uploads failing at once) most expired
 unseen. A stack now shows the oldest toasts that fit, and the others wait for room with their timers stopped, so
@@ -156,8 +162,7 @@ width re-wraps them; an append keeps it.
 **A lazy stack's estimate of the rows it has not drawn no longer overflows.** Past 256 rows, the lines of the rows
 not yet drawn were `count × pitch`, which trapped for SwiftUI's endless-list idiom, `ForEach(0..<Int.max)`, unless
 every row was one line with no spacing. The estimates are now held at a quarter of `Int`'s range, which the rows past
-it are not reached by. (Such a stack still traps in a running app's first frame, which lists every row; that is
-being tracked separately.)
+it are not reached by.
 
 **Every row of a long lazy stack of mixed heights can be scrolled back to after End or a scrollbar jump.** In
 `ScrollView { LazyVStack { ForEach(…) } }` past 256 rows of several heights, the scroll offset beyond the rows
