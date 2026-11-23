@@ -341,6 +341,13 @@ when unset), the visual/aspect probes print to the terminal.
   placement: the replies and cursor moves the startup handshake reads, and two
   cards (`PROBE_CARD=2`) of crops, replacement, deletion, erases and `z`. Warp
   answers and scales and ignores the source rectangle.
+- `screen_switch_picture_probe.py` — does a picture drawn as `Image` draws
+  one (a virtual placement, `p=1`, and placeholder cells) survive the screen
+  switches of a ⌃Z or a hand-off (`?1049l` then `?1049h`) and of the recovery
+  from an external stop (`?1049h` alone)? A fresh image per step, a look
+  after the cells are written again, then the placement asked for by id.
+  `PROBE_STEP_DIR` holds each look until a driver says so. Ghostty 1.4.0 and
+  iTerm2 3.7.7 kept the image (2026-11-23, H-58).
 - `hairline_probe.py` — can a Kitty **classic** placement (not a placeholder)
   draw a line one or two pixels thick exactly on the boundary between two text
   rows, so a list separator costs no row? Runs on the alternate screen and

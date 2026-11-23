@@ -5035,6 +5035,7 @@ screen switch.
 | Q8 after `ESC[2J` | line gone, strip freed | line gone, strip kept |
 | Q8 after `?1049l`, then `?1049h` | line gone, strip freed | **line shown on the primary screen** and after the return; strip kept |
 | Q8 image store | one per screen | one for both screens |
+| Q8 a placeholder picture across `?1049l`/`?1049h` (Ghostty 1.4.0, iTerm2 3.7.7; below) | image kept (`a=p` `OK`) | image kept, drawn again |
 | Q9 resize | not judged | the line moved |
 | Q10 SGR 4 + 58 underline colour; SGR 53 overline | grey; drawn | grey; **not drawn** |
 
@@ -5240,6 +5241,39 @@ on iTerm2 a line can be left behind.
 Open, to be read off the review: whether Ghostty's line ends short, exact or
 past the run's last cell (Q3's OPEN item, now on TUI's own rows); and the
 look beside the focused and selected rows, which draw no line.
+
+#### A placeholder picture across a screen switch (Q8, H-58) — measured 2026-11-23, Ghostty 1.4.0 and iTerm2 3.7.7
+
+Q8 above is a classic placement's strip. An `Image` is a virtual placement
+(`a=p,U=1,p=1`) and placeholder cells, so the same question was asked of one
+(`Tools/TerminalProbes/screen_switch_picture_probe.py`, macOS 15.8.3, on the
+alternate screen, a fresh image per step): (b) `?1049h` while already on the
+alternate screen, as the recovery from an external stop sends it; (a)
+`?1049l` then `?1049h`, as a ⌃Z or a hand-off does. After each, the cells are
+written again and nothing else (what TUI's first frame after a retake does),
+looked at, and then the placement asked for again by id (`a=p`, `q=0`), whose
+reply says whether the terminal still holds the image.
+
+| | Ghostty 1.4.0 | iTerm2 3.7.7 | kitty 0.49.1 |
+|---|---|---|---|
+| Baseline: `a=p` by id | `OK` | `OK` | not measured: no window on this VM (NSGL, no OpenGL 3.3) |
+| (b) `?1049h` alone: the cells written again, drawn | not looked at (below) | **yes** | — |
+| (b) then `a=p` by id | `OK` | `OK` | — |
+| (a) `?1049l`: the picture on the primary screen | not looked at | no (it has no cells there) | — |
+| (a) back, the cells written again, drawn | not looked at | **yes** | — |
+| (a) then `a=p` by id | **`OK`** (kept) | `OK` (kept) | — |
+| A new image sent and placed after the round trip | `OK` | `OK` | — |
+
+Ghostty 1.4.0 kept the image across the round trip, where 1.3.1 freed the
+classic strip (Q8, the strip re-placed by id → `ENOENT`). Whether its
+PLACEMENT survives is not settled: the `a=p` ask places it again, and the
+picture was not looked at, because `open -na` starts a second Ghostty
+instance and the screenshot tool reaches only the first one's windows. iTerm2
+keeps both, the cells written again draw at once, and its chunked transmit is
+answered `i=0;OK` even with `q=2` on the first chunk.
+
+What TUI does with this is H-58's to decide (its image store forgets nothing
+across a hand-back today).
 
 ---
 
