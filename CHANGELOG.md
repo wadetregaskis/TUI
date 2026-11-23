@@ -110,6 +110,10 @@ promised all three, mixed with options written out, but none compiled: the block
 nowhere for the list a loop or a conditional makes to go. `RadioButtonGroupBuilder` now joins each statement's options
 in written order, as the status bar's builder does.
 
+**Glass joined in a `GlassEffectContainer` frosts what is behind it all the way across.** Under each member the text
+behind lost its glyphs, but the cells the container draws between the members let it through, tinted: two legible
+stripes through a frosted pill. Those cells now frost with the first member's frost, as its own part does.
+
 **`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
 `handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
 `fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It

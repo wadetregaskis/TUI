@@ -116,4 +116,22 @@ struct GlassEffectContainerLayeringTests {
         }
         #expect(settled(view, width: 7, height: 3).map(\.stripped) == ["┏━━━━━┓", "┃A   B┃", "┗━━━━━┛"])
     }
+
+    @Test("What bridges a joined shape frosts the text behind it, as its members' parts do")
+    func bridgeFrosts() {
+        let view = ZStack(alignment: .topLeading) {
+            Text(verbatim: "abcdefg\nhijklmn\nopqrstu")
+            GlassEffectContainer(spacing: 2) {
+                HStack(spacing: 1) {
+                    Text("A").padding().glassEffect()
+                    Text("B").padding().glassEffect()
+                }
+            }
+        }
+        let middle = settled(view, width: 7, height: 3).map(\.stripped)[1]
+        // The column between the members is the joined glass: the "k" behind
+        // it is frosted away, as the "i", "j", "l" and "m" behind the members are.
+        #expect(Array(middle)[3] == " ", "the text behind shows between the members: \(middle.debugDescription)")
+        #expect(!middle.contains { "hijklmn".contains($0) }, "\(middle.debugDescription)")
+    }
 }

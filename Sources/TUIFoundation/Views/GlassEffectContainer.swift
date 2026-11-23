@@ -140,44 +140,74 @@ extension _GlassEffectContainerCore: Renderable {
         let base = walk.base
         let joined = walk.groups.filter { $0.members.count > 1 && $0.drewItsPieces(walk.found) }
         guard !joined.isEmpty, base.width > 0, base.height > 0 else { return base }
-        let layer = Self.between(joined, placed: walk.placed, columns: base.width, rows: base.height, context: context)
+        let layers = Self.between(joined, placed: walk.placed, columns: base.width, rows: base.height, context: context)
         // What lies between the members is glass, in front of what is behind
         // them as each member's part is: over a background inside the
-        // container, and under anything drawn there.
-        let (over, under) = Self.parted(layer, by: base)
+        // container, and under anything drawn there. And it frosts what is
+        // behind it as each member's part does, with its leader's frost, so
+        // no text behind the container shows through the joined shape.
+        let parts = layers.map { (parted: Self.parted($0.cells, by: base), frost: $0.frost) }
         var composite = base
-        if let under {
+        // A later group's cells are in front of an earlier one's, as `between`
+        // lays them: the parts under the base go in last to first, each under
+        // the ones before it, and the parts over it first to last.
+        for part in parts.reversed() {
+            guard let under = part.parted.under else { continue }
             composite = compositeDrawnLayer(
-                under.buffer(), at: (0, 0), under: composite, context: context, modifierType: Self.self)
+                under.buffer().markingFrost(part.frost), at: (0, 0), under: composite, context: context,
+                modifierType: Self.self)
         }
-        if let over {
-            composite = compositeDrawnLayer(
-                over.buffer(), at: (0, 0), over: composite, context: context, modifierType: Self.self)
+        for part in parts {
+            if let over = part.parted.overAField {
+                composite = compositeDrawnLayer(
+                    over.buffer(), at: (0, 0), over: composite, context: context, modifierType: Self.self)
+            }
+            if let over = part.parted.overNothing {
+                composite = compositeDrawnLayer(
+                    over.buffer().markingFrost(part.frost), at: (0, 0), over: composite, context: context,
+                    modifierType: Self.self)
+            }
         }
         return composite
     }
 
-    /// `layer` parted by what `base` draws where it lies: the cells over one
-    /// that draws no glyph — a background, or nothing — which are drawn over
-    /// it, and the cells under a glyph, which are drawn under it; `nil` for a
-    /// part with none.
-    private static func parted(_ layer: ShapeCells, by base: FrameBuffer) -> (over: ShapeCells?, under: ShapeCells?) {
-        var over = ShapeCells(width: layer.width, height: layer.height)
-        var under = over
-        var (anyOver, anyUnder) = (false, false)
+    /// `layer` parted by what `base` draws where it lies; `nil` for a part
+    /// with no cells.
+    ///
+    /// - `under`: the cells under a glyph, drawn under it, and frosting what
+    ///   is behind them.
+    /// - `overNothing`: the cells over one that shows nothing, drawn over it,
+    ///   and frosting what is behind the container there: the frost resolves
+    ///   where the container is drawn over something.
+    /// - `overAField`: the cells over a field and no glyph — a background
+    ///   inside the container — drawn over it, NOT frosted. There is no glyph
+    ///   behind them to drop, and a frost's average there would be taken over
+    ///   the container's own drawing, the members beside the cell with it,
+    ///   not over what is behind the glass: the gap would come out another
+    ///   colour than the members' parts over the same background.
+    private static func parted(
+        _ layer: ShapeCells, by base: FrameBuffer
+    ) -> (overAField: ShapeCells?, overNothing: ShapeCells?, under: ShapeCells?) {
+        var overAField = ShapeCells(width: layer.width, height: layer.height)
+        var (overNothing, under) = (overAField, overAField)
+        var (anyField, anyNothing, anyUnder) = (false, false, false)
         for (row, line) in base.lines.prefix(layer.height).enumerated() {
             let blank = line.columnsDrawingNoGlyph(width: layer.width)
+            let empty = line.columnsShowingNothing(width: layer.width)
             for column in 0..<layer.width where !layer[column, row].isEmpty {
-                if blank[column] {
-                    over[column, row] = layer[column, row]
-                    anyOver = true
+                if empty[column] {
+                    overNothing[column, row] = layer[column, row]
+                    anyNothing = true
+                } else if blank[column] {
+                    overAField[column, row] = layer[column, row]
+                    anyField = true
                 } else {
                     under[column, row] = layer[column, row]
                     anyUnder = true
                 }
             }
         }
-        return (anyOver ? over : nil, anyUnder ? under : nil)
+        return (anyField ? overAField : nil, anyNothing ? overNothing : nil, anyUnder ? under : nil)
     }
 
     /// One drawing of the content: what it drew, where its glass ended up and
@@ -232,21 +262,30 @@ extension _GlassEffectContainerCore: Renderable {
         ).value
     }
 
-    /// What lies between the members of `groups`, drawn into one layer
+    /// What lies between the members of `groups`, drawn into layers
     /// `columns` × `rows`: each group's joined shape — its first member's
     /// glass in its first member's shape and environment, filling the frame
     /// round its members, its rim lifted where the pointer is over any of
     /// them — less every cell a glass in `placed` covers, which that glass
     /// draws itself. All of it there: only glass that has arrived joins.
+    ///
+    /// Each layer holds a run of groups whose leaders frost alike, with that
+    /// frost (``Glass/frost(in:)``, in the leader's environment) to mark it
+    /// with: one layer, as a rule, and another only where a later group's
+    /// leader frosts otherwise. In `groups`' order, a later layer in front.
     @MainActor
     private static func between(
         _ groups: [GlassGroup], placed: [PlacedGlass], columns: Int, rows: Int, context: RenderContext
-    ) -> ShapeCells {
-        var layer = ShapeCells(width: columns, height: rows)
+    ) -> [(cells: ShapeCells, frost: OpacityRegion.Frost)] {
+        var layers: [(cells: ShapeCells, frost: OpacityRegion.Frost)] = []
         for group in groups {
             guard let leader = group.leader?.glass else { continue }
             let frame = group.frame
             guard frame.width > 0, frame.height > 0 else { continue }
+            let frost = leader.glass.frost(in: leader.environment)
+            if layers.last?.frost != frost {
+                layers.append((ShapeCells(width: columns, height: rows), frost))
+            }
             var drawing = context
             drawing.environment = leader.environment
             var cells = GlassCells.drawing(
@@ -258,9 +297,9 @@ extension _GlassEffectContainerCore: Renderable {
                         x: glass.frame.x - frame.x, y: glass.frame.y - frame.y, width: glass.frame.width,
                         height: glass.frame.height))
             }
-            layer.laying(cells, at: (frame.x, frame.y))
+            layers[layers.count - 1].cells.laying(cells, at: (frame.x, frame.y))
         }
-        return layer
+        return layers
     }
 }
 

@@ -173,7 +173,14 @@ is one shape round all of its members. A cell is joined or not, so here:
   under anything drawn there (a glyph, and the field it is drawn on). (The container first drew the whole shape
   behind its content, past all of that: an opaque background inside the
   container covered the joined glass from the second pass on — found in
-  review.)
+  review.) And it frosts what is behind it as their parts do, with the
+  first member's frost read in its environment (`Glass.frost(in:)`): until
+  2026-11-23 (hunt H-50, BLEND-4) the cells between the members were drawn
+  bare, and the text behind them showed through a frosted pill as two
+  legible stripes. Over a background inside the container the cells between
+  stay unfrosted: no glyph is behind them, and a box's average there would
+  be taken over the container's own drawing, the members beside them with
+  it, so the gap came out another colour than the members' parts.
 - **How:** each glass draws itself and tells the container where it is (a
   geometry marker it finds in what the content drew, `GlassEffectGathering`).
   The container keeps the part each glass it found joined draws, and those
