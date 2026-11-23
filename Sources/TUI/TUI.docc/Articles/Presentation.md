@@ -590,7 +590,9 @@ var body: some View {
 
 A window's toast is drawn while that window is in front, and waits, its timer
 too, while another window is. One whose window closes before it is shown —
-"Saved", then `dismissWindow()` — is drawn in the window in front.
+"Saved", then `dismissWindow()` — is drawn in the window in front. Likewise a
+sheet's or an alert's toast that outlasts it belongs, once it closes, to what
+was beneath it: on top of the sheet it was presented over, not under it.
 
 A text notification can also be posted on the desktop, where the person sees
 it from another window: ``NotificationDesktopDelivery``. `.never`, the default,

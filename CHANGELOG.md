@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A toast from a sheet presented over a sheet stays on top once its sheet closes.** A sheet over a sheet that
+posted "Removed" and closed left the toast drawn dimmed under the sheet beneath, its timer stopped until that sheet
+closed too. A closed presentation's toasts now belong to what was beneath it.
+
 **A toast posted from a window that then closes is shown in the window in front.** Posting "Saved" and calling
 `dismissWindow()` left the toast waiting for good for a window that never came back: it was never shown, never went,
 and kept the app waking four times a second. A closed window's toasts are now drawn by the window in front.

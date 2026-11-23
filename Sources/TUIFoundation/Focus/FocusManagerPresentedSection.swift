@@ -105,6 +105,31 @@ extension FocusManager {
         return modalSectionIDs.contains(active) || previousModalSectionIDs.contains(active) ? active : nil
     }
 
+    /// Whether the surface presented in section `id` is still up: it holds the
+    /// keyboard — itself, or a section drawn inside it — or lies beneath the
+    /// surface that does, through the sections each was activated over (a
+    /// sheet over a sheet, the toasts' buttons focused over a sheet).
+    ///
+    /// For a toast posted from a presentation, which is drawn on top of it
+    /// while it is up and under anything presented over it: once it has
+    /// closed, the toast is handed to what is presented now
+    /// (`NotificationOverlay`). Not the modal marks, which keep a surface
+    /// dismissed last frame for one frame more (``presentedSection(beneath:)``):
+    /// a dismissal clears its section's revert target at once.
+    package func isPresentationUp(_ id: String) -> Bool {
+        guard var section = activeSectionIdentifier else { return false }
+        // Bounded by the table's size, as in `activatePresentedSection(id:)`:
+        // nothing stops the table holding a cycle.
+        var remaining = sectionRevertTarget.count + 1
+        while remaining > 0 {
+            if section == id || isDrawn(section, inside: id) { return true }
+            guard let below = sectionRevertTarget[section] else { return false }
+            section = below
+            remaining -= 1
+        }
+        return false
+    }
+
     /// Posts how to close the surface presented in section `id` — asked by a
     /// presenter every frame it draws the surface, as it marks the section
     /// modal.

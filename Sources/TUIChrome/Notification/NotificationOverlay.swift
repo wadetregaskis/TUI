@@ -76,6 +76,7 @@ enum NotificationOverlay {
         // drawing reads their ages.
         let coverage = NotificationCoverage(
             focusManager: context.environment.focusManager, window: service.owner?.window)
+        handOnToastsOfClosedPresentations(service: service, coverage: coverage, context: context)
         let covered = Set(service.activeEntries().filter(coverage.covers).map(\.id))
         service.setCovered(covered, atNanos: now)
         let activeEntries = service.activeEntries().filter(coverage.isDrawnHere)
@@ -130,6 +131,41 @@ enum NotificationOverlay {
         .sorted { $0.postedAtNanos > $1.postedAtNanos }.map(\.id)
         NotificationKeyboard.register(toasts: reachable, service: service, context: context)
         return layers
+    }
+
+    /// Hands the toasts of this window's presentations that have closed to
+    /// the presentation holding the keyboard now, or to the window where none
+    /// does.
+    ///
+    /// A toast posted from a sheet is on top of it while it is up, and under
+    /// anything presented over it. Sheet B, presented over sheet A, posts
+    /// "Removed" and closes: the toast was still B's, so A — presented under
+    /// B, not over it — covered it, drawn dimmed under A's veil with its clock
+    /// stopped until A closed too (CHROME-9). As A's it is on top of A, and
+    /// under a sheet presented over A later. Here rather than at each kind of
+    /// presentation's dismissal: a sheet, an alert, a dialog and a popover all
+    /// close by giving their focus section back (`isPresentationUp(_:)`).
+    @MainActor
+    private static func handOnToastsOfClosedPresentations(
+        service: NotificationService, coverage: NotificationCoverage, context: RenderContext
+    ) {
+        guard let focusManager = context.environment.focusManager else { return }
+        // Asked of the focus manager out here, on the main actor, not inside
+        // the service's lock.
+        let mine = service.activeEntries().filter(coverage.isDrawnHere)
+        // Spelled out step by step, with the types named: as one chain of
+        // optional maps and closures it cost the type checker too long.
+        var ids: Set<NotificationID> = []
+        for entry in mine {
+            guard let presentation: String = entry.owner?.presentation,
+                !focusManager.isPresentationUp(presentation)
+            else { continue }
+            ids.insert(entry.id)
+        }
+        guard !ids.isEmpty else { return }
+        let now = coverage.presentation
+        service.reown(
+            where: { ids.contains($0.id) }, to: { NotificationOwner(window: $0?.window, presentation: now) })
     }
 
     /// The ``OverlayLayer/zIndex`` of a covered toast's layer, at

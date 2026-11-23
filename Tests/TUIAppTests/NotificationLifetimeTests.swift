@@ -73,6 +73,43 @@ private struct TwoWindowsApp: App {
     }
 }
 
+/// A sheet over the page, and a sheet over that, up from the start.
+private struct NestedSheetsPage: View {
+    @State private var outer = true
+
+    var body: some View {
+        Text("page").sheet(isPresented: $outer) { OuterSheet() }
+    }
+}
+
+private struct OuterSheet: View {
+    @State private var inner = true
+
+    var body: some View {
+        Text("outer sheet").sheet(isPresented: $inner) { InnerSheet() }
+    }
+}
+
+/// The inner sheet: its button posts a toast through the sheet's own service,
+/// and closes the sheet.
+private struct InnerSheet: View {
+    @Environment(\.notificationService) private var notifications
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        let (service, dismiss) = (notifications, dismiss)
+        Button("remove") {
+            service?.post("Removed")
+            dismiss()
+        }
+    }
+}
+
+private struct NestedSheetsApp: App {
+    init() {}
+    var body: some Scene { WindowGroup { NestedSheetsPage() } }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -100,6 +137,21 @@ struct NotificationLifetimeTests {
         #expect(app.scenes.windows.count == 1)
         #expect(app.screen.contains("Saved"), "drawn in the main window: \(app.screen)")
         app.advance(by: .seconds(10))
+        #expect(app.notificationService.entryCount == 0)
+    }
+
+    @Test("A toast from a nested sheet that closes is on top of the sheet beneath, and goes")
+    func closedNestedSheetsToast() throws {
+        let app = TestApp(NestedSheetsApp(), width: 80, height: 16)
+        app.advance(by: .milliseconds(500))
+        #expect(app.screen.contains("remove"), "\(app.screen)")
+        _ = app.press(.enter)  // remove, and close the inner sheet
+        app.advance(by: .milliseconds(500))
+        #expect(app.screen.contains("outer sheet") && !app.screen.contains("remove"), "\(app.screen)")
+        let entry = try #require(app.notificationService.activeEntries().first)
+        #expect(!entry.isCovered, "under nothing: the sheet beneath was beneath the one that posted it")
+        app.advance(by: .seconds(10))
+        #expect(app.screen.contains("outer sheet"))
         #expect(app.notificationService.entryCount == 0)
     }
 }
