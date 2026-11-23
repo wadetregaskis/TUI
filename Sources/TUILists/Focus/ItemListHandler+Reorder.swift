@@ -439,21 +439,27 @@ extension ItemListHandler {
         if isKeyboardMove, let handled = handleKeyboardMoveKey(event) { return handled }
         // Chords, so they work in either selection mode.
         guard let (action, accelerated) = shortcuts.action(for: event) else { return nil }
-        // From no row there is no row to carry or move: taken, and nothing moves.
-        if cursorIsUnplaced { return true }
+        // From no row there is no row to carry or move: a move chord is taken,
+        // and nothing moves. Only a move chord: asked before the switch, the
+        // guard took every row chord, so from no row ⌃A, the extend chord and
+        // the sort chords were swallowed before their own handlers saw them.
+        func moving(_ move: () -> Bool) -> Bool? {
+            if cursorIsUnplaced { return true }
+            return move() ? true : nil
+        }
         // Shift rides along as the coarse step, exactly as it does for the
         // cursor keys — same environment-configured multiplier.
         let step = accelerated ? max(1, shiftStepMultiplier) : 1
         switch action {
         // A `.draggable` row is carried as the drag it is, out of the list or
         // within it (``pickUpFocusedRowDrag()``); any other is moved.
-        case .pickUpRow: return pickUpFocusedRowDrag() || beginKeyboardMove() ? true : nil
-        case .moveRowUp: return nudgeFocusedRow(by: -step) ? true : nil
-        case .moveRowDown: return nudgeFocusedRow(by: step) ? true : nil
-        case .moveRowPageUp: return nudgeFocusedRow(by: -pageStep) ? true : nil
-        case .moveRowPageDown: return nudgeFocusedRow(by: pageStep) ? true : nil
-        case .moveRowToTop: return moveFocusedRow(to: 0) ? true : nil
-        case .moveRowToBottom: return moveFocusedRow(to: itemCount - 1) ? true : nil
+        case .pickUpRow: return moving { pickUpFocusedRowDrag() || beginKeyboardMove() }
+        case .moveRowUp: return moving { nudgeFocusedRow(by: -step) }
+        case .moveRowDown: return moving { nudgeFocusedRow(by: step) }
+        case .moveRowPageUp: return moving { nudgeFocusedRow(by: -pageStep) }
+        case .moveRowPageDown: return moving { nudgeFocusedRow(by: pageStep) }
+        case .moveRowToTop: return moving { moveFocusedRow(to: 0) }
+        case .moveRowToBottom: return moving { moveFocusedRow(to: itemCount - 1) }
         // Sorting is not a reorder — and must not happen during one, which is
         // `handleSortKey`'s `!isReordering` guard.
         case .selectAll, .extendSelection, .placeRow, .cancelMove,

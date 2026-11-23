@@ -303,3 +303,15 @@ tail, the place a fresh bottom-anchored list starts from, and not without the
 modifier, where the cursor is apart from the selection.
 `FirstKeyFromEmptySelectionTests` (`clearedByTheAppPageDown`,
 `clearedByTheAppPageUp`, `clearedByTheAppShiftDown`) pins it.
+
+**The chords from no row (2026-11-22).** The guard that keeps the reorder
+chords off a cursor on no row sat before the reorder handler asked which
+chord it had, so it took every row chord: ⌃A, the extend chord (⌃V), the sort
+chords, ⌃K, the swipe chords, and Return and Escape, which the table binds to
+placing and putting back a held row. From no row ⌃A selected nothing, ⌃V
+entered no extend mode and a table did not sort; Escape was taken where a
+focused list must let it through. Now only the move chords are taken there.
+⌃V from no row anchors on the first row, where the carried cursor is, and the
+swipe chords fall through, as the swipe handler's own guard has them.
+`MultiSelectionKeyboardTests` (`selectAllFromNoRow`, `extendChordFromNoRow`,
+`sortChordFromNoRow`, `extendChordAfterAnAppClear`) pins it.

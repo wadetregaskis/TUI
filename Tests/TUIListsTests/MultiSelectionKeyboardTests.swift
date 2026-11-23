@@ -288,6 +288,62 @@ struct MultiSelectionKeyboardTests {
         handler.onFocusLost()
         #expect(handler.focusedIndex == 9)
     }
+
+    // MARK: - From no row (`.selectionFollowsCursor()`, nothing placed)
+
+    /// The guard that keeps the reorder chords off a cursor on no row took
+    /// every row chord: ⌃A, ⌃V and the sort chords were swallowed too.
+    @Test("From no row, Ctrl-A still selects all")
+    func selectAllFromNoRow() {
+        let box = SelectionBox()
+        let handler = makeHandler(box)
+        handler.selectionFollowsCursor = true
+        #expect(handler.cursorIsUnplaced, "precondition")
+        #expect(press(handler, .character("a"), ctrl: true))
+        #expect(box.selection == ["a", "b", "c", "d", "e"])
+    }
+
+    @Test("From no row, Ctrl-V enters extend mode on the first row")
+    func extendChordFromNoRow() {
+        let box = SelectionBox()
+        let handler = makeHandler(box)
+        handler.selectionFollowsCursor = true
+        #expect(press(handler, .character("v"), ctrl: true))
+        #expect(handler.isExtendingSelection)
+        #expect(box.selection == ["a"])
+    }
+
+    @Test("From no row, the sort chord still sorts")
+    func sortChordFromNoRow() {
+        let box = SelectionBox()
+        let handler = makeHandler(box)
+        handler.selectionFollowsCursor = true
+        var sorted: [RowAction] = []
+        handler.onSort = { sorted.append($0) }
+        #expect(press(handler, .character("s"), ctrl: true))
+        #expect(sorted == [.sortNextColumn])
+    }
+
+    /// Hunt item LISTS-5: under `.selectionFollowsCursor()` the app's clear
+    /// forgets the cursor, and Ctrl-V was swallowed there, or with a cursor
+    /// on no row would have anchored at the forgotten one. It starts where a
+    /// fresh list's does, on the first row. The frames are the render's
+    /// `followWrittenSelection()` calls, the app writing in between.
+    @Test("After the app clears the selection, Ctrl-V starts at the first row")
+    func extendChordAfterAnAppClear() {
+        let box = SelectionBox()
+        let ids = (0..<100).map { "r\($0)" }
+        let handler = makeHandler(box, ids: ids)
+        handler.selectionFollowsCursor = true
+        handler.followWrittenSelection()  // the first frame, nothing selected
+        box.selection = ["r50"]
+        handler.followWrittenSelection()
+        #expect(handler.focusedIndex == 50, "precondition: the cursor went onto the written row")
+        box.selection = []
+        handler.followWrittenSelection()
+        #expect(press(handler, .character("v"), ctrl: true))
+        #expect(box.selection == ["r0"])
+    }
 }
 
 // MARK: - Render-pass claim publication

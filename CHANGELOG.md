@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A following list with nothing selected answers ⌃A, ⌃V, the sort chords and Escape again.** Under
+`.selectionFollowsCursor()`, a list or table whose cursor is on no row (nothing selected yet, or the app cleared the
+selection) took every row chord and did nothing with it, where it meant to refuse only the row-moving ones: ⌃A
+selected nothing, ⌃V entered no extend mode, ⌃S and ⌃D did not sort a table, and Escape stopped at the list instead
+of going on to the page. Only the move chords are refused there now; ⌃V starts on the first row.
+
 **After an app clears a following list's selection, the page keys start from the top.** Under
 `.selectionFollowsCursor()`, a selection the app empties forgets the cursor, and Down and Up already started afresh,
 but Page Down selected a page below the forgotten row and Page Up a page above it, and Shift with an arrow spanned
