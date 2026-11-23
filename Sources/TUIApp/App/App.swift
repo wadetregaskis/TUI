@@ -674,13 +674,14 @@ extension AppRunner {
         let renderer = makeRenderLoop()
         startHostSettings(renderer: renderer)
 
-        // Under tmux, have it PUSH a SIGWINCH at us whenever a client attaches,
-        // Nothing on screen changes but as the direct result of user interaction: for
-        // clips and screen readers. Not advertised (`Documentation/Environment variables
-        // for developing TUI.md`).
+        // With `TUI_STILL=1`, nothing on screen changes but as the direct result
+        // of user interaction: for clips and screen readers. Not advertised
+        // (`Documentation/Environment variables for developing TUI.md`).
         if ProcessInfo.processInfo.environment["TUI_STILL"] == "1" {
             renderer.stillDate = FrameClock.nowDate
         }
+
+        // Under tmux, have it PUSH a SIGWINCH at us whenever a client attaches,
         // detaches, or changes session — the only events that can change which
         // terminal is painting our output (and so the emoji-chrome answer). A
         // same-size attach sends no SIGWINCH of its own, so without this the
