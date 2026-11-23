@@ -1097,11 +1097,9 @@ let package = Package(
         // `Example` executable (measured, SwiftPM 6.2.4).
         .testTarget(name: "TUIMacrosTests", dependencies: ["TUIMacros", "TUI", "TUITestProcess"]),
 
-        // ── Stress test ─────────────────────────────────────────────────────────────────────────────────
-        // A performance stress harness shaped like an app: deep/wide view
-        // hierarchies over large, pseudo-randomly synthesised data sets. Runs
-        // interactively, or headless (`--bench`/`--selfcheck`) as a no-PTY
-        // profiling instrument (see Sources/Stress/README.md).
+        // ── Apps ────────────────────────────────────────────────────────────────────────────────────────
+        // A diagnostic and demonstration of how TUI names the terminal and the workarounds that selects
+        // (Sources/TerminalClientQuirks/README.md).
         .executableTarget(
             name: "TerminalClientQuirks",
             dependencies: ["TUI", "TUIWidthCorpus"],
@@ -1109,6 +1107,12 @@ let package = Package(
         ),
         // A small text editor, written as a SwiftUI document app is (Sources/DocumentEditor/DocumentEditor.swift).
         .executableTarget(name: "DocumentEditor", dependencies: ["TUI"]),
+
+        // ── Stress test ─────────────────────────────────────────────────────────────────────────────────
+        // A performance stress harness shaped like an app: deep/wide view
+        // hierarchies over large, pseudo-randomly synthesised data sets. Runs
+        // interactively, or headless (`--bench`/`--selfcheck`) as a no-PTY
+        // profiling instrument (see Sources/Stress/README.md).
         .executableTarget(
             name: "Stress",
             dependencies: ["TUI", "TUIJSONStyler"],
