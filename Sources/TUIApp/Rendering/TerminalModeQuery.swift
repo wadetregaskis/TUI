@@ -198,7 +198,11 @@ extension Terminal {
     }
 
     /// The same modes put back on a resume, which ``inputModesOff`` and the
-    /// grapheme-clustering restore took off: nothing is asked again.
+    /// grapheme-clustering restore took off. OSC 5522 is not asked again, its
+    /// answer kept from launch; grapheme clustering is, on Ghostty, as at
+    /// launch, since the restore put the mode back as it found it
+    /// (``pinGraphemeClusteringIfNeeded()``: a round trip, up to half a second
+    /// on a terminal that has gone quiet).
     func resumeModesOfIdentifiedHost() {
         pinGraphemeClusteringIfNeeded()
         enableMIMEPasteEventsIfSupported()

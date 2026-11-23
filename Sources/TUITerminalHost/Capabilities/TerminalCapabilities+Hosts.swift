@@ -13,11 +13,14 @@ extension TerminalCapabilities {
     /// What the table of measured terminals says of `program`'s text
     /// decorations, every other feature undetermined.
     ///
-    /// The four terminals the owner read `line_style_card.py` in (2026-10-18)
-    /// are settled, from `TerminalHost.lineStyles(for:)`, which is what the
-    /// renderer reduces a style by, so the two cannot disagree; and the
-    /// strikethrough from the same reading, where Apple Terminal alone drew
-    /// none. Every other terminal is undetermined: GNOME Terminal has not been
+    /// The terminals whose line styles have been read are settled, from
+    /// `TerminalHost.lineStyles(for:)`, which is what the renderer reduces a
+    /// style by, so the two cannot disagree: the four the owner read
+    /// `line_style_card.py` in (2026-10-18), xterm.js (the survey's xterm.js
+    /// table, read off its Text Styles page), and Windows Terminal and conhost
+    /// (read 2026-11-16). The strikethrough is from the same readings, where
+    /// Apple Terminal and conhost alone drew none. Every other terminal is
+    /// undetermined: GNOME Terminal has not been
     /// read, an unidentified one cannot be, and tmux draws a style in each
     /// terminal attached that can and a plain line in the others. See
     /// *Terminal compatibility survey*, "Underline shapes and colours".

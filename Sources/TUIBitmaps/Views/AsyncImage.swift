@@ -51,7 +51,9 @@ public enum AsyncImagePhase: Sendable {
 /// conformance its SDK marks unavailable), and it is only compared and kept
 /// alive here, never called. `draw` is a closure that captures it, run wherever
 /// `pixels` is first asked for: main-actor work in practice, views being built
-/// and drawn there. The drawn-out pixels are behind a lock.
+/// and drawn there. The drawn-out pixels are behind a lock. `landedPixels` is
+/// not: it is read and let go of only by the view that draws a load, on the
+/// main actor, and nothing here enforces that.
 package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
     /// What the pixels are drawn out of — a `CGImage` or an `NSImage` — or
     /// `nil` for pixels handed over as they are.
