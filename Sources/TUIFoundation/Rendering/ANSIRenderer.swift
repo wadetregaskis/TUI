@@ -248,10 +248,9 @@ extension ANSIRenderer {
 
     /// Wraps a string in a background color that persists across ANSI resets.
     ///
-    /// Every occurrence of the reset code inside `string` — the collapsed
-    /// spelling `ESC[0;…m` included, see ``splittingCollapsedResets(_:)`` —
-    /// is replaced with `reset + bgCode`, so the background "survives"
-    /// foreground-color resets.
+    /// Every reset inside `string` — however it is spelled, see
+    /// ``restating(_:afterResetsIn:)`` — is followed by `bgCode`, so the
+    /// background "survives" foreground-color resets.
     /// This is necessary for container backgrounds where inner content contains
     /// its own ANSI reset sequences.
     ///
@@ -411,33 +410,29 @@ extension ANSIRenderer {
         return kept
     }
 
-    /// `ESC[0;<params>m` spelled as `ESC[0m ESC[<params>m`, so that a
-    /// re-injection keyed on the literal reset sees every reset.
+    /// `string` with `restore` re-stated after every reset it contains, in one
+    /// pass over the bytes, since it runs once per rebuilt row and once per
+    /// animated run patched on every tick (8% of a live frame between them).
     ///
-    /// `collapsingAdjacentSGR` nets a reset and the styling after it into one
-    /// escape, and opacity resolution collapses the rows it rebuilds — so a
-    /// row that has been through a fade begins its faded span with the fused
-    /// spelling. The persistent-style wrappers above re-state their style
-    /// after each `ESC[0m`; keyed on the literal alone they missed the fused
-    /// one, and a dimmed row un-dimmed from the fade onward. One splitter,
-    /// used by both wrappers and by the replay's background restoration.
-    static func splittingCollapsedResets(_ string: String) -> String {
-        string.replacing("\u{1B}[0;", with: reset + "\u{1B}[")
-    }
-
-    /// `string` with `restore` re-stated after every reset it contains, a
-    /// collapsed `ESC[0;…m` counting as a reset followed by the rest — what
-    /// `splittingCollapsedResets(string).replacing(reset, with: reset +
-    /// restore)` produces, byte for byte, in one pass over the bytes instead
-    /// of two generic searches, since it runs once per rebuilt row and once
-    /// per animated run patched on every tick (8% of a live frame between
-    /// them).
+    /// A reset is SGR 0 wherever `SGRState` reads one: `ESC[0m`, git's and
+    /// grep's bare `ESC[m`, `ESC[00m`, an empty first slot (`ESC[;1m`), and a
+    /// reset in a later parameter (`ESC[1;0m`). A sequence holding one is
+    /// rewritten as `ESC[0m`, `restore`, then the parameters after its LAST
+    /// reset as a sequence of their own — `ESC[0;31m` as `ESC[0m`, `restore`,
+    /// `ESC[31m` — so what the sequence states after the reset still overrides
+    /// what is restored, and the parameters before it, which the reset undoes,
+    /// are dropped. `collapsingAdjacentSGR()` nets a reset and the styling
+    /// after it into that collapsed spelling, and opacity resolution collapses
+    /// the rows it rebuilds, so a row through a fade begins its faded span with
+    /// it. Every other sequence, the non-SGR ones and a reset's look-alike
+    /// inside a hyperlink's payload included, is copied as it is.
     ///
-    /// The two-step form's exact behaviour is kept, including its edges: a
-    /// split that the first step creates (`ESC[0;0;31m` → `ESC[0m ESC[0;31m`)
-    /// is not split again, but an `ESC[0m` the split forms (`ESC[0;0m` →
-    /// `ESC[0m ESC[0m`) is a reset the second step sees and restores after.
-    /// `RestatingAfterResetsTests` pins the two equal on randomised input.
+    /// Until 2026-11-22 only the literal `ESC[0m` and the collapsed `ESC[0;`
+    /// were seen, so after a kept `ESC[m` (`.textKeepsEscapeSequences()` over
+    /// git's output) a list row's highlight stopped mid-row and the row builder
+    /// left the rest of the row on the terminal's own background.
+    /// `RestatingAfterResetsTests` pins this walk to a reference built on the
+    /// segment walker.
     ///
     /// - Parameters:
     ///   - string: A styled line or fragment.
@@ -482,8 +477,12 @@ extension ANSIRenderer {
         let padding = max(0, padding)
         return string.withUTF8 { input in
             restore.withUTF8 { restoreBytes -> String? in
-                let body = unsafe restoreBytes.isEmpty ? input.count : restated(input, restoring: restoreBytes, into: nil)
-                guard body != input.count || !opening.isEmpty || padding > 0 || !closing.isEmpty else { return nil }
+                // Whether any reset was found, not whether the length moved: a
+                // reset whose dropped parameters weigh what the restoration does
+                // (`ESC[0;000m` restoring `ESC[2m`) is the same length rewritten.
+                let (body, rewritten) =
+                    unsafe restoreBytes.isEmpty ? (input.count, false) : restated(input, restoring: restoreBytes, into: nil)
+                guard rewritten || !opening.isEmpty || padding > 0 || !closing.isEmpty else { return nil }
                 return opening.withUTF8 { openingBytes in
                     closing.withUTF8 { closingBytes in
                         let length = openingBytes.count + body + padding + closingBytes.count
@@ -499,7 +498,7 @@ extension ANSIRenderer {
                             if restoreBytes.isEmpty {
                                 unsafe put(input)
                             } else {
-                                unsafe cursor += restated(input, restoring: restoreBytes, into: cursor)
+                                unsafe cursor += restated(input, restoring: restoreBytes, into: cursor).length
                             }
                             unsafe cursor.initialize(repeating: 0x20, count: padding)
                             unsafe cursor += padding
@@ -515,20 +514,15 @@ extension ANSIRenderer {
     /// `input` with `restore` written after every reset it contains — the walk
     /// both halves of ``wrapping(_:restoring:opening:padding:closing:)`` share,
     /// so the length it sizes the buffer with and the bytes it writes cannot
-    /// disagree: with no `output` it only counts.
-    ///
-    /// The two-step form's exact behaviour, edges included — see
-    /// ``restating(_:afterResetsIn:)``: an `ESC[0m` restores after itself; an
-    /// `ESC[0;` becomes `ESC[0m`, the restoration and a fresh `ESC[` for the
-    /// rest, and a `0m` straight after it is a reset of its own, restored
-    /// after too; a `0;` there is not split again.
+    /// disagree: with no `output` it only counts. What a reset is, and what
+    /// replaces it, is ``restating(_:afterResetsIn:)``'s rule.
     ///
     /// - Returns: How many bytes the result takes — written to `output` when
-    ///   there is one.
+    ///   there is one — and whether any reset was rewritten.
     private static func restated(
         _ input: UnsafeBufferPointer<UInt8>, restoring restore: UnsafeBufferPointer<UInt8>,
         into output: UnsafeMutablePointer<UInt8>?
-    ) -> Int {
+    ) -> (length: Int, rewritten: Bool) {
         var written = 0
         func put(_ bytes: UnsafeBufferPointer<UInt8>) {
             if let output = unsafe output, let from = bytes.baseAddress, !bytes.isEmpty {
@@ -546,35 +540,38 @@ extension ANSIRenderer {
         let count = input.count
         var index = 0
         var runStart = 0
-        // A reset is four bytes, `ESC [ 0 m`, or the collapsed `ESC [ 0 ;` that
-        // opens one; anything shorter at the end is copied as it is.
-        while index + 3 < count {
-            guard unsafe input[index] == 0x1B, unsafe input[index + 1] == 0x5B, unsafe input[index + 2] == 0x30,
-                unsafe input[index + 3] == 0x6D || input[index + 3] == 0x3B
-            else {
+        while index < count {
+            guard unsafe input[index] == 0x1B else {
                 index += 1
                 continue
             }
-            let collapsed = unsafe input[index + 3] == 0x3B
+            // The segment walker's rule for where an escape ends, so a
+            // hyperlink's payload is stepped over whole.
+            let (end, isSGR) = unsafe String.escapeSequenceEnd(startingAt: index, in: input)
+            // An SGR is at least `ESC [ m`; its parameters lie between.
+            guard isSGR,
+                let afterReset = unsafe SGRState.endOfLastReset(
+                    inParameters: UnsafeBufferPointer(rebasing: input[(index + 2)..<(end - 1)]))
+            else {
+                index = end
+                continue
+            }
             unsafe put(UnsafeBufferPointer(rebasing: input[runStart..<index]))
             put(0x1B, 0x5B)  // ESC [
             put(0x30, 0x6D)  // 0 m
             unsafe put(restore)
-            index += 4
-            if collapsed {
-                // The rest of the collapsed sequence, in a sequence of its own.
+            // What the sequence states after its last reset, in a sequence of
+            // its own, its `m` included.
+            let rest = index + 2 + afterReset
+            if rest < end - 1 {
                 put(0x1B, 0x5B)
-                // `ESC[0;0m`: the `0m` just opened is a reset too.
-                if index + 1 < count, unsafe input[index] == 0x30, unsafe input[index + 1] == 0x6D {
-                    put(0x30, 0x6D)
-                    unsafe put(restore)
-                    index += 2
-                }
+                unsafe put(UnsafeBufferPointer(rebasing: input[rest..<end]))
             }
-            runStart = index
+            index = end
+            runStart = end
         }
         unsafe put(UnsafeBufferPointer(rebasing: input[runStart..<count]))
-        return written
+        return (written, runStart > 0)
     }
 
     /// Moves the cursor to the specified position.

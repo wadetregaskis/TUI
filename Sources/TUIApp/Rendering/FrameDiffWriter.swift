@@ -557,8 +557,8 @@ extension FrameDiffWriter {
         // under-advance. All models are DSR-measured; see
         // Documentation/Terminals/Terminal compatibility survey.md.
         let compensated = compensatingCursorAdvance(clipped)
-        // A reset is not always a sequence of its OWN, and the restoration below
-        // matches only the literal `ESC[0m`.
+        // A reset is not always a sequence of its OWN, nor always spelled
+        // `ESC[0m`, and the restoration below has to see every one.
         //
         // `collapsingAdjacentSGR()` renders a line's first absolute run as
         // `ESC[0;<params>m` — reset and styling in one sequence — so anything
@@ -567,12 +567,12 @@ extension FrameDiffWriter {
         // Unseen by the replacement, those cells cleared the row's background
         // and showed the TERMINAL's instead: white on Apple Terminal's light
         // profile, black on a dark one. Reported as the Animation page's fading
-        // and breathing text having a white background.
+        // and breathing text having a white background. Text that keeps its own
+        // escapes brings git's and grep's bare `ESC[m` here too.
         //
-        // Split back apart rather than matched separately, so there is one
-        // spelling for the restoration to find — and `collapsingAdjacentSGR()`
-        // at the end of this function puts the pieces together again, with the
-        // background now between them.
+        // Split apart rather than matched separately, so the background goes
+        // between the reset and what follows it — and `collapsingAdjacentSGR()`
+        // at the end of this function puts the pieces together again.
         let mainWithBg = Self.restoringBackground(in: compensated, bgCode: bgCode, reset: reset)
         let padding = max(0, terminalWidth - clippedWidth)
         let line = bgCode + eraseLine + mainWithBg + String.spaces(padding) + reset

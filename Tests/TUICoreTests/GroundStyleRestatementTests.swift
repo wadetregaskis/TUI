@@ -21,11 +21,14 @@ struct GroundStyleRestatementTests {
     private let esc = "\u{1B}"
 
     /// What a painter restating `restatement` after every reset makes of `frame`:
-    /// the restatement in front, and again after each literal `ESC[0m` and each
-    /// collapsed `ESC[0;…m` (a reset, the restatement, then the rest) — the rule
-    /// `ANSIRenderer.restating(_:afterResetsIn:)` paints by, spelled out again here.
+    /// the restatement in front, and again after each `ESC[0m`, each bare `ESC[m`
+    /// and each collapsed `ESC[0;…m` (a reset, the restatement, then the rest) —
+    /// the rule `ANSIRenderer.restating(_:afterResetsIn:)` paints by, spelled out
+    /// again here for the resets the randomised frames hold. (Until 2026-11-22 a
+    /// painter did not see the bare `ESC[m`, H-37.)
     private func painted(_ frame: String, restating restatement: String) -> String {
-        let split = frame.replacing("\(esc)[0;", with: "\(esc)[0m\(esc)[")
+        let bare = frame.replacing("\(esc)[m", with: "\(esc)[0m")
+        let split = bare.replacing("\(esc)[0;", with: "\(esc)[0m\(esc)[")
         return restatement + split.replacing("\(esc)[0m", with: "\(esc)[0m" + restatement)
     }
 

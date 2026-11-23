@@ -289,9 +289,9 @@ extension AnimatedCellRun {
     /// the page and then on the painter's own. This reads the ground the same way:
     /// from the page, with the page put back at every reset the ground contains.
     /// The restatement follows `ANSIRenderer.restating(_:afterResetsIn:)`'s rule
-    /// for what a reset is — the literal `ESC[0m`, and the collapsed `ESC[0;…m`
-    /// read as a reset followed by the rest — because that is the rule the row was
-    /// built with.
+    /// for what a reset is — SGR 0 in any spelling, `ESC[m` and the collapsed
+    /// `ESC[0;…m` included, read as a reset followed by what the sequence states
+    /// after it — because that is the rule the row was built with.
     ///
     /// - Parameter page: The row's own background escape, or `""` where the row is
     ///   built on nothing — a buffer read before the writer has seen it.
@@ -468,23 +468,17 @@ extension SGRState {
     /// painter puts its own back — and the row builder the page.
     ///
     /// What a reset is follows `ANSIRenderer.restating(_:afterResetsIn:)`, the rule
-    /// every painter and the row builder restate by: the literal `ESC[0m`, and the
-    /// collapsed `ESC[0;…m` read as a reset followed by the rest.
+    /// every painter and the row builder restate by: a sequence holding SGR 0 in
+    /// any spelling is a reset, the restatement, then the parameters after its
+    /// last reset (`parametersAfterReset(in:)`).
     static func restating(_ restatement: SGRState, after sequence: String, in state: SGRState) -> SGRState {
-        let reset = "\u{1B}[0m"
-        let collapsed = "\u{1B}[0;"
-        if sequence == reset { return restatement }
-        guard sequence.hasPrefix(collapsed) else {
+        guard let rest = parametersAfterReset(in: sequence) else {
             var next = state
             next.apply(sequence)
             return next
         }
-        // `ESC[0;…m` is a reset, the restatement, then the rest as a sequence of its
-        // own. A rest of `0m` is a second reset, and the restatement follows that too.
-        let rest = sequence.dropFirst(collapsed.count)
-        guard rest != "0m" else { return restatement }
         var next = restatement
-        next.apply("\u{1B}[" + rest)
+        if !rest.isEmpty { next.apply("\u{1B}[" + rest + "m") }
         return next
     }
 }

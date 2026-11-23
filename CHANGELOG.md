@@ -142,6 +142,12 @@ key left the first row lit as it scrolled away and the row under the pointer unl
 the line afterwards, and after the drop the first row could stay drawn as selected until the next drag. The row under
 the pointer is now the one lit, and none stays lit.
 
+**A row's fill, faint, bold or reversal carries on after git's and grep's `ESC[m`.** Text drawn with
+`.textKeepsEscapeSequences()` keeps the tool's own resets, and only `ESC[0m` (and the collapsed `ESC[0;…m`) was
+recognised as one: after a bare `ESC[m`, `ESC[00m`, `ESC[;1m` or a reset after another parameter (`ESC[1;0m`), a
+selected list row's highlight stopped in the middle of the text, a disabled row lost its faint, and the rest of the
+row showed the terminal's own background instead of the page's. Every spelling of SGR 0 is now a reset there.
+
 **A view cut to fit no longer paints its background, underline or reversal over what comes after it.** A child
 drawn wider than the room it was given, a negative stack `spacing`, and every other clip of a line cut a styled run's
 closing reset off with the rest of the line, so a sibling to its right, the gap before it and the row's padding out

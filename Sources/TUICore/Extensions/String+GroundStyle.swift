@@ -77,13 +77,12 @@ extension String {
                 if let statement = output.applyReportingBackground(sequence) {
                     statesTerminalField = statement == .terminalDefault
                 }
-                if sequence == "\u{1B}[0m" || sequence.hasPrefix("\u{1B}[0;") {
+                if let rest = SGRState.parametersAfterReset(in: sequence) {
                     // A reset, after which the painters restate their style under
-                    // the next cell; the collapsed spelling's rest follows that.
+                    // the next cell; what the sequence states after it follows that.
                     restatedFrom = base(column)
                     rendered = SGRState.restating(restatedFrom, after: sequence, in: rendered)
-                    let rest = sequence.dropFirst(4)
-                    sinceReset = sequence == "\u{1B}[0m" || rest == "0m" ? [] : ["\u{1B}[" + rest]
+                    sinceReset = rest.isEmpty ? [] : ["\u{1B}[" + rest + "m"]
                 } else {
                     rendered.apply(sequence)
                     sinceReset.append(sequence)
