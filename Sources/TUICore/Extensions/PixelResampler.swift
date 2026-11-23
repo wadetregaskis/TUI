@@ -47,12 +47,19 @@
 ///
 /// ## Separable
 ///
-/// Horizontally then vertically, with each axis's spans and weights worked out
-/// once, before any pixel is read. Each source row is filtered across once,
-/// into one of two rows of floats, and each target row sums the filtered rows
-/// its vertical span covers; every read and write walks memory in order. Two
-/// rows suffice because the spans only move forward: a shrinking span shares
-/// at most its first row with the one before, and a bilinear one reads two.
+/// A picture shrunk on both axes (or kept) takes the shrink of
+/// `PixelResampler+Shrinking.swift`: exact whole-number weights, down then
+/// across, over one row of premultiplied sums. The general path here does the
+/// rest (an axis that grows, three-byte RGB, a very tall picture at an awkward
+/// ratio), and the same average where both apply, within a rounding.
+///
+/// It goes horizontally then vertically, with each axis's spans and weights
+/// worked out once, before any pixel is read. Each source row is filtered
+/// across once, into one of two rows of floats, and each target row sums the
+/// filtered rows its vertical span covers; every read and write walks memory in
+/// order. Two rows suffice because the spans only move forward: a shrinking
+/// span shares at most its first row with the one before, and a bilinear one
+/// reads two.
 package enum PixelResampler {
 
     /// How an axis the target is longer on reads the source.
@@ -194,10 +201,14 @@ package enum PixelResampler {
         else { return }
         precondition(source.count >= width * height * bytesPerPixel, "source shorter than its size")
         precondition(destination.count >= columns.count * rows.count * 4, "destination shorter than the window")
-        let across = Axis(source: width, target: target.width, enlargement: enlargement)
-        let down = Axis(source: height, target: target.height, enlargement: enlargement)
         let pixels = unsafe sourceBase.assumingMemoryBound(to: UInt8.self)
         let output = unsafe destinationBase.assumingMemoryBound(to: UInt8.self)
+        // A shrink on both axes, in whole numbers and down first (PixelResampler+Shrinking.swift).
+        if unsafe shrink(pixels, bytesPerPixel: bytesPerPixel, size: size, to: target, window: window, into: output) {
+            return
+        }
+        let across = Axis(source: width, target: target.width, enlargement: enlargement)
+        let down = Axis(source: height, target: target.height, enlargement: enlargement)
         let rowFloats = columns.count * 4
         // Two filtered source rows, and the sum for the target row being made.
         let lines = UnsafeMutablePointer<Float>.allocate(capacity: rowFloats * 2)

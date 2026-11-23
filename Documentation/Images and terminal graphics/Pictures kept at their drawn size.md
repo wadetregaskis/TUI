@@ -137,8 +137,19 @@ too"**, with the shifted glyphs and golden snapshots accepted.
 So every picture is now resized by one resampler, `PixelResampler`
 (`RGBAImage.resampled(to:_:)` for an image): each target pixel is the average
 of every source pixel it covers, weighted by how much of each it covers, in
-one separable pass (across, then down, with each axis's spans and weights
-worked out before a pixel is read). Why one step rather than two: two steps
+one separable pass, with each axis's spans and weights worked out before a
+pixel is read. A shrink (no axis growing, RGBA) goes down first, in exact
+whole-number weights: an axis's lengths divided by their greatest common
+divisor make every overlap a whole number of units, so the sums are exact
+until the last division. Each target row's source rows are summed,
+premultiplied, into one row of four planes (red, green, blue, coverage) in a
+loop the compiler vectorises, then that row is summed across; down first
+because across, its spans of differing lengths, is the half that does not
+vectorise, and it then runs over a target row's worth of sums rather than over
+every source pixel. Anything else (an axis that grows, three-byte RGB, a
+picture so tall at an awkward ratio that a column's sum could pass a
+`UInt32`) goes across then down in
+`Float`, the same average within a rounding. Why one step rather than two: two steps
 are two filters and two roundings where one does the job exactly, a whole
 factor ahead of a fractional one is still a fractional read at the end, and
 there is then one place to get premultiplication, rounding and speed right.
