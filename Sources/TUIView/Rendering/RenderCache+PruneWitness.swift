@@ -104,7 +104,7 @@ extension RenderCache {
     /// change the next prune must walk for (``PruneWitness``).
     @inline(__always)
     func noteStore() {
-        stats.stores += 1
+        stats.stores &+= 1
         pruneWitness.changes += 1
     }
 
@@ -133,7 +133,7 @@ extension RenderCache {
         // Whether a suspect stays: below a verified root, and live as any entry.
         func keeps(_ identity: ViewIdentity) -> Bool {
             guard verified?.keeps(identity) == true, isLive(identity) else { return false }
-            revalidation.counts.suspectsKept += 1
+            revalidation.counts.suspectsKept &+= 1
             return true
         }
         var staleKeys: [Int] = []

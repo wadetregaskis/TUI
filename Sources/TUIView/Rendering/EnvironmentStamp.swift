@@ -298,13 +298,13 @@ package final class EnvironmentStamps {
         // another under one environment, and a dictionary lookup per store
         // was most of what stamping cost a store.
         if word == lastWord {
-            counts.memoHits += 1
+            counts.memoHits &+= 1
             return lastStamp
         }
         if let known = passStamps[word] {
             lastWord = word
             lastStamp = known
-            counts.memoHits += 1
+            counts.memoHits &+= 1
             return known
         }
         let made: EnvironmentStamp?
@@ -312,7 +312,7 @@ package final class EnvironmentStamps {
         case .stamp(let derived):
             made = derived
         case .uncomparable:
-            counts.uncomparable += 1
+            counts.uncomparable &+= 1
             made = nil
         case .flat:
             made = build(environment).map(intern)
@@ -337,7 +337,7 @@ package final class EnvironmentStamps {
 
     /// The stamp made from `environment`, not interned.
     package func build(_ environment: EnvironmentValues) -> EnvironmentStamp? {
-        counts.built += 1
+        counts.built &+= 1
         let stored = environment.storedValues
         var unsorted: [EnvironmentStamp.Entry] = []
         unsorted.reserveCapacity(stored.count)
@@ -357,7 +357,7 @@ package final class EnvironmentStamps {
             case .projecting(let project):
                 guard let projection = project(raw) else {
                     comparable = false
-                    uncomparableKeys[key, default: 0] += 1
+                    uncomparableKeys[key, default: 0] &+= 1
                     continue
                 }
                 value = projection
@@ -373,7 +373,7 @@ package final class EnvironmentStamps {
                 // Every such key is counted, not only the first: the census
                 // that reads these is a list of what to make comparable.
                 comparable = false
-                uncomparableKeys[key, default: 0] += 1
+                uncomparableKeys[key, default: 0] &+= 1
                 continue
             }
             let entryHash = hasher.finalize()
@@ -384,7 +384,7 @@ package final class EnvironmentStamps {
             }
         }
         guard comparable else {
-            counts.uncomparable += 1
+            counts.uncomparable &+= 1
             return nil
         }
         order.sort { $0.key < $1.key }
@@ -405,9 +405,9 @@ package final class EnvironmentStamps {
         guard stamp.base == nil else { return stamp }
         for (index, candidate) in bucket.enumerated() {
             guard let existing = candidate.stamp else { continue }
-            counts.mergeWalks += 1
+            counts.mergeWalks &+= 1
             if existing.isEquivalent(to: stamp) {
-                counts.internHits += 1
+                counts.internHits &+= 1
                 if index != 0 {
                     bucket.remove(at: index)
                     bucket.insert(candidate, at: 0)
@@ -422,7 +422,7 @@ package final class EnvironmentStamps {
                 bucket.remove(at: dead)
             } else {
                 bucket.removeLast()
-                counts.overflows += 1
+                counts.overflows &+= 1
             }
         }
         buckets[stamp.shallowHash] = bucket

@@ -174,7 +174,7 @@ extension RenderCache {
     /// Removes `entry`, a suspect looked up at `identity`, from whichever of
     /// the identity's two slots holds it (``scopedEntry(for:effectScope:)``).
     func dropSuspect(_ entry: CacheEntry, at identity: ViewIdentity, slot: Int = 0) {
-        revalidation.counts.suspectsDropped += 1
+        revalidation.counts.suspectsDropped &+= 1
         let hash = identity.structuralHash ^ slot
         if entries[hash] === entry {
             entries[hash] = nil

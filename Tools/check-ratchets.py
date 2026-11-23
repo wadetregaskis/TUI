@@ -77,6 +77,21 @@ RATCHETS = [
         "limit": 180,
         "instead": "convert with Int(clamping:), Int64(clamping:), Int(cells:) or AnimationClock.deadline",
     },
+    # Lifetime statistics counted with a TRAPPING add: `stats.hits += 1`,
+    # `counts.kept += 1`, `measureMemoTotals.misses += 1`, a row-work field. These
+    # are never reset while an app runs, and on wasm32, where `Int` is 32 bits, a
+    # screen walked every frame takes the fastest of them past 2^31 in days, or
+    # hours on a big page, and the add ends the app (hunt H-52, XPLAT-1). They
+    # count with `&+=` and read a frame's share with `&-`: a statistic that wraps
+    # once in years is a wrong number in a log, where a trap is a crash. See
+    # `RenderCache.Stats` (`RenderCacheStats.swift`).
+    {
+        "name": "trapping adds to lifetime statistics",
+        "pattern": r"^(?!\s*//).*(?:[cC]ounts|stats|Totals|rowWork)\.[A-Za-z_]+ \+= ",
+        "paths": ["Sources"],
+        "limit": 0,
+        "instead": "count a statistic with &+= (it may wrap; it must not trap)",
+    },
 ]
 
 
@@ -115,6 +130,16 @@ def self_test():
     assert count(floats["pattern"], ["        let level = UInt8(clamping: Int(clamping: (tone * 255).rounded()))"]) == 0
     assert count(floats["pattern"], ["    // Int((x).rounded()) trapped here"]) == 0
     assert count(floats["pattern"], ["        let sum = Double(Int(r)) * 0.299"]) == 0
+    stats = next(ratchet for ratchet in RATCHETS if "lifetime statistics" in ratchet["name"])
+    assert count(stats["pattern"], ["            stats.misses += 1"]) == 1
+    assert count(stats["pattern"], ["        unsafe state.counts.computations += 1"]) == 1
+    assert count(stats["pattern"], ["            measureMemoTotals.hits += 1"]) == 1
+    assert count(stats["pattern"], ["            compositionCounts.served += 1"]) == 1
+    assert count(stats["pattern"], ["        context.renderCache?.rowWork.listed += 1"]) == 1
+    assert count(stats["pattern"], ["            stats.misses &+= 1"]) == 0
+    assert count(stats["pattern"], ["        holders.counts[holder, default: 0] += 1"]) == 0
+    assert count(stats["pattern"], ["        counts += privateEntryCounts"]) == 0
+    assert count(stats["pattern"], ["    // stats.hits += 1 trapped here"]) == 0
     print("check-ratchets: self-test passed")
     return 0
 

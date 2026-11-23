@@ -322,6 +322,15 @@ Fixed here, each with the test that failed on WebAssembly:
 - **A `bezierPoints:` mesh gradient trapped on its first frame.** `PaintAnimation`'s mesh slots were
   `-(1 << 40) - shape * (1 << 20)`: the shift is 0, and a shape past 2,047 (every control-point mesh) times 2^20
   overflows. The slots are laid out for 32 bits there now; `MeshGradientAnimationTests` has the case.
+- **The caches' lifetime statistics trapped at 2^31** (hunt H-52, XPLAT-1, fixed 2026-11-23; found by reading, not
+  by the run, which draws nowhere near 10^9 views). The render cache's hits and misses, the measure memo's totals,
+  the row-work fields, the keeps', leases' and environment stamps' counts were checked adds on an `Int` never reset
+  while the app runs: a screen walked every frame (a `TimelineView(.animation)`, a running animation) reached the
+  fastest in days, or hours on a page measuring thousands of views a frame. They count with `&+=` now, and a frame's
+  reading is a wrapping difference (`Stats.delta(since:)`, `RowWork.delta(since:)`); a lazy stack's running pitch
+  average halves its total and count before the count can reach the top. `LifetimeCounterWrapTests` steps each past
+  `Int.max`, and `Tools/check-ratchets.py` refuses a new checked add to a `stats.`, `counts.`, `Totals.` or
+  `rowWork.` field.
 
 - **A view tree too deep for the stack wrote over memory** (gap 3, fixed 2026-11-10). `StackGuard` had no
   WebAssembly arm, so it was off, and wasm's stack is linear memory with the program's data below it and no guard

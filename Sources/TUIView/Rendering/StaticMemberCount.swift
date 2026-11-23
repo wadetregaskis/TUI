@@ -116,7 +116,7 @@ package enum CompositeBodyDescent {
     static func counting<V: View>(_ type: V.Type, _ count: () -> Int?) -> Int? {
         let id = ObjectIdentifier(type)
         guard descending.count < limit, descending.insert(id).inserted else { return nil }
-        bodiesCounted += 1
+        bodiesCounted &+= 1
         defer { descending.remove(id) }
         return count()
     }

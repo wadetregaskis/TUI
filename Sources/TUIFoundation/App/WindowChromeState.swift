@@ -440,7 +440,7 @@ package final class WindowChromeState {
     /// so the first frame drawn has it. Kept by FRAME, not by walk: a frame can
     /// begin a walk that never reaches the page, and a claim kept only to the
     /// next walk was gone by the walk that drew it.
-    package var searchFieldClaimed: Bool { _searchFieldClaimedFrame.map { $0 >= frame - 1 } ?? false }
+    package var searchFieldClaimed: Bool { _searchFieldClaimedFrame.map(isThisFrameOrTheLast) ?? false }
 
     /// The frame that last declared a `DefaultToolbarItem(kind: .search)`.
     private var _searchFieldClaimedFrame: Int?
@@ -452,7 +452,7 @@ package final class WindowChromeState {
 
     /// Whether a `.toolbar(removing: .search)` was drawn, this frame or the
     /// last, for the reason ``searchFieldClaimed`` gives.
-    package var searchFieldRemoved: Bool { _searchFieldRemovedFrame.map { $0 >= frame - 1 } ?? false }
+    package var searchFieldRemoved: Bool { _searchFieldRemovedFrame.map(isThisFrameOrTheLast) ?? false }
 
     /// The frame that last drew a `.toolbar(removing: .search)`.
     private var _searchFieldRemovedFrame: Int?
@@ -550,7 +550,7 @@ package final class WindowChromeState {
     /// Last frame's counts because the bars are drawn after the page: a split
     /// view asks while it draws, before this frame's bars have.
     package func hasBarToggle(for owner: ViewIdentity) -> Bool {
-        barTogglesDrawn[owner].map { $0 >= frame - 1 } ?? false
+        barTogglesDrawn[owner].map(isThisFrameOrTheLast) ?? false
     }
 
     /// ``title`` and ``subtitle``, as ``offer(_:as:at:)`` chooses them.
@@ -613,8 +613,17 @@ package final class WindowChromeState {
         return standing
     }
 
-    /// Frames begun, counted by ``beginFrame()``.
+    /// Frames begun, counted by ``beginFrame()``. It wraps (`&+=`) rather than
+    /// trap: a frame a sixtieth of a second reaches a 32-bit `Int`'s top (wasm32)
+    /// in 414 days. So a frame is compared by equality and wrapping difference,
+    /// never by order: ``isThisFrameOrTheLast(_:)``.
     private(set) var frame = 0
+
+    /// Whether `noted`, a ``frame`` something was noted in, is this frame or
+    /// the last. Not `noted >= frame - 1`: equal to it while nothing is noted
+    /// in a frame still to come, but it traps where `frame` has wrapped to
+    /// `Int.min`, and reads the frame before the wrap as long past.
+    private func isThisFrameOrTheLast(_ noted: Int) -> Bool { noted == frame || noted == frame &- 1 }
 
     /// Whether the run loop's first-frame walk has seeded the reservations.
     private(set) var isSeeded = false
@@ -630,11 +639,11 @@ package final class WindowChromeState {
 
     /// Counts a frame. Called by the run loop before the scene is walked.
     package func beginFrame() {
-        frame += 1
+        frame &+= 1
         // A split view that stopped being toggled from a bar is forgotten once
         // its last frame has passed.
         if !barTogglesDrawn.isEmpty {
-            for (owner, drawn) in barTogglesDrawn where drawn < frame - 1 {
+            for (owner, drawn) in barTogglesDrawn where !isThisFrameOrTheLast(drawn) {
                 barTogglesDrawn[owner] = nil
                 barTogglesDropped.append(owner)
             }
@@ -858,7 +867,7 @@ package final class WindowChromeState {
     package func settle(_ edge: Edge, wanting wanted: Int, nowNanos: Int64) -> Settlement {
         var bar = self[edge]
         defer { self[edge] = bar }
-        bar.recent.removeAll { frame - $0.frame > Self.oscillationWindow }
+        bar.recent.removeAll { frame &- $0.frame > Self.oscillationWindow }
         guard wanted != bar.rows else { return .settled }
 
         if let pinned = bar.pinned {
@@ -875,7 +884,7 @@ package final class WindowChromeState {
         // Never release in the frame after reserving: wait one frame, and ask
         // for it, so a bounce that settles costs nothing and a real release
         // still happens on a still screen.
-        if wanted < bar.rows, bar.lastChange == frame - 1 { return .nextFrame }
+        if wanted < bar.rows, bar.lastChange == frame &- 1 { return .nextFrame }
 
         // Back to a value two recent changes have both touched, one of them by
         // leaving it: the third flip. Hold the larger of the two.

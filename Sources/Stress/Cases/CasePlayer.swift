@@ -193,7 +193,7 @@ final class CasePlayer {
 extension CaseCounts {
     /// These cumulative counts less `earlier`'s.
     fileprivate func since(_ earlier: Self) -> Self {
-        Self(values: zip(values, earlier.values).map { $0 - $1 }) ?? Self()
+        Self(values: zip(values, earlier.values).map { $0 &- $1 }) ?? Self()
     }
 }
 

@@ -339,9 +339,26 @@ final class StackWindowState {
         var measuredPitchCount = 0
 
         func recordMeasuredPitch(_ pitch: Int) {
+            // Halved together, so the average keeps its value, before either
+            // can reach the top: the count of every row measured in every pass
+            // is never reset, and on wasm32 (32-bit `Int`) a stack walked
+            // every frame took it past `Int.max`, where the add trapped, and
+            // the total to its saturation, where the average sank. Not a wrap,
+            // as the statistics take: this count divides, and a wrapped one
+            // would price rows at nonsense. Halving makes the older rows weigh
+            // less, never the average move for rows that keep one pitch.
+            if measuredPitchCount >= Self.pitchCountBound || measuredPitchTotal >= Int.max / 2 {
+                measuredPitchTotal /= 2
+                measuredPitchCount /= 2
+            }
             measuredPitchTotal = measuredPitchTotal.saturatingAdding(pitch)
             measuredPitchCount += 1
         }
+
+        /// The count past which ``recordMeasuredPitch(_:)`` halves its running
+        /// total and count: a million rows, far past any one pass, and far
+        /// below the top of a 32-bit `Int`.
+        static let pitchCountBound = 1 << 20
 
         /// The anchored walk's samples, one per run of rows it walks, the
         /// newest last, kept for the last four.

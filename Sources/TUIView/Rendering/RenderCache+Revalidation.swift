@@ -295,7 +295,7 @@ extension RenderCache {
             !revalidation.isCoolingDown(context.identity.structuralHash),
             let stamp = revalidation.stamps.stamp(of: context.environment)
         else { return nil }
-        revalidation.counts.stamped += 1
+        revalidation.counts.stamped &+= 1
         return Revalidation(snapshot: row, equal: equal, environment: stamp, depth: context.environmentApplicationDepth)
     }
 }
@@ -347,14 +347,14 @@ extension RenderCache {
             row = build()
         }
         guard record.equal(record.snapshot, row) else {
-            revalidation.counts.unequalValues += 1
+            revalidation.counts.unequalValues &+= 1
             return .valueChanged
         }
         guard record.depth == depth,
             let stamp = revalidation.stamps.stamp(of: environment),
             stamp === record.environment || stamp.isEquivalent(to: record.environment)
         else {
-            revalidation.counts.unequalEnvironments += 1
+            revalidation.counts.unequalEnvironments &+= 1
             revalidation.noteUnequalEnvironment(
                 record.depth != depth
                     ? "depth \(record.depth) → \(depth)"
@@ -384,7 +384,7 @@ extension RenderCache {
             return false
         }
         unsafe entry.isSuspect = false
-        revalidation.counts.rechecked += 1
+        revalidation.counts.rechecked &+= 1
         return true
     }
 }

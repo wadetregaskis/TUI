@@ -89,7 +89,7 @@ extension RenderCache {
             Self.stamp(kept.environment, serves: environment),
             let composed = kept.composed as? Composed
         {
-            compositionCounts.served += 1
+            compositionCounts.served &+= 1
             leases.use(kept.lease)
             return composed
         }
@@ -98,7 +98,7 @@ extension RenderCache {
         let composed = make()
         let lease = leases.endComputation(mark)
         if tracker.cacheUnsafeCount == unsafeBefore {
-            compositionCounts.kept += 1
+            compositionCounts.kept &+= 1
             passCompositions[key] = PassComposition(
                 viewType: ObjectIdentifier(V.self), valueHash: valueHash, view: view, environment: environment,
                 lease: lease, composed: composed)

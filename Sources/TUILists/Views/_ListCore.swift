@@ -2883,7 +2883,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             terminalColors: TerminalColors.current, cycle: nil, flash: flash,
             width: context.environment.scrollbarWidth, cornerTriangles: context.environment.cornerTrianglesFillTheCell)
         if let remembered = handler.verticalScrollbarMemo, remembered.key == key {
-            handler.verticalScrollbarMemoHits += 1
+            handler.verticalScrollbarMemoHits &+= 1
             return remembered.bar
         }
         let bar = ScrollbarRenderer.verticalScrollbar(

@@ -44,13 +44,13 @@ struct MemoCounts {
 
     /// Adds what the counts moved by between `before` and `after`.
     mutating func add(from before: Self, to after: Self) {
-        measureHits += after.measureHits - before.measureHits
-        measureMisses += after.measureMisses - before.measureMisses
-        measureStores += after.measureStores - before.measureStores
-        measureBypasses += after.measureBypasses - before.measureBypasses
-        childViewsHits += after.childViewsHits - before.childViewsHits
-        childViewsMisses += after.childViewsMisses - before.childViewsMisses
-        childViewsBypasses += after.childViewsBypasses - before.childViewsBypasses
+        measureHits &+= after.measureHits &- before.measureHits
+        measureMisses &+= after.measureMisses &- before.measureMisses
+        measureStores &+= after.measureStores &- before.measureStores
+        measureBypasses &+= after.measureBypasses &- before.measureBypasses
+        childViewsHits &+= after.childViewsHits &- before.childViewsHits
+        childViewsMisses &+= after.childViewsMisses &- before.childViewsMisses
+        childViewsBypasses &+= after.childViewsBypasses &- before.childViewsBypasses
     }
 
     /// Prints the value hash's census for `cache` — lookups by the shape of the

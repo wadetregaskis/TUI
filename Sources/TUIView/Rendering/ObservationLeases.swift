@@ -218,7 +218,7 @@ package final class ObservationLeases {
     @inline(__always)
     package func beginComputation(under lease: ObservationLease) -> Int? {
         guard isActive else { return nil }
-        unsafe state.counts.computations += 1
+        unsafe state.counts.computations &+= 1
         unsafe state.stack.append(Slot(lease: lease, isDetached: false))
         return unsafe state.stack.count - 1
     }
@@ -235,7 +235,7 @@ package final class ObservationLeases {
     }
 
     private func open(isDetached: Bool) -> Int {
-        unsafe state.counts.computations += 1
+        unsafe state.counts.computations &+= 1
         if isDetached { unsafe state.detachedDepth += 1 }
         unsafe state.stack.append(Slot(lease: nil, isDetached: isDetached))
         return unsafe state.stack.count - 1
@@ -259,7 +259,7 @@ package final class ObservationLeases {
     @inline(__always)
     package func use(_ lease: ObservationLease?) {
         guard let lease else { return }
-        unsafe state.counts.uses += 1
+        unsafe state.counts.uses &+= 1
         unsafe materialize(state.stack.count - 1).hold(lease)
     }
 
@@ -269,7 +269,7 @@ package final class ObservationLeases {
     private func materialize(_ index: Int) -> ObservationLease {
         if let lease = unsafe state.stack[index].lease { return lease }
         let made = ObservationLease()
-        unsafe state.counts.leasesMade += 1
+        unsafe state.counts.leasesMade &+= 1
         unsafe state.stack[index].lease = made
         var child = made
         var cursor = index
@@ -280,7 +280,7 @@ package final class ObservationLeases {
                 break
             }
             let enclosing = ObservationLease()
-            unsafe state.counts.leasesMade += 1
+            unsafe state.counts.leasesMade &+= 1
             enclosing.hold(child)
             unsafe state.stack[cursor].lease = enclosing
             child = enclosing
@@ -295,14 +295,14 @@ package final class ObservationLeases {
     /// while ``isActive``.
     package func sentinel(at identity: ViewIdentity) -> ScopeSentinel? {
         if unsafe retirement == .leases || state.detachedDepth > 0 {
-            unsafe state.counts.sentinelScopes += 1
+            unsafe state.counts.sentinelScopes &+= 1
             return unsafe materialize(state.stack.count - 1).scopeSentinel()
         }
         switch retirement {
         case .never, .leases:
             return nil
         case .perReader, .perReaderAndPrune:
-            unsafe state.counts.sentinelScopes += 1
+            unsafe state.counts.sentinelScopes &+= 1
             let key = identity.structuralHash
             if let known = readerSentinels[key], known.pass == pass { return known.sentinel }
             readerSentinels[key]?.sentinel.retire()
@@ -367,7 +367,7 @@ package final class ObservationLeases {
             for key in gone { readerSentinels.removeValue(forKey: key) }
         }
         pass &+= 1
-        unsafe state.counts.passes += 1
+        unsafe state.counts.passes &+= 1
         unsafe assert(state.stack.count == 1, "an observation lease computation was left open at the end of a pass")
         displayed = unsafe state.stack[0].lease
         unsafe state.stack[0].lease = nil

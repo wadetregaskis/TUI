@@ -124,15 +124,15 @@ package final class EffectStage {
         package init() {}
 
         /// Every walk made again.
-        package var rewalks: Int { walkedAgainOnce + 2 * walkedAgainTwice }
+        package var rewalks: Int { walkedAgainOnce &+ 2 &* walkedAgainTwice }
 
         /// What was counted since `earlier`.
         package func delta(since earlier: Self) -> Self {
             var delta = Self()
-            delta.frames = frames - earlier.frames
-            delta.walkedAgainOnce = walkedAgainOnce - earlier.walkedAgainOnce
-            delta.walkedAgainTwice = walkedAgainTwice - earlier.walkedAgainTwice
-            delta.leftWriting = leftWriting - earlier.leftWriting
+            delta.frames = frames &- earlier.frames
+            delta.walkedAgainOnce = walkedAgainOnce &- earlier.walkedAgainOnce
+            delta.walkedAgainTwice = walkedAgainTwice &- earlier.walkedAgainTwice
+            delta.leftWriting = leftWriting &- earlier.leftWriting
             return delta
         }
 
@@ -235,10 +235,10 @@ package final class EffectStage {
     /// Counts a frame settled after `rewalks` walks more, its last walk's
     /// effects still writing where `stillWriting` (`FrameSettling`).
     package func noteSettled(rewalks: Int, stillWriting: Bool) {
-        settling.frames += 1
-        if rewalks == 1 { settling.walkedAgainOnce += 1 }
-        if rewalks >= 2 { settling.walkedAgainTwice += 1 }
-        if stillWriting { settling.leftWriting += 1 }
+        settling.frames &+= 1
+        if rewalks == 1 { settling.walkedAgainOnce &+= 1 }
+        if rewalks >= 2 { settling.walkedAgainTwice &+= 1 }
+        if stillWriting { settling.leftWriting &+= 1 }
     }
 
     /// Closes whatever is still open at the start of a render pass, where

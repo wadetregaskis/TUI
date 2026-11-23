@@ -110,6 +110,12 @@ promised all three, mixed with options written out, but none compiled: the block
 nowhere for the list a loop or a conditional makes to go. `RadioButtonGroupBuilder` now joins each statement's options
 in written order, as the status bar's builder does.
 
+**A WebAssembly app no longer stops after 2^31 cache lookups.** The render cache's statistics (`stats`,
+`measureMemoTotals`, `rowWork` and the rest) are never reset while an app runs, and on wasm32, where `Int` is 32
+bits, a screen redrawn every frame took the busiest of them past `Int.max` in days, or hours on a big page, and the
+add trapped. They wrap now, as a statistic may, and `Stats.delta(since:)` and `RowWork.delta(since:)` give a frame's
+share across the wrap. Their types are unchanged.
+
 **A table behind a sheet stays faint past a bold cell.** On a terminal that has not reported its background, the
 page behind a sheet or an alert is drawn faint, and a `Table` row's bold cell closes with SGR 22, which ends faint
 too: the rest of the row came back to full strength. Faint is stated again after any 22, a table's or an app's own.

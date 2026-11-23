@@ -368,7 +368,7 @@ func renderPlainMemoized<V: View>(
     if memo.valueMemoDepth > 0, !memo.asksInsideValueMemo(V.self) { return render(view, context) }
     let hash = context.identity.structuralHash ^ plainMemoSlot
     if memo.isCoolingDown(hash) {
-        memo.counts.cooled += 1
+        memo.counts.cooled &+= 1
         return render(view, context)
     }
     let plans = cache.valueHashPlans

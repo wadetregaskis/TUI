@@ -434,7 +434,7 @@ extension _ScrollViewCore {
         let step = pulse?.cycle.step ?? 0
         let memo: ScrollbarMemo<ClaimingRow>
         if let remembered = handler.horizontalScrollbarMemo, remembered.key == key {
-            handler.horizontalScrollbarMemoHits += 1
+            handler.horizontalScrollbarMemoHits &+= 1
             memo = remembered.showing(step: step)
         } else {
             func drawn(_ colors: ScrollbarColors) -> ClaimingRow {

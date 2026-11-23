@@ -855,7 +855,7 @@ extension RenderCache {
             return read
         }
         guard let entry = scopedEntry(for: identity, slot: slot, effectScope: scope) else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (no entry) \(identity.path)")
             return nil
         }
@@ -871,45 +871,45 @@ extension RenderCache {
                 },
                 drop: { dropSuspect(entry, at: identity, slot: slot) })
         else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (suspect) \(identity.path)")
             return nil
         }
         guard let oldView = entry.viewSnapshot as? V else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (type mismatch) \(identity.path)")
             return nil
         }
         guard entry.contextWidth == contextWidth,
             entry.contextHeight == contextHeight
         else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (size changed) \(identity.path)")
             return nil
         }
         // Translucent ink is composited at render time, so a buffer holds a
         // blend that is only right over the surface it was painted on.
         guard entry.surfaceBackground == surfaceBackground else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (surface changed) \(identity.path)")
             return nil
         }
         // The ramp's colours are baked into the buffer, so a view that has
         // MOVED within one must re-render even though nothing about it changed.
         guard entry.gradientFrame == gradientFrame else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (gradient moved) \(identity.path)")
             return nil
         }
         // `comparesBytes`: an `.equatable()` view of plain data is also equal
         // when its bytes are (O-26).
         guard (comparesBytes && sameBytes(oldView, view)) || oldView == view else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (view changed) \(identity.path)")
             return nil
         }
         guard !animationMustBeCurrent || entry.showsItsAnimations(asAt: frameInstant) else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (animation moved on) \(identity.path)")
             return nil
         }
@@ -917,11 +917,11 @@ extension RenderCache {
         // recorded in, not the one in force here — and a backdrop's picture
         // shows its controls unfocused, which the live page's may not.
         guard entry.effects.isEmpty || entry.effectScope == scope() else {
-            stats.misses += 1
+            stats.misses &+= 1
             logDebug("MISS (focus section or backdrop changed) \(identity.path)")
             return nil
         }
-        stats.hits += 1
+        stats.hits &+= 1
         logDebug("HIT \(identity.path)")
         leases.use(entry.lease)
         return entry
@@ -1121,21 +1121,21 @@ extension RenderCache {
             revalidation.noteVerifiedRoot(verdict, at: found.identity)
             if verdict == .unchanged {
                 unsafe found.isSuspect = false
-                revalidation.counts.rechecked += 1
+                revalidation.counts.rechecked &+= 1
             } else {
                 sizeEntries[key] = nil
-                revalidation.counts.suspectsDropped += 1
-                stats.misses += 1
+                revalidation.counts.suspectsDropped &+= 1
+                stats.misses &+= 1
                 return nil
             }
         }
         guard let entry = found, let old = entry.viewSnapshot as? V,
             (comparesBytes && sameBytes(old, view)) || old == view, holds(lapsingAt: entry.lapsesAt)
         else {
-            stats.misses += 1
+            stats.misses &+= 1
             return nil
         }
-        stats.hits += 1
+        stats.hits &+= 1
         leases.use(entry.lease)
         return (entry.size, entry.lapsesAt)
     }
@@ -1198,12 +1198,12 @@ extension RenderCache {
                     && entry.availableHeight == availableHeight)
         {
             measureHits += 1
-            measureMemoTotals.hits += 1
+            measureMemoTotals.hits &+= 1
             if entry.leaseIndex >= 0 { leases.use(passLeases[Int(entry.leaseIndex)]) }
             return entry.size
         }
         measureMisses += 1
-        measureMemoTotals.misses += 1
+        measureMemoTotals.misses &+= 1
         return nil
     }
 
@@ -1220,7 +1220,7 @@ extension RenderCache {
         lease: ObservationLease?,
         measuring value: Value
     ) {
-        measureMemoStores += 1
+        measureMemoStores &+= 1
         unsafe measuredValues.keep(value)
         var leaseIndex: Int32 = -1
         if let lease {
@@ -1246,23 +1246,23 @@ extension RenderCache {
 
     /// Counts a measure the memo could not key: see ``measureMemoBypasses``.
     func noteMeasureMemoBypass() {
-        measureMemoBypasses += 1
+        measureMemoBypasses &+= 1
     }
 
     /// Counts a resolution the memo could not key: see
     /// ``childViewsMemoBypasses``.
     func noteChildViewsMemoBypass() {
-        childViewsMemoBypasses += 1
+        childViewsMemoBypasses &+= 1
     }
 
     /// The children a stack resolved earlier this pass for the same content
     /// value, or `nil`. See `resolveChildViews(from:context:)`.
     public func lookupChildViews(key: ChildViewsKey) -> [ChildView]? {
         guard let entry = childViewEntries[key] else {
-            childViewsMemoTotals.misses += 1
+            childViewsMemoTotals.misses &+= 1
             return nil
         }
-        childViewsMemoTotals.hits += 1
+        childViewsMemoTotals.hits &+= 1
         return entry.children
     }
 
@@ -1510,7 +1510,7 @@ extension RenderCache {
     /// ``clearAffected(by:keepingSizes:includingDescendants:)``.
     public func clearAll() {
         clearGeneration &+= 1
-        stats.clears += 1
+        stats.clears &+= 1
         logDebug("CLEAR ALL (\(entries.count) entries)")
         plainMemo.noteCleared()
         entries.removeAll(keepingCapacity: true)

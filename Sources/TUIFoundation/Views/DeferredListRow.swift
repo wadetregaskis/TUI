@@ -26,7 +26,7 @@
 package func deferredListRow(
     of child: ChildView, listRow: Int, context: RenderContext, placedByRamp: Bool = true
 ) -> LazyListRowContent {
-    context.renderCache?.rowWork.listed += 1  // see `RowWork.listed`
+    context.renderCache?.rowWork.listed &+= 1  // see `RowWork.listed`
     let box = LazyListRowContent(
         identity: child.identity(under: context),
         carriesBadge: rowCarriesBadge(child.wrappedView),
@@ -93,7 +93,7 @@ package func loneListRow<V: View>(of content: V, context: RenderContext) -> Lazy
             x: 0, y: 0)
     }
     let badge = extractListRowBadge(from: content)
-    context.renderCache?.rowWork.listed += 1  // see `RowWork.listed`
+    context.renderCache?.rowWork.listed &+= 1  // see `RowWork.listed`
     return LazyListRowContent(
         identity: context.identity, carriesBadge: badge != nil,
         measure: { (measured, context.availableWidth) },

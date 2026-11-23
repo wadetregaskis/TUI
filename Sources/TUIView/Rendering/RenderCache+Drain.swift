@@ -86,7 +86,7 @@ extension RenderCache {
         by identity: ViewIdentity, keepingSizes: Bool, includingDescendants: Bool, includingAncestors: Bool
     ) {
         if !keepingSizes { sizeClearGeneration &+= 1 }
-        stats.subtreeClears += 1
+        stats.subtreeClears &+= 1
         // A body kept across frames goes with its view and what is below it,
         // never with what is above: nothing below a view changes its body.
         plainMemo.frameBodies.drop(at: identity, includingDescendants: includingDescendants)
@@ -119,7 +119,7 @@ extension RenderCache {
         }
         // `affects` reads `depth`, `isRawRooted`, `structuralHash`, `==` and
         // `isAncestor(of:)` — all structural, none of it available from a hash.
-        stats.clearVisits += entries.count + (keepingSizes ? 0 : sizeEntries.count)
+        stats.clearVisits &+= entries.count + (keepingSizes ? 0 : sizeEntries.count)
         var staleKeys: [Int] = []
         for (key, entry) in entries where affects(entry.identity) { staleKeys.append(key) }
         for key in staleKeys { entries.removeValue(forKey: key) }
@@ -141,7 +141,7 @@ extension RenderCache {
         // It marks afresh: what a re-check verified before says nothing of it.
         revalidation.forgetVerifiedRoots()
         sizeClearGeneration &+= 1
-        stats.subtreeClears += 1
+        stats.subtreeClears &+= 1
         plainMemo.frameBodies.drop(at: writer, includingDescendants: true)
         var chain = Set<Int>()
         var cursor: ViewIdentity? = writer
@@ -166,7 +166,7 @@ extension RenderCache {
             guard below else { return .keep }
             return stamped ? .suspect : .dropUnrecorded
         }
-        stats.clearVisits += entries.count + sizeEntries.count
+        stats.clearVisits &+= entries.count + sizeEntries.count
         var staleKeys: [Int] = []
         for (key, entry) in entries {
             switch unsafe verdict(entry.identity, stamped: entry.revalidation != nil) {
@@ -174,9 +174,9 @@ extension RenderCache {
             case .drop: staleKeys.append(key)
             case .dropUnrecorded:
                 staleKeys.append(key)
-                revalidation.counts.unstampedDropped += 1
+                revalidation.counts.unstampedDropped &+= 1
             case .suspect:
-                if unsafe !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
+                if unsafe !entry.isSuspect { revalidation.counts.suspectsMarked &+= 1 }
                 unsafe entry.isSuspect = true
                 pruneWitness.changes += 1
             }
@@ -225,7 +225,7 @@ extension RenderCache {
         byEachOf writers: Set<ViewIdentity>, softly soft: Set<ViewIdentity> = [], keptOnly: Set<ViewIdentity> = []
     ) {
         sizeClearGeneration &+= writers.count
-        stats.subtreeClears += writers.count
+        stats.subtreeClears &+= writers.count
         for writer in writers { plainMemo.frameBodies.drop(at: writer, includingDescendants: !keptOnly.contains(writer)) }
         let anyRawWriter = writers.contains(where: \.isRawRooted)
         // Every writer and every ancestor of one, by hash. A chain stops where
@@ -260,7 +260,7 @@ extension RenderCache {
             guard !soft.isEmpty, belowSoft.retains(cached) else { return .keep }
             return stamped ? .suspect : .dropUnrecorded
         }
-        stats.clearVisits += entries.count + sizeEntries.count
+        stats.clearVisits &+= entries.count + sizeEntries.count
         var staleKeys: [Int] = []
         for (key, entry) in entries {
             switch unsafe verdict(entry.identity, stamped: entry.revalidation != nil) {
@@ -269,9 +269,9 @@ extension RenderCache {
                 staleKeys.append(key)
             case .dropUnrecorded:
                 staleKeys.append(key)
-                revalidation.counts.unstampedDropped += 1
+                revalidation.counts.unstampedDropped &+= 1
             case .suspect:
-                if unsafe !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
+                if unsafe !entry.isSuspect { revalidation.counts.suspectsMarked &+= 1 }
                 unsafe entry.isSuspect = true
                 pruneWitness.changes += 1
             }

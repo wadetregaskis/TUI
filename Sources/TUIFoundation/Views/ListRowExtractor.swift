@@ -385,7 +385,7 @@ extension ListRowsPassThrough {
         // Counted here, for both kinds of row below, rather than where each
         // box is made: the member row's is made by `deferredListRow`, which
         // counts its own, and would be counted twice.
-        if rowsPerElement <= 1 { context.renderCache?.rowWork.listed += 1 }
+        if rowsPerElement <= 1 { context.renderCache?.rowWork.listed &+= 1 }
         // One of a row of several views: a list row of its own, as SwiftUI's
         // (decisions B15).
         if rowsPerElement > 1 {

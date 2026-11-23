@@ -222,7 +222,7 @@ extension ScrollbarMemo where Bar == ClaimingColumn {
             cycle: shown.cycle, frame: shown.frame, flash: flash, width: width, cornerTriangles: cornerTriangles)
         let step = pulse?.cycle.step ?? 0
         if let remembered, remembered.key == key {
-            hits += 1
+            hits &+= 1
             return remembered.showing(step: step)
         }
         func drawn(_ colors: ScrollbarColors) -> ClaimingColumn {

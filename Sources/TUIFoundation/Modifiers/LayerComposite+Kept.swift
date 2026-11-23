@@ -101,7 +101,7 @@ struct KeptLayerComposite {
     /// making it did what a serve would not do again: asked for a wake, or
     /// may have drawn into the image store.
     func keep(_ result: FrameBuffer, askedForAWake: Bool) {
-        store.counts.composited += 1
+        store.counts.composited &+= 1
         if let verifying, verifying != result, let cache = context.renderCache {
             cache.noteRenderMemoMismatch(
                 viewType: "layer composite (\(inputs.direction))", served: verifying, fresh: result,

@@ -698,7 +698,7 @@ private func measureBeneathProbe<V: View>(
     if let key, let served = servedMeasure(view, key: key, proposal: proposal, context: context, cache: cache) {
         return served
     }
-    cache.measuresBeneathProbes += 1
+    cache.measuresBeneathProbes &+= 1
     if cache.probeMissLog != nil {
         if let key {
             cache.probeMissLog?.append(

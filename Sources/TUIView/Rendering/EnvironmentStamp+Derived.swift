@@ -224,12 +224,12 @@ extension EnvironmentStamps {
         }
         if changes.isEmpty { return .stamp(anchor) }
         if changes.count > 1 { changes.sort { $0.key < $1.key } }
-        counts.derived += 1
+        counts.derived &+= 1
         let slotHash = hash ^ ObjectIdentifier(anchor).hashValue
         var bucket = derivedBuckets[slotHash] ?? []
         for (index, candidate) in bucket.enumerated() {
             guard let existing = candidate.stamp, existing.holds(changes, on: anchor) else { continue }
-            counts.internHits += 1
+            counts.internHits &+= 1
             if index != 0 {
                 bucket.swapAt(0, index)
                 derivedBuckets[slotHash] = bucket
@@ -243,7 +243,7 @@ extension EnvironmentStamps {
                 bucket.remove(at: dead)
             } else {
                 bucket.removeLast()
-                counts.overflows += 1
+                counts.overflows &+= 1
             }
         }
         derivedBuckets[slotHash] = bucket
@@ -264,7 +264,7 @@ extension EnvironmentStamps {
             return nil
         case .projecting(let project):
             guard let projection = project(raw) else {
-                uncomparableKeys[key, default: 0] += 1
+                uncomparableKeys[key, default: 0] &+= 1
                 tokenWasUncomparable = true
                 return nil
             }
@@ -275,7 +275,7 @@ extension EnvironmentStamps {
         var hasher = Hasher()
         hasher.combine(key)
         guard let made = token(for: value, hasher: &hasher) else {
-            uncomparableKeys[key, default: 0] += 1
+            uncomparableKeys[key, default: 0] &+= 1
             tokenWasUncomparable = true
             return nil
         }

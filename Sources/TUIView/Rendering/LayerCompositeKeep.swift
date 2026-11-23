@@ -162,13 +162,13 @@ package final class LayerCompositeKeep {
     package func served(at slot: Int, _ inputs: Inputs) -> FrameBuffer? {
         guard let kept = table[slot], kept.inputs.makesTheSameComposite(as: inputs) else { return nil }
         table[slot]?.pass = pass
-        counts.served += 1
+        counts.served &+= 1
         return kept.result
     }
 
     /// Keeps `result`, the composite of `inputs`, at `slot`.
     package func keep(_ result: FrameBuffer, at slot: Int, _ inputs: Inputs) {
-        counts.kept += 1
+        counts.kept &+= 1
         table[slot] = Kept(inputs: inputs, result: result, pass: pass)
     }
 

@@ -781,7 +781,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 ).value ?? _TableOutlineCache()
             let listedBefore = cache.listed
             let outline = cache.outline(of: roots, expansion: expansion)
-            context.renderCache?.rowWork.listed += cache.listed - listedBefore
+            context.renderCache?.rowWork.listed &+= cache.listed &- listedBefore
             return outline
         }
         // A tree written as row content is flattened again every pass, every
@@ -797,7 +797,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // closures over the same rows.
         let flatten = {
             let outline = _TableOutline(tree: rowTree, expansion: expansion)
-            context.renderCache?.rowWork.listed += outline.values.count
+            context.renderCache?.rowWork.listed &+= outline.values.count
             return outline
         }
         return context.renderCache?.composedOncePerPass(
@@ -2366,13 +2366,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // only to be split here again, which on table-multiline was most of
         // what that path cost.
         if let text = cascadedTextCell(column, for: item, context: context) {
-            context.renderCache?.rowWork.cellValues += 1
+            context.renderCache?.rowWork.cellValues &+= 1
             return renderedCell(text, column, for: item, width: width, context: context)
                 .split(separator: "\n", omittingEmptySubsequences: false)
                 .prefix(column.lineLimit).map(String.init)
         }
         if case .text(let make) = column.cell {
-            context.renderCache?.rowWork.cellValues += 1
+            context.renderCache?.rowWork.cellValues &+= 1
             let text = make(item, context)
             if let lines = Self.plainLines(
                 of: text, in: column, width: width, spelling: context.textSpelling, keepingEscapes: context.environment.textKeepsEscapeSequences)
@@ -2931,7 +2931,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         context: RenderContext,
         palette: any Palette
     ) -> RenderedRow {
-        context.renderCache?.rowWork.rendered += 1  // see `renderRow`
+        context.renderCache?.rowWork.rendered &+= 1  // see `renderRow`
         let (row, ramp, rowWidth) = (paint.row, paint.ramp, paint.width)
         let gutter = selectionGutter(context.environment)
         let spacing = asciiSpaces(columnSpacing)
@@ -5758,7 +5758,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func cellValue(
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> String {
-        context.renderCache?.rowWork.cellValues += 1
+        context.renderCache?.rowWork.cellValues &+= 1
         if let text = cascadedTextCell(column, for: item, context: context) {
             return renderedCell(text, column, for: item, width: width, context: context)
         }
@@ -6823,7 +6823,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// with the payload its cells produced on THIS frame, never a kept one:
         /// see ``_TableRowPayload``.
         func serve(_ kept: TableRowDrawnLine) -> DrawnSingleLineRow {
-            context.renderCache?.rowWork.served += 1
+            context.renderCache?.rowWork.served &+= 1
             verifyRowServe(
                 kept.line, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
@@ -6840,7 +6840,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 cells: kept.cells, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, context: context, palette: palette)
             guard again.pulseFrames == nil else { return nil }
-            context.renderCache?.rowWork.repainted += 1
+            context.renderCache?.rowWork.repainted &+= 1
             let drawn = TableRowDrawnLine(line: again.line, claims: again.claims)
             var both = kept
             both.keep(drawn, striped: isStriped)
@@ -6852,7 +6852,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // every drawn row of every frame — the asymmetry with `List`, whose
             // rows reach `_MemoizedRow` and can be SERVED, in one number. See
             // ``RenderCache/RowWork``.
-            context.renderCache?.rowWork.rendered += 1
+            context.renderCache?.rowWork.rendered &+= 1
             let row = renderRowUncached(
                 cells: cells, item: item, paint: paint, columnWidths: columnWidths,
                 isFocused: isFocused, isSelected: isSelected, isReturningHome: isReturningHome,
@@ -7008,7 +7008,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> FrameBuffer {
         guard case .view(let render) = column.cell else { return FrameBuffer() }
-        context.renderCache?.rowWork.cellValues += 1
+        context.renderCache?.rowWork.cellValues &+= 1
         return render(item, cellContext(column, for: item, width: width, context: context))
     }
 

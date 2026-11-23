@@ -189,7 +189,7 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
     private func listRowContent(
         for node: Node, expansion: OutlineExpansion<ID>, context: RenderContext
     ) -> LazyListRowContent {
-        context.renderCache?.rowWork.listed += 1  // see `RowWork.listed`
+        context.renderCache?.rowWork.listed &+= 1  // see `RowWork.listed`
         let view = row(for: node, expansion: expansion, rowOwnsFocus: true)
         let rowContext = context.withChildIdentity(
             erasedType: _OutlineRow<Data.Element, ID, Leaf>.self, key: identityKey(node.id))

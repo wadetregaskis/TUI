@@ -306,11 +306,11 @@ package final class BodyKeep {
             guard let old = stamps.stamp(of: kept.environment), let new = stamps.stamp(of: context.environment),
                 old === new || old.isEquivalent(to: new)
             else {
-                counts.environmentMisses += 1
+                counts.environmentMisses &+= 1
                 return nil
             }
         }
-        counts.taken += 1
+        counts.taken &+= 1
         if !keepsEveryBody { tally[ObjectIdentifier(V.self), default: (0, 0)].taken += 1 }
         cache.leases.use(kept.lease)
         return unsafe unsafeDowncast(kept.box, to: Box<V>.self).body
@@ -320,7 +320,7 @@ package final class BodyKeep {
     @MainActor
     func keep<V: View>(_ body: V.Body, of view: V, lease: ObservationLease?, context: RenderContext, cache: RenderCache) {
         guard let key = key(view, context: context, cache: cache) else { return }
-        counts.kept += 1
+        counts.kept &+= 1
         let replaced = table.updateValue(
             Kept(box: Box(view: view, body: body), lease: lease, environment: context.environment), forKey: key)
         // A body kept again under the same key is one a draw could take, once.

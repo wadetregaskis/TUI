@@ -7,6 +7,18 @@
 //  Split out of `RenderCache.swift`, which had reached the file-length ceiling.
 //  Neither type reads anything of the cache's own.
 //
+//  Every lifetime statistic the render layer keeps — these, the measure and
+//  child-views memo totals, the keeps', leases', environment stamps' and
+//  revalidation's counts — is counted with `&+=` and read as a difference with
+//  `&-`. Not an optimisation, and not a sign that wrapping is expected: these
+//  totals are never reset while an app runs, and on wasm32, where `Int` is 32
+//  bits, a screen walked every frame takes the busiest past `Int.max` in days
+//  (hunt H-52). A statistic that wraps once in years is a wrong number in a
+//  log; a checked `+=` there is a trap that ends the app. A frame's reading —
+//  `delta(since:)` — stays right across the wrap. `Tools/check-ratchets.py`
+//  refuses a new checked add to a `stats.`, `counts.`, `Totals.` or `rowWork.`
+//  field.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -84,10 +96,10 @@ extension RenderCache {
         /// This minus `earlier`, for a per-frame reading rather than a total.
         public func delta(since earlier: Self) -> Self {
             Self(
-                rendered: rendered - earlier.rendered, served: served - earlier.served,
-                servedDrawing: servedDrawing - earlier.servedDrawing,
-                cellValues: cellValues - earlier.cellValues, repainted: repainted - earlier.repainted,
-                bodies: bodies - earlier.bodies, listed: listed - earlier.listed)
+                rendered: rendered &- earlier.rendered, served: served &- earlier.served,
+                servedDrawing: servedDrawing &- earlier.servedDrawing,
+                cellValues: cellValues &- earlier.cellValues, repainted: repainted &- earlier.repainted,
+                bodies: bodies &- earlier.bodies, listed: listed &- earlier.listed)
         }
     }
 
@@ -138,7 +150,7 @@ extension RenderCache {
         }
 
         /// The total number of lookups (hits + misses).
-        public var lookups: Int { hits + misses }
+        public var lookups: Int { hits &+ misses }
 
         /// The cache hit rate as a value between 0 and 1, or 0 if no lookups occurred.
         public var hitRate: Double {
@@ -148,12 +160,12 @@ extension RenderCache {
         /// Returns the per-element difference between this snapshot and an earlier one.
         public func delta(since earlier: Self) -> Self {
             Self(
-                hits: hits - earlier.hits,
-                misses: misses - earlier.misses,
-                stores: stores - earlier.stores,
-                clears: clears - earlier.clears,
-                subtreeClears: subtreeClears - earlier.subtreeClears,
-                clearVisits: clearVisits - earlier.clearVisits
+                hits: hits &- earlier.hits,
+                misses: misses &- earlier.misses,
+                stores: stores &- earlier.stores,
+                clears: clears &- earlier.clears,
+                subtreeClears: subtreeClears &- earlier.subtreeClears,
+                clearVisits: clearVisits &- earlier.clearVisits
             )
         }
     }

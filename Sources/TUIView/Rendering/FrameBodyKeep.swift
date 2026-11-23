@@ -117,7 +117,7 @@ package final class FrameBodyKeep {
         if !table.isEmpty {
             let before = table.count
             table = table.filter { $0.value.pass >= pass - 1 }
-            counts.dropped += before - table.count
+            counts.dropped &+= before - table.count
         }
         if !wanted.isEmpty { wanted = wanted.filter { $0.value >= pass - 1 } }
     }
@@ -145,7 +145,7 @@ package final class FrameBodyKeep {
     /// `lease` holds its scopes by.
     func keep<V: View>(_ body: V.Body, key: PlainKey<V>, identity: ViewIdentity, lease: ObservationLease?) {
         guard isOn else { return }
-        counts.kept += 1
+        counts.kept &+= 1
         wanted[identity.structuralHash] = nil
         table[identity.structuralHash] = Kept(
             identity: identity, viewType: ObjectIdentifier(V.self), box: Box(key: key, body: body), lease: lease,
@@ -161,7 +161,7 @@ package final class FrameBodyKeep {
     /// Lets go of what is kept at `identity`: it no longer has a live timeline
     /// below it, so the plain memo can keep its buffer.
     func forget(_ identity: ViewIdentity) {
-        if table.removeValue(forKey: identity.structuralHash) != nil { counts.dropped += 1 }
+        if table.removeValue(forKey: identity.structuralHash) != nil { counts.dropped &+= 1 }
     }
 
     /// What was kept for a view at `identity` whose key compares equal with
@@ -173,10 +173,10 @@ package final class FrameBodyKeep {
         let box = unsafe unsafeDowncast(kept.box, to: Box<V>.self)
         guard box.key == key else {
             table[identity.structuralHash] = nil
-            counts.dropped += 1
+            counts.dropped &+= 1
             return nil
         }
-        counts.taken += 1
+        counts.taken &+= 1
         table[identity.structuralHash]?.pass = pass
         leases.use(kept.lease)
         return box.body
@@ -191,12 +191,12 @@ package final class FrameBodyKeep {
         table = table.filter { _, kept in
             !(kept.identity == identity || (includingDescendants && identity.isAncestor(of: kept.identity)))
         }
-        counts.dropped += before - table.count
+        counts.dropped &+= before - table.count
     }
 
     /// Drops everything kept.
     func dropAll() {
-        counts.dropped += table.count
+        counts.dropped &+= table.count
         table.removeAll()
         wanted.removeAll()
     }

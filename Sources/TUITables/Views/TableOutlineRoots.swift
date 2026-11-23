@@ -166,7 +166,7 @@ final class _TableOutlineCache<Value: Identifiable> {
                 case .some(.spliced(let made, let count)):
                     self.outline = made
                     expansionSeen = reading
-                    listed += count
+                    listed &+= count
                     return made
                 case .none:
                     break
@@ -178,7 +178,7 @@ final class _TableOutlineCache<Value: Identifiable> {
             expansion: expansion)
         outline = made
         expansionSeen = reading
-        listed += made.values.count
+        listed &+= made.values.count
         return made
     }
 }
