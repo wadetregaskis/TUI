@@ -518,4 +518,119 @@ struct KeyboardRowMoveTests {
         #expect(press(handler, .character("g"), ctrl: true))
         #expect(handler.isKeyboardMove)
     }
+
+    // MARK: - Several rows in hand, inside a section (hunt item LISTS-4)
+
+    /// Two sections as a `List` of two `Section`s lays them out:
+    /// `[hdrA, a1…a5, hdrB, b1…b3]`, section A's rows `1..<6` and B's `7..<10`.
+    /// `onMove` here moves the list's own rows, so a slot that ran into B shows
+    /// as rows landing after B's header.
+    private func sectionedHandler(_ rows: RowBox, selected: Set<String>) -> ItemListHandler<String> {
+        rows.items = ["hdrA", "a1", "a2", "a3", "a4", "a5", "hdrB", "b1", "b2", "b3"]
+        let handler = multiHandler(rows, selected: selected)
+        handler.reorderFeedback = .dimmed
+        handler.movableRowSpan = { row in
+            if (1..<6).contains(row) { return 1..<6 }
+            if (7..<10).contains(row) { return 7..<10 }
+            return nil
+        }
+        return handler
+    }
+
+    /// Closed up, with two rows out, section A ends at slot 4; slot 5 is
+    /// before b1, so the slot was drawn under B's header and the cursor landed
+    /// on it.
+    @Test("End with two rows in hand stops at the end of their own section")
+    func severalRowsStopAtTheirSectionsEnd() throws {
+        let rows = RowBox()
+        let handler = sectionedHandler(rows, selected: ["a2", "a3"])
+        handler.focusedIndex = 3  // a3
+        #expect(pickUp(handler))
+        #expect(handler.heldRowCount == 2)
+        #expect(press(handler, .end))
+        #expect(handler.reorder?.targetOffset == 4)
+        let drawn = handler.reorderDrawnRows(0..<10)
+        let slot = try #require(drawn.firstIndex(of: .slot))
+        #expect(drawn[slot + 1] == .row(6), "the slot is drawn above B's header: \(drawn)")
+        #expect(press(handler, .enter))
+        #expect(rows.items == ["hdrA", "a1", "a4", "a5", "a2", "a3", "hdrB", "b1", "b2", "b3"])
+        #expect(rows.items[handler.focusedIndex] == "a3", "the cursor stays on the row it held")
+    }
+
+    @Test("Past its section's end the slot does not run on: the first Up moves it back")
+    func severalRowsHaveNoDeadZoneAtTheEnd() {
+        let rows = RowBox()
+        let handler = sectionedHandler(rows, selected: ["a2", "a3"])
+        handler.focusedIndex = 3
+        #expect(pickUp(handler))
+        for _ in 0..<5 { #expect(press(handler, .down)) }
+        #expect(handler.reorder?.targetOffset == 4)
+        #expect(press(handler, .up))
+        #expect(handler.reorder?.targetOffset == 3)
+    }
+
+    /// The flat list's form of the same arithmetic: k rows in hand end at
+    /// slot `itemCount - k`, not one row on per extra row.
+    @Test("In a flat list, End with two rows in hand stops at the last slot")
+    func severalRowsEndAtTheLastSlot() {
+        let rows = RowBox()  // a b c d e
+        let handler = multiHandler(rows, selected: ["b", "c"])
+        handler.reorderFeedback = .dimmed
+        handler.focusedIndex = 1
+        #expect(pickUp(handler))
+        #expect(press(handler, .end))
+        #expect(handler.reorder?.targetOffset == 3)
+        #expect(press(handler, .up))
+        #expect(handler.reorder?.targetOffset == 2, "one Up is one place")
+        #expect(press(handler, .enter))
+        #expect(rows.items == ["a", "d", "b", "c", "e"])
+    }
+
+    /// An element of two rows at the end of its section has nowhere further
+    /// down to go: the nudge must not fire a no-op `onMove` and move the cursor
+    /// into the next section.
+    @Test("Ctrl-Down on the last element of a section moves nothing")
+    func lastElementOfASectionStays() {
+        let rows = RowBox()
+        rows.items = ["hdrA", "x1a", "x1b", "x2a", "x2b", "hdrB", "y1a", "y1b"]
+        let handler = makeHandler(rows, feedback: .dimmed)
+        var moves = 0
+        let move = handler.onMove
+        handler.onMove = { moves += 1; move?($0, $1) }
+        handler.movableRowSpan = { row in
+            if (1..<5).contains(row) { return 1..<5 }
+            if (6..<8).contains(row) { return 6..<8 }
+            return nil
+        }
+        handler.reorderGroupSpan = { row in
+            switch row {
+            case 1, 2: 1..<3
+            case 3, 4: 3..<5
+            case 6, 7: 6..<8
+            default: row..<(row + 1)
+            }
+        }
+        handler.focusedIndex = 3  // x2a
+        #expect(press(handler, .down, ctrl: true))
+        #expect(moves == 0)
+        #expect(rows.items == ["hdrA", "x1a", "x1b", "x2a", "x2b", "hdrB", "y1a", "y1b"])
+        #expect(handler.focusedIndex == 3)
+    }
+
+    /// The drag's twin: auto-scroll carries the slot with the rows, and the
+    /// carry was bounded by the span's end itself, one slot past the last row
+    /// of the section even for one row in hand.
+    @Test("Auto-scroll carries a dragged row no further than its section's end")
+    func autoScrollCarryStopsAtTheSectionsEnd() {
+        let rows = RowBox()
+        let handler = sectionedHandler(rows, selected: [])
+        handler.beginReorder(grabbing: 5)  // a5, alone
+        handler.reorder?.active = true
+        handler.reorder?.targetOffset = 4
+        handler.isAutoScrolling = true
+        handler.visibleRowBandsOffset = 0
+        handler.scrollOffset = 3
+        handler.carryReorderTargetThroughAutoScroll()
+        #expect(handler.reorder?.targetOffset == 5, "slot 5 is the end of A; 6 is under B's header")
+    }
 }

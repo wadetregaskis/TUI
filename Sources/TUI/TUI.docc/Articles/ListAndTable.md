@@ -840,6 +840,10 @@ copy of every row under ``RowReorderFeedback/dimmed`` and making room for all of
 them under ``RowReorderFeedback/cursor``, which floats the whole block on the
 pointer. Grab it by its third row and it hangs from its third row.
 
+Inside a `Section` the block keeps to its section: End, Page Down and the arrows
+stop its slot after the section's last row however many rows are in hand, and a
+drag held at the list's edge carries it no further.
+
 Under ``RowReorderFeedback/live`` a block shuffles as the pointer crosses slots,
 exactly as one row does — it lands after the row it is dragged onto going down,
 before it going up. A KEYBOARD move of several rows previews with a slot instead,

@@ -65,13 +65,21 @@ extension ItemListHandler {
         return span
     }
 
-    /// `slot` clamped to the closed-up positions a row of `span` can land at.
+    /// `slot` clamped to the closed-up positions `count` rows of `span` can
+    /// land at as one block: `span.lowerBound` through `span.upperBound - count`.
     ///
-    /// The same arithmetic the flat list has always applied — `0` through
-    /// `itemCount - 1` — expressed against the span instead of the list, so it
-    /// reduces to exactly that when the span IS the list.
-    func clampedSlot(_ slot: Int, in span: Range<Int>) -> Int {
-        min(max(span.lowerBound, slot), max(span.lowerBound, span.upperBound - 1))
+    /// Slots are closed-up positions, numbered with the rows in hand taken out,
+    /// so the span's rows end `count` places earlier than its own `upperBound`.
+    /// For one row that is the arithmetic the flat list has always applied, `0`
+    /// through `itemCount - 1`. Bounded by `upperBound - 1` for any number, a
+    /// block of several ran past the span's end: in a `Section`, End drew the
+    /// slot under the next section's header and the drop left the cursor on
+    /// it, and in a flat list the extra places were a dead zone that Up had to
+    /// climb back out of (hunt item LISTS-4). The rows in hand are always all
+    /// inside the span (``heldRows(grabbing:)``), so none of them shifts its
+    /// `lowerBound`.
+    func clampedSlot(_ slot: Int, in span: Range<Int>, holding count: Int) -> Int {
+        min(max(span.lowerBound, slot), max(span.lowerBound, span.upperBound - max(1, count)))
     }
 
     // MARK: - Rows that move together
@@ -359,7 +367,8 @@ extension ItemListHandler {
         // an offset in a collection the row never belonged to. And between two
         // elements, never inside one, where an element draws several rows.
         let target = groupBoundarySlot(
-            clampedSlot(slot, in: reorderSpan), held: reorder.held, toward: direction)
+            clampedSlot(slot, in: reorderSpan, holding: reorder.held.count), held: reorder.held,
+            toward: direction)
         if effectiveReorderFeedback == .live {
             let landed = move(from: reorder.currentOffset, to: target)
             reorder.currentOffset = landed
@@ -544,9 +553,11 @@ extension ItemListHandler {
         else { return false }
         let from = clampedRowIndex(focusedIndex)
         guard reorderGroupSpan == nil else {
-            return moveFocusedGroup(from: from, toSlot: clampedSlot(destination, in: span), toward: 0)
+            return moveFocusedGroup(
+                from: from, toSlot: clampedSlot(destination, in: span, holding: reorderGroup(of: from).count),
+                toward: 0)
         }
-        let target = clampedSlot(destination, in: span)
+        let target = clampedSlot(destination, in: span, holding: 1)
         guard target != from else { return false }
         focusedIndex = move(from: from, to: target)
         ensureFocusedItemVisible()
@@ -573,10 +584,10 @@ extension ItemListHandler {
             let group = reorderGroup(of: clampedRowIndex(focusedIndex))
             moveFocusedGroup(
                 from: clampedRowIndex(focusedIndex),
-                toSlot: clampedSlot(group.lowerBound + delta, in: span), toward: delta)
+                toSlot: clampedSlot(group.lowerBound + delta, in: span, holding: group.count), toward: delta)
             return true
         }
-        let target = clampedSlot(focusedIndex + delta, in: span)
+        let target = clampedSlot(focusedIndex + delta, in: span, holding: 1)
         guard target != focusedIndex else { return true }
         focusedIndex = clampedRowIndex(move(from: focusedIndex, to: target))
         ensureFocusedItemVisible()
@@ -923,11 +934,13 @@ extension ItemListHandler {
         else { return }
         let delta = scrollOffset - visibleRowBandsOffset
         guard delta != 0 else { return }
-        // Within the span the drag may land in — the whole list for a flat one,
-        // so this is the old `max(0, min(itemCount, …))` wherever it always was.
-        let span = reorderSpan
+        // Within the slots the drag may land at, the keys' bound
+        // (``clampedSlot(_:in:holding:)``). It was the span's own `upperBound`,
+        // a slot past the last one even for one row: in a flat list that slot
+        // and the last both land at the end, but in a `Section` it is under the
+        // next section's header (hunt item LISTS-4).
         reorder.targetOffset = groupBoundarySlot(
-            max(span.lowerBound, min(span.upperBound, target + delta)), held: reorder.held)
+            clampedSlot(target + delta, in: reorderSpan, holding: reorder.held.count), held: reorder.held)
         self.reorder = reorder
         visibleRowBandsOffset = scrollOffset
     }

@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Several rows moved from the keyboard stay in their own section.** With two rows of a section in hand, End (or
+Down past the section's last row) drew the landing slot under the next section's header, and Return left the cursor
+on that header, though the rows landed at the end of their own section. In a list without sections the extra places
+were a dead zone: Up had to be pressed once per extra row before the slot moved. An element of several rows nudged
+down from the end of its section fired a move that went nowhere and put the cursor on the next section's rows, and
+a drag held at the list's edge could carry its slot one place past its section. All of them now stop at the
+section's last place.
+
 **A list first drawn with a `nil` `Set` binding selects once it is given one.** `List(selection: isEditing ?
 $picked : nil)`, SwiftUI's edit-mode idiom, took its kind of selection from the first frame, where the binding was
 `nil`, and kept it: once editing began, no row drew selected and Space, clicks, Shift with an arrow and ⌃A did
