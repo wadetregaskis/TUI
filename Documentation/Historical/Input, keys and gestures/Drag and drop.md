@@ -501,8 +501,8 @@ three-party operation, a delegate's moves, and the drop itself.
 - **Carrying:** Tab and the arrows move the focus only among the stops that
   can take it. Those are the stops of the destinations that accept the
   payload: the ones a destination names (`Target.focusIDs`: a
-  `dropDestination`'s, from `TransferKeys`), or else the stops drawn inside
-  it. Also included are the spring-loaded controls a pause would press, and
+  `dropDestination`'s or, since H-35 (2026-11-23), an `onDrop`'s, from
+  `TransferKeys`), or else the stops drawn inside it. Also included are the spring-loaded controls a pause would press, and
   the stop the carry started from. They are ordered by reading position,
   round the ends. The picture is drawn just after the stop.
 - **Ending:** Return drops on the destination at the focus. On a

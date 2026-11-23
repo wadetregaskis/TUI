@@ -65,7 +65,7 @@ import TUICore
     /// | -60… | `TaskModifier` |
     /// | -70… | `_VStackCore` (windowed lazy stacks) |
     /// | -80… | `_ListCore` (a lone row is drawn at the list's own identity) |
-    /// | -100… | `ItemProviderDropModifier` (`onDrop(of:delegate:)`) |
+    /// | -100… | `ItemProviderDropModifier`: `onDrop(of:delegate:)`'s drag in progress (-100), and its own focus stop's id, for a carry and Paste (-101) |
     /// | -110… | free (was `contentTransition(_:)`'s, which now keeps nothing: its leaves keep their dissolves at identities of their own) |
     /// | -120… | `GestureAttachment` (`gesture(_:including:)` and its siblings) |
     /// | -130… | the property walk's record of an enum's case (`enumCaseIndex`) |

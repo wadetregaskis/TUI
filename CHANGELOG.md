@@ -49,6 +49,11 @@ they no longer fit), and SwiftUI's `TextEditor(text:)` puts the caret at the end
 deviations, by the owner's ruling of 2026-11-22. A binding that formats as it is typed (a hyphen put in a phone
 number) leaves the caret after the character typed, not before it.
 
+**An `onDrop` view takes a drop from the keyboard.** It was no focus stop, so a drag carried with Ctrl-R could not
+reach it and Paste never landed there: only the pointer could drop on it. It is a stop now, as a `dropDestination` is,
+or answers on its content's own: a carried drag stops there and Return drops it, and Paste drops what was copied, as
+the item providers a drag of it would carry, so a `DropDelegate` hears the whole of a drop's calls.
+
 **A large `TextEditor` holds a fifth of the memory it did.** Its lines were kept as arrays of `Character`, 16 bytes a
 character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224 MB of
 heap once its editor had drawn, and takes about 44 MB (665 to 129 bytes a line; the lines' own share went from 518 to

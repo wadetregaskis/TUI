@@ -86,10 +86,12 @@ and still starts a drag when you move.
 
 ## From the Keyboard
 
-No drag needs the pointer. A `draggable(_:)` view and a drop destination are
-focus stops — a control's own stop where the content has one, so a draggable
-`Button` is still one stop. With a draggable focused, Copy takes its payload,
-and Paste on a focused destination drops it there. In a `List` or `Table`, which
+No drag needs the pointer. A `draggable(_:)` or `onDrag` view and a
+`dropDestination` or `onDrop` view are focus stops — a control's own stop where
+the content has one, so a draggable `Button` is still one stop. With a draggable
+focused, Copy takes its payload, and Paste on a focused destination drops it
+there; an `onDrop` gets it as the item providers a drag of it would carry, the
+copied text as text. In a `List` or `Table`, which
 is its rows' stop, Copy takes the cursor row's, and the whole selection's, in the
 list's order, where that row is one of several selected, as a drag from it does.
 

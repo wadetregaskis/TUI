@@ -156,6 +156,11 @@
         /// text or a URL. The view proposes ``DropOperation/copy``, so a drag
         /// over it wears the copy badge, `+`.
         ///
+        /// From the keyboard, the view is a focus stop, as a
+        /// `dropDestination` is: a drag carried there drops on Return, and
+        /// Paste drops what was copied, as the providers a drag of it would
+        /// carry, at the view's first cell.
+        ///
         /// - Parameters:
         ///   - supportedContentTypes: The types the view takes.
         ///   - isTargeted: Set while a drag it would take is over the view.
@@ -205,14 +210,19 @@
 
     // MARK: - Delegate state
 
-    /// Where ``View/onDrop(of:delegate:)`` keeps a drag's progress between
-    /// frames. A namespace of its own because a generic type cannot hold
-    /// static stored properties.
+    /// `ItemProviderDropModifier`'s `StateStorage` slots, by name. A
+    /// namespace of its own because a generic type cannot hold static stored
+    /// properties.
     private enum ItemProviderDropStateIndex {
         // Negative: the modifier renders its content at its own identity, and
-        // 0... belongs to a composite content view's own @State. See
+        // 0... belongs to a composite content view's own @State. Range -100 in
         // `StateStorage.StateKey`'s reserved-range table.
+        /// Where ``View/onDrop(of:delegate:)`` keeps a drag's progress
+        /// between frames.
         static let delegate = -100
+        /// The focus id of its own stop, for a carry and Paste
+        /// (`TransferKeys.ownStop`).
+        static let ownStop = -101
     }
 
     /// One drag's progress over a delegate's view: kept across frames, since
@@ -289,6 +299,15 @@
             state.dropped = true
             return delegate.performDrop(info: info)
         }
+
+        /// A drop from Paste, which no drag came over first: the whole of a
+        /// drop's calls in one go — validate, enter, update, perform — with
+        /// nothing kept for the next.
+        func pasted(_ payload: Any, _ info: DropInfo) -> Bool {
+            state.reset()
+            defer { state.reset() }
+            return perform(payload, info)
+        }
     }
 
     // MARK: - Modifier
@@ -311,25 +330,40 @@
         }
 
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
-            var buffer = TUIView.renderToBuffer(content, context: context)
+            // The keyboard's way to drop here, as a `dropDestination`'s
+            // (`TransferKeys`): a stop of the content's or one of its own,
+            // where a carried drag can stop and Paste drops what was copied.
+            let keys = TransferKeys.applies(in: context)
+            let own =
+                keys
+                ? TransferKeys.ownStop(
+                    prefix: "ondrop", propertyIndex: ItemProviderDropStateIndex.ownStop, context: context)
+                : nil
+            var contentContext = context
+            if let own { FocusRegistration.publishIsFocused(own.isFocused, context: context, into: &contentContext) }
+            var buffer = TUIView.renderToBuffer(content, context: contentContext)
             guard !context.isMeasuring else { return buffer }
-            install(context, &buffer)
+            let stops = own.map { TransferKeys.stops(of: buffer, ownID: $0.id, context: context) } ?? []
+            install(context, &buffer, focusIDs: stops, ownFocusID: own.flatMap { stops == [$0.id] ? $0.id : nil })
             return buffer
         }
 
-        private func install(_ context: RenderContext, _ buffer: inout FrameBuffer) {
+        private func install(
+            _ context: RenderContext, _ buffer: inout FrameBuffer, focusIDs stops: [String], ownFocusID: String?
+        ) {
             let supportedContentTypes = self.supportedContentTypes
+            let accepts = { (payload: Any) in !ItemProviders.of(payload, conformingTo: supportedContentTypes).isEmpty }
             switch handler {
             case .perform(let action, let isTargeted):
+                let perform = { (payload: Any, info: DropInfo) in
+                    action(ItemProviders.of(payload, conformingTo: supportedContentTypes), info.location)
+                }
+                registerPaste(on: stops, context: context, accepts: accepts, perform: perform)
                 DropZone.install(
-                    on: &buffer, context: context,
-                    accepts: { !ItemProviders.of($0, conformingTo: supportedContentTypes).isEmpty },
-                    perform: { payload, info in
-                        action(ItemProviders.of(payload, conformingTo: supportedContentTypes), info.location)
-                    },
+                    on: &buffer, context: context, accepts: accepts, perform: perform,
                     setTargeted: { isTargeted?.wrappedValue = $0 },
                     // What SwiftUI's view without a delegate proposes.
-                    proposedOperation: { .copy })
+                    proposedOperation: { .copy }, focusIDs: stops, ownFocusID: ownFocusID)
             case .delegate(let delegate):
                 guard let storage = context.stateStorage else { return }
                 storage.markActive(context.identity)
@@ -338,13 +372,40 @@
                         identity: context.identity, propertyIndex: ItemProviderDropStateIndex.delegate),
                     default: DropDelegateState())
                 let session = DropDelegateSession(state: state.value, delegate: delegate)
+                registerPaste(on: stops, context: context, accepts: accepts, perform: session.pasted)
                 DropZone.install(
-                    on: &buffer, context: context,
-                    accepts: { !ItemProviders.of($0, conformingTo: supportedContentTypes).isEmpty },
+                    on: &buffer, context: context, accepts: accepts,
                     perform: session.perform,
                     setTargeted: session.setTargeted,
                     hoveringInfo: session.hovering,
-                    proposedOperation: session.proposedOperation)
+                    proposedOperation: session.proposedOperation, focusIDs: stops, ownFocusID: ownFocusID)
+            }
+        }
+
+        /// Paste on one of `stops` drops what was copied, as it does on a
+        /// `dropDestination`: the values this app copied, where the clipboard
+        /// still holds their text, or else the text itself, each as the item
+        /// provider a drag of it would carry, and only where one conforms to
+        /// the view's types.
+        private func registerPaste(
+            on stops: [String], context: RenderContext, accepts: @escaping (Any) -> Bool,
+            perform: @escaping (Any, DropInfo) -> Bool
+        ) {
+            guard !stops.isEmpty else { return }
+            TransferKeys.register("v", focusIDs: stops, context: context) { event, clipboard in
+                let text: String?
+                if case .paste(let pasted) = event.key { text = pasted } else { text = clipboard.read() }
+                guard let text, !text.isEmpty, let values = clipboard.paste(text, as: Any.self) else { return false }
+                // Shaped as a drag of them is (`DragAndDropSession`'s
+                // selection): one value as it is, several together.
+                let payload: Any = values.count == 1 ? values[0] : DragItems(items: values)
+                guard accepts(payload) else { return false }
+                // Dropped from the keyboard, so at the view's first cell, with
+                // no modifiers held and no preview.
+                let info = DropInfo(
+                    x: 0, y: 0, shift: false, ctrl: false, meta: false, previewX: 0, previewY: 0,
+                    previewWidth: 0, previewHeight: 0, payload: DropPayload(payload))
+                return perform(payload, info)
             }
         }
     }
