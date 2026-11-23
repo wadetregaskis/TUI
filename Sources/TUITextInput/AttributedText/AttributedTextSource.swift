@@ -70,6 +70,12 @@ final class AttributedTextSource {
 
     /// The selection last written to the app, and its character offsets: the
     /// app's binding read back as that same selection needs no finding.
+    ///
+    /// `nil` once the value changes, by the editor's write or the app's: the
+    /// selection was made in the value before, and its indices are not valid
+    /// in this one (Foundation's `isValid(within:)` compares an index's
+    /// version), though `==` on an index compares its offset alone. So the
+    /// next selection is written even where it equals the binding's.
     var published: (selection: AttributedTextSelection, offsets: Range<Int>)?
 
     init(_ bindings: AttributedTextBinding) {
@@ -137,6 +143,9 @@ final class AttributedTextSource {
         staged = nil
         value = next
         string = newString
+        // The selection last published is in the value before, so the next
+        // one is written though it compares equal (``published``).
+        published = nil
         binding.wrappedValue = next
     }
 

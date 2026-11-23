@@ -214,6 +214,28 @@ struct RichTextEditorTests {
         #expect(drawn.handler.cursor == TextEditorPosition(line: 1, column: 2))
     }
 
+    @Test("An edit writes the selection in the new value though its offset is the one written before")
+    func editWritesSelectionAnew() {
+        // CI run 113 (macOS 26 and 27): after Delete forward the caret's offset
+        // is the one written for Right, so the binding, equal by `==` (which
+        // reads an index's offset alone), kept the old value's index, which
+        // Foundation's `isValid(within:)` refuses there. Counted here, since
+        // macOS 15's Foundation does not refuse it.
+        let text = Box(AttributedString("hello\nworld"))
+        let selection = Box(AttributedTextSelection(range: Runs.index(1, in: text.value)..<Runs.index(3, in: text.value)))
+        let writes = Box(0)
+        let counted = Binding(get: { selection.value }, set: { selection.value = $0; writes.value += 1 })
+        let context = makeRenderContext(width: 30, height: 4)
+        _ = renderToBuffer(TextEditor(text: text.binding, selection: counted).frame(width: 30, height: 4), context: context)
+        let handler = context.environment.focusManager!.activeSection!.focusables
+            .compactMap { $0 as? TextEditorHandler }.first!
+        _ = handler.handleKeyEvent(KeyEvent(key: .right))
+        #expect(writes.value == 1)
+        _ = handler.handleKeyEvent(KeyEvent(key: .delete))
+        #expect(String(text.value.characters) == "helo\nworld")
+        #expect(writes.value == 2, "written anew, in the new value")
+    }
+
     @Test("Runs draw as Text draws them: colour, bold and faint from a font's weight, italic, a link underlined")
     func runsAreDrawn() throws {
         var text = AttributedString("RBLIU plain")

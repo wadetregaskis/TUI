@@ -141,8 +141,13 @@ extension TextEditorHandler {
                 // The lean the editor's keys leave, as `affinity(in:)` reports
                 // it (B-ATTRED-17), unless the editor states one.
                 chosen.lean = affinity == .automatic ? caretLean : affinity
+                // In a value changed since the last write, written though it
+                // compares equal: the binding's indices are the old value's,
+                // invalid in this one on macOS 26, Linux and Windows
+                // (``AttributedTextSource/published``; CI run 113).
+                let valueChanged = source.published == nil
                 source.published = (chosen, offsets)
-                if source.selection?.wrappedValue != chosen { source.selection?.wrappedValue = chosen }
+                if valueChanged || source.selection?.wrappedValue != chosen { source.selection?.wrappedValue = chosen }
             })
     }
 }
