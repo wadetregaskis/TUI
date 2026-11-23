@@ -19,7 +19,7 @@ struct Photo: View {
 
 Those three modifiers are all most pictures need: `.resizable()` lets the picture change size, `.scaledToFit()` keeps its shape, and `.frame` says how many cells it can use.
 
-A relative path starts from the folder you ran the app in. If the picture can't be loaded, you'll see a line of text starting with `Error:` where it should be.
+A relative path starts from the folder you ran the app in. If the picture can't be loaded, you'll see a line of text where it should be, starting with `Error:` (or the word for it in your app's language, such as `Fehler:` in German).
 
 There are two other places a picture can come from:
 

@@ -315,5 +315,6 @@
   "timeSpan.month.wide.one": "%@个月",
   "timeSpan.month.wide.other": "%@个月",
   "timeSpan.month.abbreviated.one": "%@个月",
-  "timeSpan.month.abbreviated.other": "%@个月"
+  "timeSpan.month.abbreviated.other": "%@个月",
+  "imagePlaceholder.failed": "错误：%@"
 }

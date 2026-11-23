@@ -4197,7 +4197,7 @@ above its caption (a `VStack` in a `.frame` of the placeholder's size), so the g
 its own cell the way every `Spinner` does, and the frame's offset carries the claim to
 where the centring put the glyph. That is the §68.1 shape, and the position is still
 derived once. `centerContent` keeps the other paints: the caption when the spinner is off,
-the "Loading..." fallback, and the error line.
+the "Loading" fallback (TUI's `label.loading`), and the error line.
 
 ### 68.4 A date picker's field
 

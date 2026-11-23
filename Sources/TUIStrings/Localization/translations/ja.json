@@ -315,5 +315,6 @@
   "timeSpan.month.wide.one": "%@か月",
   "timeSpan.month.wide.other": "%@か月",
   "timeSpan.month.abbreviated.one": "%@か月",
-  "timeSpan.month.abbreviated.other": "%@か月"
+  "timeSpan.month.abbreviated.other": "%@か月",
+  "imagePlaceholder.failed": "エラー：%@"
 }

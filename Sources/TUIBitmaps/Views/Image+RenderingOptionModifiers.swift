@@ -283,8 +283,9 @@ extension View {
     /// foreground either way.
     ///
     /// Pass `false` for a placeholder that does not move: the text alone, or
-    /// "Loading..." when there is no text. This sets only whether the spinner is
-    /// shown, so a style chosen further out is kept for when it is shown again.
+    /// "Loading", in the app's language, when there is no text. This sets only
+    /// whether the spinner is shown, so a style chosen further out is kept for
+    /// when it is shown again.
     ///
     /// - Parameter showSpinner: Whether to show a spinner.
     /// - Returns: A modified view.

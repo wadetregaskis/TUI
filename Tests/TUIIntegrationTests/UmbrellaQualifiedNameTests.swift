@@ -555,7 +555,7 @@ struct UmbrellaQualifiedNameTests {
         // image of a file that is not there, so it is still loading when it is
         // drawn: TUIImage's colour mode, which only a decoded picture reads
         // (so here it is checked for compiling only), and a caption without a
-        // spinner, which the loading image draws instead of "Loading...", so
+        // spinner, which the loading image draws instead of "Loading", so
         // the drawing shows the options reach the image.
         let caption = "b5c option"
         let optioned = TUI.Image(TUI.ImageSource.file("/b5c/missing.png"))

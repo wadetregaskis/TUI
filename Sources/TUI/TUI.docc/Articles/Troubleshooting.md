@@ -195,7 +195,7 @@ until the app quits. `_logChanges()` writes the same lines to the unified log on
 
 That's how pictures are drawn in a terminal that can't show pixels, including Apple's Terminal and tmux. To see real pixels, run your app directly in Ghostty, iTerm2 or Warp (which shows whole pictures only), or another terminal <doc:TerminalSupport> lists. To make the text version look better or different, see <doc:WorkingWithImages>.
 
-If you see a line of text starting with `Error:` in place of the picture, the image didn't load. Check the path, which is relative to the folder you ran the app from, unless you make it absolute.
+If you see a line of text starting with `Error:` in place of the picture (or the word for it in your app's language, such as `Fehler:` in German), the image didn't load. Check the path, which is relative to the folder you ran the app from, unless you make it absolute.
 
 ## The mouse doesn't work under tmux
 

@@ -4,9 +4,10 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import Testing
 
-import TUIBitmaps
+@testable import TUIBitmaps
 @testable import TUIFoundation
 @testable import TUIStyling
 @testable import TUITestSupport
@@ -51,7 +52,7 @@ private func createTestContext(width: Int = 20, height: Int = 6) -> RenderContex
 // `ImageTests`.)
 
 @MainActor
-@Suite("Image rendering (placeholder phase)")
+@Suite("Image rendering (placeholder phase)", .rendersEnglishUI)
 struct ImageRenderTests {
 
     // MARK: Default placeholder
@@ -172,7 +173,7 @@ struct ImageRenderTests {
 
     // MARK: No spinner, no text
 
-    @Test("No spinner and no text falls back to a centred \"Loading...\"")
+    @Test("No spinner and no text falls back to a centred \"Loading\"")
     func fallbackLoadingText() throws {
         let buffer = renderToBuffer(
             Image(.file("/nope.png")).imagePlaceholderSpinner(false),
@@ -181,7 +182,35 @@ struct ImageRenderTests {
         let nonBlank = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
 
         try #require(nonBlank.count == 1)
-        #expect(nonBlank[0].trimmingCharacters(in: .whitespaces) == "Loading...")
+        // TUI's `label.loading`, where it was the English literal "Loading...".
+        #expect(nonBlank[0].trimmingCharacters(in: .whitespaces) == "Loading")
+    }
+
+    @Test("The fallback text is TUI's word, in the subtree's language")
+    func fallbackLoadingTextFollowsTheLocale() throws {
+        let buffer = renderToBuffer(
+            Image(.file("/nope.png")).imagePlaceholderSpinner(false)
+                .environment(\.locale, Locale(identifier: "de")),
+            context: createTestContext())
+        let nonBlank = buffer.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        try #require(nonBlank.count == 1)
+        #expect(nonBlank[0] == "Lädt", "de.json's label.loading: \(nonBlank)")
+    }
+
+    @Test("A failed load's line is TUI's, in the subtree's language")
+    func errorLineFollowsTheLocale() {
+        func line(_ locale: Locale?) -> String {
+            var context = createTestContext(width: 40, height: 1)
+            if let locale { context.environment.locale = locale }
+            return _ImageCore(source: .file("/nope.png")).renderError("boom", width: 40, height: 1, context: context)
+                .lines.joined().stripped.trimmingCharacters(in: .whitespaces)
+        }
+        #expect(line(nil) == "Error: boom")
+        // `imagePlaceholder.failed`: the word and its punctuation are the
+        // language's own (French spaces its colon; Japanese's is full-width).
+        #expect(line(Locale(identifier: "de")) == "Fehler: boom")
+        #expect(line(Locale(identifier: "fr")) == "Erreur\u{A0}: boom")
+        #expect(line(Locale(identifier: "ja")) == "エラー：boom")
     }
 
     // MARK: Dimensions / shape
@@ -234,8 +263,8 @@ struct ImageRenderTests {
 
     @Test("A placeholder wider than its box is cut to the box, not painted past it")
     func overWidePlaceholderIsClippedToTheBox() {
-        // "Loading..." is 10 cells; the box is 6. Before the clip in
-        // `centerContent` the content row measured 10 on a buffer declaring 6,
+        // "Loading" is 7 cells; the box is 6. Before the clip in
+        // `centerContent` the content row measured 7 on a buffer declaring 6,
         // and no container could cut it: every clamp passes `availableWidth` as
         // its limit, which is the number this buffer already declares, so
         // `FrameBuffer.clamped`'s `self.width <= maxWidth` fast path returned it

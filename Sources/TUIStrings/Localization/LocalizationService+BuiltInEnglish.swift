@@ -345,7 +345,9 @@ extension LocalizationService {
       "timeSpan.month.wide.one": "%@ month",
       "timeSpan.month.wide.other": "%@ months",
       "timeSpan.month.abbreviated.one": "%@ mth",
-      "timeSpan.month.abbreviated.other": "%@ mths"
+      "timeSpan.month.abbreviated.other": "%@ mths",
+
+      "imagePlaceholder.failed": "Error: %@"
     }
     """#
 }

@@ -315,5 +315,6 @@
   "timeSpan.month.wide.one": "%@ Monat",
   "timeSpan.month.wide.other": "%@ Monate",
   "timeSpan.month.abbreviated.one": "%@ Mon.",
-  "timeSpan.month.abbreviated.other": "%@ Mon."
+  "timeSpan.month.abbreviated.other": "%@ Mon.",
+  "imagePlaceholder.failed": "Fehler: %@"
 }

@@ -7,6 +7,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import TUIFoundation
 import TUIImage
 
@@ -14,7 +15,8 @@ import TUIImage
 
 extension _ImageCore {
     /// Renders the placeholder, centred: a spinner above the text when the spinner
-    /// is shown, and otherwise the text alone, or "Loading..." when there is none.
+    /// is shown, and otherwise the text alone, or TUI's "Loading" (`label.loading`,
+    /// in the subtree's language) when there is none.
     func renderPlaceholder(
         width: Int,
         height: Int,
@@ -60,13 +62,21 @@ extension _ImageCore {
         }
 
         if contentLines.isEmpty {
-            contentLines.append((text: "Loading...", ink: palette.foregroundSecondary))
+            // TUI's word, in the language a subtree's `\.locale` names, as a
+            // `Text(localized:)` reads it where it is drawn.
+            let loading = LocalizationService.shared.frameworkReading(
+                LocalizationKey.Label.loading.rawValue, in: context.environment.stringLanguage
+            ).text
+            contentLines.append((text: context.spelled(loading), ink: palette.foregroundSecondary))
         }
 
         return centerContent(contentLines, width: width, height: height)
     }
 
-    /// Renders an error message centered in the frame.
+    /// Renders an error message centered in the frame: `message` in TUI's
+    /// `imagePlaceholder.failed` ("Error: %@"), in the language a subtree's
+    /// `\.locale` names, so the word and its punctuation are the language's
+    /// own ("Erreur : …", "エラー：…"). The message is the loader's.
     func renderError(
         _ message: String,
         width: Int,
@@ -74,8 +84,11 @@ extension _ImageCore {
         context: RenderContext
     ) -> FrameBuffer {
         let palette = context.environment.palette
-        return centerContent(
-            [(text: "Error: \(context.spelled(message))", ink: palette.error)], width: width, height: height)
+        let format = LocalizationService.shared.frameworkReading(
+            LocalizationKey.ImagePlaceholder.failed.rawValue, in: context.environment.stringLanguage
+        ).text
+        let line = context.spelled(format.replacingOccurrences(of: "%@", with: message))
+        return centerContent([(text: line, ink: palette.error)], width: width, height: height)
     }
 
     /// Centers content lines vertically and horizontally within the given
@@ -109,7 +122,7 @@ extension _ImageCore {
                 content.text, foreground: content.ink.opaqueSpelling)
             var visibleWidth = line.strippedLength
 
-            // Cut it, rather than merely failing to pad it. "Loading..." is 10
+            // Cut it, rather than merely failing to pad it. "Loading" is 7
             // cells and an "Error: <path>" far more, while this buffer declares
             // only `width` columns — and that is a lie the general net cannot
             // catch: every ancestor clamps with `clamped(toWidth:height:)`,

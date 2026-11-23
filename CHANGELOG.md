@@ -25,6 +25,11 @@ cannot see. An app that draws its own progress or posts its own notice where the
 before; one that tells the person their terminal cannot do them should not. `TUI_NOTIFICATIONS`, `TUI_PROGRESS` and
 `TUI_OSC52` set to `0` still make each unsupported.
 
+**An image's placeholder and its failure line are in the app's language.** An image still loading, with no text of
+its own and no spinner, said "Loading..." in every language, and one that failed to load said "Error: …". Both are
+TUI's words now, in the language a subtree's `\.locale` names: "Loading" in English, "Lädt" in German, and before
+the reason "Fehler: ", "Erreur : " or "エラー：". The reason itself is still the loader's English.
+
 **`EditButton` says Edit and Done in the app's language.** Its title was the English "Edit" and "Done", which no
 table has, so every language read them in English; it now reads TUI's own `button.edit` and `button.done`, and
 follows a subtree's `\.locale` as TUI's other buttons do.
