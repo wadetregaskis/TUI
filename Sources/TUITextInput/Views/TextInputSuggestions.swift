@@ -507,9 +507,18 @@ enum TextFieldSuggestions {
     /// Builds the menu model and syncs the handler's completions/highlight.
     /// Returns `nil` when there are no suggestions, or the field is disabled.
     ///
+    /// Builds the choices on every pass, open or closed and focused or not: a
+    /// press on the `▾` reads them on an unfocused field, to seat the
+    /// highlight on the row whose completion is the field's text. The menu's
+    /// rows, the labels drawn, only while the menu shows: a closed menu draws
+    /// no option's label at all where each is a `Text`, whose words are read
+    /// without drawing it (`suggestionWords(of:in:)`). Every label was drawn on
+    /// every pass before (hunt H-39); a suggested token's still is, for its
+    /// `@State`.
+    ///
     /// Reads the entries itself, because reading them obliges it to declare: a
-    /// field under a suggestions modifier syncs handler state from labels it
-    /// renders on every pass, and nothing in any memo's key sees them — the
+    /// field under a suggestions modifier syncs handler state from its
+    /// suggestions on every pass, and nothing in any memo's key sees them — the
     /// environment value compares by presence and emptiness alone
     /// (``TextSuggestions``). So the field makes every memo that holds it
     /// decline, whenever a modifier is present, empty or not and disabled or
@@ -562,9 +571,17 @@ enum TextFieldSuggestions {
         labelContext.environment.hasUncomparableEnvironmentValue = true
         labelContext.leaveScrollCanvas()
 
+        // What the field's `▾` press tells the dispatcher too, so the two agree
+        // on whether the menu is on screen (`TextFieldMouseHandler.register`).
+        // `handler.suggestionsActive` as it will read once the choices below
+        // are synced: they are never empty here (`offersChoice` above is the
+        // loop's filter), so it is the open flag alone.
+        let isOpen = isFocused && handler.suggestionsOpen
+
         // The drop-down's own model — the same one the `Picker` builds, so the
         // marker column, the width and the pointer handling are one
-        // implementation rather than two that drift.
+        // implementation rather than two that drift. Its rows only while it
+        // shows; the choices always.
         var menuEntries: [DropdownMenu.Entry] = []
         var choices: [TextSuggestionChoice] = []
         for entry in entries {
@@ -572,27 +589,35 @@ enum TextFieldSuggestions {
             case .divider:
                 menuEntries.append(.divider)
             case .option(let explicit, let label):
-                let rendered = label.renderToBuffer(context: labelContext).lines.first ?? ""
                 // The label's words, not its drawn row: the row is cut to the
                 // screen's width, and to one line (hunt H-39).
                 let completion = explicit ?? suggestionWords(of: label, in: labelContext)
+                choices.append(.completion(completion))
+                guard isOpen else { continue }
+                let rendered = label.renderToBuffer(context: labelContext).lines.first ?? ""
                 // The option whose completion is the field's current text is
                 // the "selected" one: the field's value IS the selection.
                 menuEntries.append(
                     .option(label: rendered, isSelected: completion == currentText))
-                choices.append(.completion(completion))
             case .token(let token, let label):
                 // A token this field's searchable cannot take — it has none, or
                 // they are of another type — is no suggestion here at all.
                 guard let choice = suggestions.tokenSink?.choice(token) else { continue }
+                choices.append(.token(choose: choice.choose))
+                // Drawn while the menu is closed too, unlike an option's row: a
+                // token's label is the app's `token` view, which has no words to
+                // read and keeps `@State` with its token, and a frame that drew
+                // it nowhere would let that state go before the menu reopens
+                // (`SearchTokenLabelStateTests`), as an option's own view keeps
+                // its state by being drawn for its words.
+                let rendered = label.renderToBuffer(context: labelContext).lines.first ?? ""
+                guard isOpen else { continue }
                 // In brackets, as the field draws a chosen token, so a row that
                 // adds a token reads differently from one that completes the
                 // text. Not in the accent, as the field's tokens are: the
                 // highlight fills with the accent, and the label would sink
                 // into its own row. A token already chosen earns the ✓.
-                let rendered = label.renderToBuffer(context: labelContext).lines.first ?? ""
                 menuEntries.append(.option(label: "[" + rendered + "]", isSelected: choice.isChosen))
-                choices.append(.token(choose: choice.choose))
             }
         }
         // Token entries the field could not take may leave a divider stranded.
@@ -611,9 +636,6 @@ enum TextFieldSuggestions {
         // can jump at event time, when the environment is out of reach.
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
 
-        // What the field's `▾` press tells the dispatcher too, so the two agree
-        // on whether the menu is on screen (`TextFieldMouseHandler.register`).
-        let isOpen = isFocused && handler.suggestionsActive
         if isOpen, !context.isMeasuring {
             // The menu's Escape (close) takes precedence over any page-level
             // ESC handler while open — surface that in the status bar, as the
