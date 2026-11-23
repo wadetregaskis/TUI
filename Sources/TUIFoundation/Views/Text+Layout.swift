@@ -227,6 +227,10 @@ import TUICore
             let row: Int
             let width: Int
             let characterIndex: CharacterIndex
+            /// The alpha claims the text made over the glyph's cells (a
+            /// translucent ink or field), at the glyph's own place: a glyph
+            /// drawn elsewhere takes them along.
+            var claims: [OpacityRegion] = []
         }
     }
 }

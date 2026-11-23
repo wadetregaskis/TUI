@@ -292,4 +292,28 @@ struct TextRendererTests {
         #expect(buffer.lines[0].strippedLength == buffer.lineWidths?[0] ?? buffer.width)
         #expect(ScreenSelection.cells(of: buffer.lines[0]) == ["a", "b", "c"], "a mark draws in no cell of its own")
     }
+
+    @Test("A text's own translucent colour keeps its alpha under a renderer: the same picture over a field")
+    func ownAlphaClaims() {
+        let text = Text(verbatim: "Ghost").foregroundStyle(Color.rgb(255, 0, 0).opacity(0.3))
+        let redrawn = rendered(text.textRenderer(Recording(probe: LayoutProbe())))
+        #expect(redrawn.opacityRegions.contains { $0.inkOpacity < 1 }, "\(redrawn.opacityRegions)")
+        func overField(_ view: some View) -> [String] {
+            ColorDepth.withCurrent(.truecolor) {
+                rendered(ZStack(alignment: .topLeading) { Color.rgb(0, 0, 255); view }, width: 5, height: 1).lines
+            }
+        }
+        #expect(overField(text.textRenderer(Recording(probe: LayoutProbe()))) == overField(text))
+    }
+
+    @Test("A glyph drawn elsewhere takes its text's alpha along")
+    func movedGlyphKeepsAlpha() {
+        let buffer = rendered(
+            Text(verbatim: "abcd").foregroundStyle(Color.rgb(255, 0, 0).opacity(0.3)).textRenderer(PerGlyph { index, glyph, ctx in
+                if index == 0 { ctx.translateBy(x: 3, y: 0) }
+                if index != 3 { ctx.draw(glyph) }
+            }))
+        let claimed = Set(buffer.opacityRegions.filter { $0.inkOpacity < 1 }.flatMap { $0.offsetX..<($0.offsetX + $0.width) })
+        #expect(claimed == [1, 2, 3], "b and c where they were, a where it was moved to: \(buffer.opacityRegions)")
+    }
 }

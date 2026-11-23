@@ -27,6 +27,10 @@ extension GraphicsContext {
             var opacity: Double
             /// When it was written, among everything drawn on this surface.
             var serial = 0
+            /// The alpha claims the glyph's text made over it, from the cell's
+            /// top-left: a translucent ink or field, which the bytes spell
+            /// opaque. Claimed beside ``opacity``, which is the context's.
+            var claims: [OpacityRegion] = []
         }
 
         /// Row → column → cell.
@@ -273,6 +277,10 @@ extension GraphicsContext {
                 if cell.opacity < 1 {
                     claims.append(
                         OpacityRegion(offsetX: column - start, offsetY: 0, width: cell.width, height: 1, opacity: cell.opacity))
+                }
+                for var claim in cell.claims {
+                    claim.offsetX += column - start
+                    claims.append(claim)
                 }
                 column += cell.width
                 drawnWidth = column - start

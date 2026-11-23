@@ -225,4 +225,42 @@ struct TextLinkStopsTests {
             #expect(harness.log.started == 1)
         }
     }
+
+    /// Draws a text as it is, or with every glyph as `▓`.
+    private struct Redraw: TextRenderer {
+        let substitutes: Bool
+        var animatableData = EmptyAnimatableData()
+
+        func draw(layout: Text.Layout, in ctx: inout GraphicsContext) {
+            for line in layout {
+                for run in line {
+                    if substitutes {
+                        ctx.drawSubstituting("▓", for: run[run.startIndex..<run.endIndex])
+                    } else {
+                        ctx.draw(run)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test("Under a renderer that draws the words as they were, a focused link still breathes; under one that redraws them, not")
+    func linkBreathUnderARenderer() throws {
+        for substitutes in [false, true] {
+            let harness = InputChainHarness(width: 14, height: 8)
+            func view() -> some View { wrappedLink(log: Log()).textRenderer(Redraw(substitutes: substitutes)) }
+            harness.frame(view())
+            harness.frame(view())
+            harness.press(KeyEvent(key: .tab))
+            let focused = harness.frame(view())
+            let rows = Set(focused.animatedCells.map(\.offsetY))
+            let marks = substitutes ? ["▓▓▓"] : ["the long", "guide"]
+            let linkRows = Set(focused.lines.indices.filter { row in marks.contains { focused.lines[row].stripped.contains($0) } })
+            if substitutes {
+                #expect(rows.isDisjoint(with: linkRows), "a breath would draw the words back over the renderer's: \(rows)")
+            } else {
+                #expect(!linkRows.isEmpty && linkRows.isSubset(of: rows), "the link's rows breathe: \(rows), link on \(linkRows)")
+            }
+        }
+    }
 }

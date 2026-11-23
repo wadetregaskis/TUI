@@ -179,12 +179,17 @@ extension EnvironmentValues {
         shown.draw(layout: layout, in: &graphics)
         let extent = surface.extent(including: drawn.width, drawn.height)
         var redrawn = surface.bufferOverPixels(covering: extent)
-        // Links and other regions stay where the words were laid out.
-        redrawn.hitTestRegions = drawn.hitTestRegions.map { region in
-            var region = region
-            region.offsetX -= extent.minX
-            region.offsetY -= extent.minY
-            return region
+        // Links and other regions stay where the words were laid out, as do
+        // the layers the text floats.
+        redrawn.hitTestRegions = drawn.shiftedHitTestRegions(byX: -extent.minX, y: -extent.minY)
+        redrawn.overlays = drawn.shiftedOverlays(byX: -extent.minX, y: -extent.minY)
+        // A run of cells that animates on its own (a focused link's breath)
+        // replays the text's own drawing of them: kept where the renderer drew
+        // those cells as the text did, and dropped where it drew them otherwise,
+        // or each tick would draw the text back over the renderer's.
+        redrawn.animatedCells = drawn.animatedCells.compactMap { run in
+            let moved = run.shifted(byX: -extent.minX, y: -extent.minY)
+            return Self.drawsAlike(run, in: drawn, moved, in: redrawn) ? moved : nil
         }
         guard extent.minX != 0 || extent.minY != 0 || extent.maxX != drawn.width || extent.maxY != drawn.height
         else { return redrawn }
@@ -192,5 +197,20 @@ extension EnvironmentValues {
         // out where it was, as `.offset` draws a view away from its place.
         return redrawn.drawnDisplaced(
             by: (x: extent.minX, y: extent.minY), footprintWidth: drawn.width, footprintHeight: drawn.height)
+    }
+
+    /// Whether `run`'s cells in `a` hold the same characters in the same
+    /// styling as `moved`'s, the same run's place in `b`.
+    private static func drawsAlike(
+        _ run: AnimatedCellRun, in a: FrameBuffer, _ moved: AnimatedCellRun, in b: FrameBuffer
+    ) -> Bool {
+        func cells(of run: AnimatedCellRun, in buffer: FrameBuffer) -> ArraySlice<(character: Character?, style: SGRState)>? {
+            guard buffer.lines.indices.contains(run.offsetY), run.offsetX >= 0 else { return nil }
+            let cells = ScreenSelection.styledCells(of: buffer.lines[run.offsetY])
+            guard run.offsetX + run.width <= cells.count else { return nil }
+            return cells[run.offsetX..<(run.offsetX + run.width)]
+        }
+        guard let before = cells(of: run, in: a), let after = cells(of: moved, in: b) else { return false }
+        return before.elementsEqual(after) { $0 == $1 }
     }
 }

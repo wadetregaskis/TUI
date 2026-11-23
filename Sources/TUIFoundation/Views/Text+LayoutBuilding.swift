@@ -106,7 +106,8 @@ import TUICore
                     glyphs.append(
                         Layout.Glyph(
                             character: String(character), column: column, row: row, width: width,
-                            characterIndex: Layout.CharacterIndex(offset: index)))
+                            characterIndex: Layout.CharacterIndex(offset: index),
+                            claims: Self.claims(over: column, row: row, width: width, in: drawn.opacityRegions)))
                 }
                 return true
             }
@@ -120,6 +121,22 @@ import TUICore
         }
         let cutShort = words[next...].contains { !$0.character.isWhitespace }
         return Layout(lines: lines, isTruncated: cutShort)
+    }
+
+    /// The claims of `regions` over the `width` cells from (`column`, `row`),
+    /// each moved to cover those cells alone, from their top-left: the text
+    /// wrote its translucent colours opaque and the alpha as claims
+    /// (`opacityRegions`), which a glyph drawn by a renderer must keep.
+    private static func claims(over column: Int, row: Int, width: Int, in regions: [OpacityRegion]) -> [OpacityRegion] {
+        guard !regions.isEmpty else { return [] }
+        return regions.compactMap { region in
+            guard region.offsetY <= row, row < region.offsetY + region.height, region.offsetX < column + width,
+                column < region.offsetX + region.width
+            else { return nil }
+            var claim = region
+            (claim.offsetX, claim.offsetY, claim.width, claim.height) = (0, 0, width, 1)
+            return claim
+        }
     }
 
     /// The words as this text lays them out — transliterated, cased and

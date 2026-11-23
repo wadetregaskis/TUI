@@ -148,26 +148,33 @@ public struct GraphicsContext {
         let origin = CGPoint(x: CGFloat(glyph.column), y: CGFloat(glyph.row) * surface.unitsPerRow)
         writeGlyph(
             shown, width: character.map { max(1, $0.terminalWidth) } ?? glyph.width, style: style,
-            atCellOf: origin.applying(transform))
+            atCellOf: origin.applying(transform), claims: glyph.claims)
     }
 
     /// Writes one glyph to the cell `origin`, in this context's units past its
     /// transform, lands on, under this context's state.
-    func writeGlyph(_ character: String, width: Int, style: SGRState, atCellOf origin: CGPoint) {
+    func writeGlyph(
+        _ character: String, width: Int, style: SGRState, atCellOf origin: CGPoint, claims: [OpacityRegion] = []
+    ) {
         let cell = CGPoint(x: origin.x, y: origin.y / surface.unitsPerRow)
         // Within the surface's reach, which also keeps `Int(_:)` from trapping
         // on a huge or non-finite coordinate (NaN fails both comparisons).
         guard surface.reaches(cell) else { return }
-        writeGlyph(character, width: width, style: style, column: Int(cell.x.rounded()), row: Int(cell.y.rounded()))
+        writeGlyph(
+            character, width: width, style: style, column: Int(cell.x.rounded()), row: Int(cell.y.rounded()),
+            claims: claims)
     }
 
-    /// Writes one glyph to cell (`column`, `row`) under this context's state.
-    func writeGlyph(_ character: String, width: Int, style: SGRState, column: Int, row: Int) {
+    /// Writes one glyph to cell (`column`, `row`) under this context's state,
+    /// with the alpha claims its text made over it (``Text/Layout``'s glyph's).
+    func writeGlyph(
+        _ character: String, width: Int, style: SGRState, column: Int, row: Int, claims: [OpacityRegion] = []
+    ) {
         guard clipKeeps(column: column, row: row) else { return }
         surface.write(
             Surface.Cell(
                 character: character, width: width, style: textAttributes.applied(to: filtered(style, for: character)),
-                opacity: opacity * enclosing.opacity, serial: surface.nextSerial()),
+                opacity: opacity * enclosing.opacity, serial: surface.nextSerial(), claims: claims),
             column: column, row: row)
     }
 

@@ -64,6 +64,13 @@ own (every instance prints as the type's name), two `Date`s in one second, or an
 `@State`, focus and kept subtree: a draft typed in one document's tab showed in the next. A tab is now known by its
 value as a `ForEach` row is by its id; a `String`, `Int` or `UUID` value keys as before.
 
+**A `TextRenderer` keeps the text's own translucent colours, and a focused link's breath.** Under `.textRenderer(_:)`,
+`Text("Ghost").foregroundStyle(.red.opacity(0.3))` was drawn full-strength red: the text writes a translucent colour
+opaque and states its alpha beside it, and the renderer's redrawing kept only the words. Each glyph now carries its
+text's alpha with it, wherever the renderer draws it. A focused link in the text breathes again where the renderer
+draws its words as the text did; where it draws them otherwise, the breath stays off, so it cannot draw the words
+back over the renderer's.
+
 **A zero-width character no longer takes a cell in a `Canvas`'s text or under a `TextRenderer`.** A zero-width space
 or a bidi mark (U+200B, U+200E/F, U+2066 to U+2069, as formatted dates and pasted names carry) was given a cell of its
 own, so the rest of its row was drawn a column right of where the text was measured, and the row was a column
