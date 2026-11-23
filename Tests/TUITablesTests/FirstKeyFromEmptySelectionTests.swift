@@ -142,6 +142,61 @@ struct FirstKeyFromEmptySelectionTests {
         #expect(selected.single == 0)
     }
 
+    /// The page keys from the forgotten row (hunt item LISTS-5): they went on
+    /// from the row the app's clear left, where the doc's table has Page Down
+    /// select "a page below the first row" and Page Up the first (V8).
+    @Test("A selection the app clears is forgotten: Page Down selects a page below the first row")
+    func clearedByTheAppPageDown() {
+        let selected = Selected()
+        let app = table(selected)
+        selected.single = 50
+        _ = app.screen  // the frame that moves the cursor onto it
+        app.press(.down)
+        #expect(selected.single == 51, "precondition: the cursor went onto the written row")
+        app.press(.character("j"))
+        app.press(.pageDown)
+        #expect(selected.single == 9)
+    }
+
+    @Test("A selection the app clears is forgotten: Page Up selects the first row")
+    func clearedByTheAppPageUp() {
+        let selected = Selected()
+        let app = table(selected)
+        selected.single = 50
+        _ = app.screen  // the frame that moves the cursor onto it
+        app.press(.down)
+        app.press(.character("j"))
+        app.press(.pageUp)
+        #expect(selected.single == 0)
+    }
+
+    /// What Shift with an arrow does from no row is stage 5 of the doc, still
+    /// to be probed; this pins only that it does not reach back to the
+    /// forgotten row through the range anchor left there.
+    @Test("A selection the app clears is forgotten: Shift-Down does not span back to it")
+    func clearedByTheAppShiftDown() {
+        let selected = Selected()
+        let app = TestApp(width: 40, height: 12) {
+            List(selection: Binding(get: { selected.multiple }, set: { selected.multiple = $0 })) {
+                ForEach(rows) { Text(verbatim: $0.name) }
+            }
+            .selectionFollowsCursor()
+            .onKeyPress("j") {
+                selected.multiple = []
+                return .handled
+            }
+        }
+        app.press(.tab)
+        selected.multiple = [50]
+        _ = app.screen
+        app.press(.down, modifiers: .shift)
+        #expect(selected.multiple == [50, 51], "precondition: an anchored span")
+        app.press(.character("j"))
+        app.press(.down, modifiers: .shift)
+        #expect(!selected.multiple.contains(50), "\(selected.multiple.sorted())")
+        #expect(selected.multiple.count <= 2, "\(selected.multiple.sorted())")
+    }
+
     @Test("A selection the app starts with: Down selects the row after it")
     func startingSelection() {
         let selected = Selected()

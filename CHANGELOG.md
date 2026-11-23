@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**After an app clears a following list's selection, the page keys start from the top.** Under
+`.selectionFollowsCursor()`, a selection the app empties forgets the cursor, and Down and Up already started afresh,
+but Page Down selected a page below the forgotten row and Page Up a page above it, and Shift with an arrow spanned
+from it. They now act as on a list nobody has touched: Page Down selects a page below the first row and Page Up the
+first, and Shift with an arrow starts from the first row.
+
 **Several rows moved from the keyboard stay in their own section.** With two rows of a section in hand, End (or
 Down past the section's last row) drew the landing slot under the next section's header, and Return left the cursor
 on that header, though the rows landed at the end of their own section. In a list without sections the extra places

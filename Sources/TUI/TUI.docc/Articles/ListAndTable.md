@@ -212,6 +212,12 @@ modifier or without it, so the next arrow goes on from there, as on macOS. With 
 selected row already. The row is not scrolled into view; `ScrollViewReader`'s
 `scrollTo` does that.
 
+An app that empties the selection, a Deselect All, takes the cursor with it
+under the modifier, as on macOS: the list is as it was before any key, with no
+cursor row drawn, so Down selects the first row, Up the last, Page Down a page
+below the first and Page Up the first. Space or Escape emptying it is the
+user's own act and leaves the cursor where it is.
+
 Hold Shift with Up/Down to move the cursor by several rows at once (clamping at
 the ends rather than wrapping). The step count is the `.shiftStepMultiplier(_:)`
 environment value (default 5).

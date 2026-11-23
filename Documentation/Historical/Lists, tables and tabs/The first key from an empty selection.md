@@ -288,3 +288,18 @@ with a comment citing the ruling: `SelectionFollowsCursorTests`
 `TableOutlineRowsTwinTests.selectionAndParent`,
 `ScrollToLeavesTheCursorTests.nothingSelected` and
 `HoverFocusListTests.selectionFollowsCursorIgnoresPointer`.
+
+**After the app empties the selection (2026-11-22, hunt item LISTS-5).** The
+app's clear unplaced the cursor but left its index on the forgotten row, so
+the keys that start from the index went on from there: Page Down selected a
+page below that row and Page Up a page above it, where the table above has
+Page Down select a page below the first row and Page Up the first, and Shift
+with an arrow spanned from the range anchor left on that row. Forgetting now
+also carries the index, without placing it, to the first row the cursor may
+land on, the place a fresh list's starts from, and drops the range anchor.
+Shift with an arrow from no row stays stage 5's to decide; it now starts as on
+a fresh list. Not under a Bottom anchor whose follow parked the cursor on the
+tail, the place a fresh bottom-anchored list starts from, and not without the
+modifier, where the cursor is apart from the selection.
+`FirstKeyFromEmptySelectionTests` (`clearedByTheAppPageDown`,
+`clearedByTheAppPageUp`, `clearedByTheAppShiftDown`) pins it.

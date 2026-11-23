@@ -140,8 +140,31 @@ extension ItemListHandler {
     /// seen to empty): the cursor goes with it, as macOS's does, so under
     /// `.selectionFollowsCursor()` the next Down selects the first row and Up
     /// the last, not the rows beside the one the selection left.
+    ///
+    /// Under the modifier the cursor's index goes back too, to where a fresh
+    /// list's starts, the first row it may land on: the keys that start from
+    /// the index rather than asking whether the cursor is placed went on from
+    /// the forgotten row, so Page Down selected a page below it and Page Up a
+    /// page above, where
+    /// `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`
+    /// has Page Down select a page below the first row and Page Up the first
+    /// (hunt item LISTS-5). A carry, so nothing is placed or drawn. The range
+    /// anchor is a position too, and goes: kept, Shift with an arrow went on
+    /// spanning from the forgotten row, and from the carried cursor would
+    /// have spanned every row back to it. Shift with an arrow from no row is
+    /// that doc's open stage 5; it now starts as a fresh list's does. Not
+    /// where the Bottom anchor parked the cursor on the
+    /// tail (``bottomFollowCursor``), which is the place a fresh
+    /// bottom-anchored list's starts from, and which moved elsewhere would
+    /// read as the user leaving the tail and end the follow. Without the
+    /// modifier the cursor is apart from the selection and stays where it is.
     private func forgetCursor() {
-        if seenSelection != nil { cursorIsPlaced = false }
+        guard seenSelection != nil else { return }
+        cursorIsPlaced = false
+        guard selectionFollowsCursor else { return }
+        selectionAnchor = nil
+        guard bottomFollowCursor != focusedIndex else { return }
+        carryCursor(to: firstLandingRow(orElse: 0))
     }
 
     /// Puts the cursor on `index` for a selection the app wrote, and the
