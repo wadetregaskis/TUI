@@ -212,6 +212,30 @@ final class Color256GridHandler: PersistedFocusable {
         cursor = max(0, min(255, index))
     }
 
+    /// Keeps the cursor on the swatch `color` is: the index of a palette colour,
+    /// the cell the cursor is on while that cell's colour IS `color`, and only
+    /// otherwise the nearest cell — without writing `selection`.
+    ///
+    /// The middle case is what keeps the cursor where a pick put it when the
+    /// binding does not hand `.palette256(n)` back unchanged: a store that keeps
+    /// RGB (a hex string, a model's `r`, `g`, `b`) returns `.palette256(1)` as
+    /// `.rgb(205, 0, 0)`. Re-derived from that, the cursor went to the nearest
+    /// cube cell (`downsampledToPalette256` never answers the system strip), off
+    /// the swatch just picked, and an arrow moved on from there (REST-13).
+    @MainActor func track(_ color: Color, palette: any Palette) {
+        if let exact = _Color256GridCore.index(of: color) {
+            syncCursor(to: exact)
+            return
+        }
+        if let rgb = color.resolve(with: palette).estimatedRGB,
+            let here = Color.palette256(UInt8(cursor)).estimatedRGB,
+            here == rgb
+        {
+            return
+        }
+        syncCursor(to: _Color256GridCore.nearestIndex(of: color, palette: palette))
+    }
+
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         switch event.key {
         case .up: moveVertical(-1); return true
@@ -302,12 +326,11 @@ struct _Color256GridCore: View, Renderable {
         // moves one step.
         handler.selection = context.undoable(selection, coalescing: true, propertyIndex: StateIndex.undo)
         handler.canBeFocused = !isDisabled
-        // Keep the highlighted cell on the swatch nearest the current colour (an
-        // exact match for a palette entry, otherwise the closest cube/grey cell)
-        // so the cursor tracks colours set on other tabs rather than defaulting
-        // to black. The grid's own navigation writes `.palette256(cursor)`, so this
-        // round-trips to the same cell.
-        handler.syncCursor(to: Self.nearestIndex(of: selection.wrappedValue, palette: context.environment.palette))
+        // Keep the highlighted cell on the swatch the current colour is, else the
+        // nearest (`track`), so the cursor follows colours set on other tabs
+        // rather than defaulting to black, and stays on the swatch picked
+        // whatever spelling the binding hands it back in.
+        handler.track(selection.wrappedValue, palette: context.environment.palette)
 
         if !context.isMeasuring {
             FocusRegistration.register(

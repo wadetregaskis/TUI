@@ -256,6 +256,49 @@ struct Color256GridFocusTests {
         #expect(box.color == Color.palette256(255), "the clicked swatch is selected, got \(box.color)")
     }
 
+    /// A binding through a store that keeps RGB — a hex string in `@AppStorage`,
+    /// a model with `r`, `g`, `b` — hands `.palette256(1)` back as
+    /// `.rgb(205, 0, 0)`. The grid re-derived its cursor from that each frame, and
+    /// `downsampledToPalette256` answers a cube cell for it, never the system
+    /// strip: the cursor jumped off the swatch just clicked (REST-13).
+    @Test("A binding that keeps RGB leaves the cursor on the swatch clicked")
+    func rgbStoringBindingKeepsTheCursor() {
+        final class RGBStore {
+            var rgb: (red: UInt8, green: UInt8, blue: UInt8) = (0, 0, 0)
+            var binding: Binding<Color> {
+                Binding(
+                    get: { .rgb(self.rgb.red, self.rgb.green, self.rgb.blue) },
+                    set: { self.rgb = $0.estimatedRGB ?? (0, 0, 0) })
+            }
+        }
+        let store = RGBStore()
+        let tui = TUIContext()
+        let fm = FocusManager()
+        let grid = _Color256GridCore(selection: store.binding, focusID: "grid-rgb-store")
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.mouseEventDispatcher = tui.mouseEventDispatcher
+        let ctx = RenderContext(availableWidth: 64, availableHeight: 24, environment: env, tuiContext: tui)
+        func frame() -> FrameBuffer {
+            fm.beginRenderPass()
+            let buffer = renderToBuffer(grid, context: ctx)
+            fm.endRenderPass()
+            return buffer
+        }
+        let buffer = frame()
+        let target = Palette256Layout.place(cellWidth: 2).cells.first { $0.index == 1 }!
+        tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
+        _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: target.x, y: target.y))
+        _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: target.x, y: target.y))
+        #expect(store.rgb == Color.palette256(1).estimatedRGB!, "the click stored system colour 1's RGB")
+        // The frame after the click, then one step right: system colour 2.
+        _ = frame()
+        #expect(fm.dispatchKeyEvent(KeyEvent(key: .right)))
+        #expect(
+            store.rgb == Color.palette256(2).estimatedRGB!,
+            "right of system colour 1 is system colour 2, got \(store.rgb)")
+    }
+
     /// Arrow-keying around the swatches must scroll the enclosing ScrollView to
     /// keep the cursor visible. That works off `revealTarget`, which resolves a
     /// within-control move to the SMALLEST region carrying the focusID — so the

@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**The 256-colour grid's cursor stays on the swatch picked when the binding stores RGB.** A `ColorPicker` bound
+through a store that keeps red, green and blue (a hex string in `@AppStorage`, a model's `r`, `g`, `b`) handed a
+picked system colour back as RGB, and the grid moved its cursor to the nearest cube cell, so the arrows went on from
+there. The cursor now stays where it is while its swatch is the bound colour.
+
 **The Web Safe and Crayons tabs mark, and Crayons names, the swatch picked at any opacity.** With the colour
 picker's opacity below full (opacity is on by default), picking a Web Safe or Crayons swatch drew no check on it, so
 the arrow keys moved a cursor nobody could see, and Crayons showed no name. A swatch is now matched by its colour
