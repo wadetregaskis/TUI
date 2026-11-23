@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 
 // MARK: - Date Picker Handler
@@ -120,7 +121,7 @@ final class DatePickerHandler: PersistedFocusable {
             // Not `where`-guarded: the digit test and the digit's VALUE are one
             // question, and asking it twice is what let the two answers drift.
             // A Control or Option chord on a digit is some other binding's.
-            guard !event.ctrl, !event.alt, let digit = Self.positionalDigit(character) else { return false }
+            guard !event.ctrl, !event.alt, let digit = character.positionalDigitValue else { return false }
             typeDigit(digit)
             return true
         default:
@@ -148,30 +149,6 @@ final class DatePickerHandler: PersistedFocusable {
         selection.wrappedValue = model.setting(
             date: selection.wrappedValue, kind: kind, to: bounds[keyPath: bound])
         digitBuffer = ""
-    }
-
-    /// The 0-9 value of `character` if it is a decimal digit in any script, and
-    /// `nil` for everything else — including characters that carry a numeric
-    /// value but cannot be typed into a positional field.
-    ///
-    /// `Character.isWholeNumber`, which this replaces, is the wrong question in
-    /// both directions. It is true for `Ⅷ` (8), `③` (3) and `万` (10000), none
-    /// of which is a digit you can append to a field; and the code behind it
-    /// then read the character with `Int(_:)`, which parses ASCII only, so `٣`
-    /// and `३` — what those keyboard layouts actually produce — were consumed
-    /// and read as zero.
-    ///
-    /// Unicode's own `numericType == .decimal` is exactly "decimal digit in a
-    /// positional system", so this is derived from the character database
-    /// rather than from a hand-written list of ranges that would go stale with
-    /// each new script. Every such scalar has a value of 0-9 by definition.
-    private static func positionalDigit(_ character: Character) -> Int? {
-        let scalars = character.unicodeScalars
-        guard scalars.count == 1, let scalar = scalars.first,
-            scalar.properties.numericType == .decimal,
-            let value = scalar.properties.numericValue
-        else { return nil }
-        return Int(exactly: value)
     }
 
     private func typeDigit(_ digit: Int) {
