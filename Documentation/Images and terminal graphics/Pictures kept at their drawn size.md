@@ -184,7 +184,12 @@ Cost: the area average reads every source pixel, where the bilinear read
 took four per target pixel, so a large picture costs what its size says. One
 4000 × 3000 → 80 × 48 shrink, release, best of 15: 0.025 ms by the bilinear
 read (reading 15,360 of 12 million pixels), 17.6 ms by the old file path
-(32× box then bilinear), 7.6 ms now; debug, 1.0 ms, 1,390 ms and 88 ms. An
+(32× box then bilinear), 7.6 ms by the area average's first, floating-point
+version; debug, 1.0 ms, 1,390 ms and 88 ms. The whole-number shrink cut that
+to 1.5 ms in release and 65 ms in debug (2026-11-23), and a 3840 × 3400 →
+960 × 850 shrink, the graphics-protocol path, from 16.0 to 2.8 ms (debug, 198
+to 112 ms). That whole conversion in ImageHarness is now 3.2 ms, where it was
+5.7 ms with the bilinear read before O-36. The commit has the A/B. An
 enlargement is cheaper than before, the separable pass doing two taps an
 axis rather than four products a pixel: 200 × 150 → 960 × 850 went from
 5.2 ms to 3.5 ms in release and 192 ms to 44 ms in debug. The Stress and

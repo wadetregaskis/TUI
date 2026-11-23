@@ -97,7 +97,10 @@ struct PixelResamplerReferenceTests {
     /// terminal image store asks for one cell's pixels at a time.
     @Test(
         "A window of the target is that part of the whole",
-        arguments: [(400, 300, 90, 70, 13..<41, 5..<66), (400, 300, 100, 75, 0..<1, 74..<75), (97, 61, 13, 7, 12..<13, 0..<7)])
+        arguments: [
+            (400, 300, 90, 70, 13..<41, 5..<66), (400, 300, 100, 75, 0..<1, 74..<75), (97, 61, 13, 7, 12..<13, 0..<7),
+            (400, 300, 200, 100, 37..<90, 3..<4), (300, 300, 100, 75, 99..<100, 0..<75),
+        ])
     func windowIsPartOfTheWhole(shape: (Int, Int, Int, Int, Range<Int>, Range<Int>)) {
         let (width, height, targetWidth, targetHeight, columns, rows) = shape
         let source = noise(width, height, seed: 7, opaque: false)

@@ -119,6 +119,9 @@ extension PixelResampler {
         let rowBytes = width * 4
         // A target pixel's coverage sum is its alpha times every weight of both axes.
         let alphaScale = 1 / Float(down.total * across.total)
+        // A whole ratio across of 2, 3 or 4 whose sums fit a `UInt32`: `sumAcrossWhole`.
+        let wholeRatio = across.whole == 1 && (2...4).contains(across.total)
+            && across.total * down.total <= largestExactSpan ? across.total : 0
         var written = 0
         across.spans.withUnsafeBufferPointer { acrossSpans in
             across.weights.withUnsafeBufferPointer { acrossWeights in
@@ -134,9 +137,13 @@ extension PixelResampler {
                             unsafe sumDown(
                                 from: top, rowBytes: rowBytes, span: span, weights: downWeight + span.offset,
                                 whole: down.whole, into: line, plane: plane)
-                            unsafe sumAcross(
-                                line, plane: plane, spans: acrossSpan, weights: acrossWeight, columns: columns,
-                                firstColumn: firstColumn, into: sums)
+                            if wholeRatio > 0 {
+                                unsafe sumAcrossWhole(line, plane: plane, ratio: wholeRatio, count: columns.count, into: sums)
+                            } else {
+                                unsafe sumAcross(
+                                    line, plane: plane, spans: acrossSpan, weights: acrossWeight, columns: columns,
+                                    firstColumn: firstColumn, into: sums)
+                            }
                             unsafe writePixels(sums, count: columns.count, alphaScale: alphaScale, into: output + written)
                             written += columns.count * 4
                             row += 1
@@ -359,6 +366,45 @@ extension PixelResampler {
             unsafe sums[3 * count + index] = Float(coverage)
             index += 1
             column += 1
+        }
+    }
+
+    /// `sumAcross` for a whole ratio of 2, 3 or 4: each target pixel the plain
+    /// sum of the `ratio` pixels from `ratio × index`, which is where the
+    /// window's first span starts (`line` begins at it).
+    ///
+    /// One loop per ratio with the taps written out, rather than one loop over
+    /// `ratio` taps: the compiler reads a fixed stride of 2, 3 or 4 as one
+    /// de-interleaving load and vectorises the loop; over a runtime count it
+    /// does not, and a loop over five taps or more measured slower than
+    /// `sumAcross`, so those go there. A `UInt32` sum: the caller checks it fits.
+    private static func sumAcrossWhole(
+        _ line: UnsafeMutablePointer<UInt32>, plane: Int, ratio: Int, count: Int, into sums: UnsafeMutablePointer<Float>
+    ) {
+        var channel = 0
+        while channel < 4 {
+            let from = unsafe line + channel * plane
+            let into = unsafe sums + channel * count
+            var index = 0
+            switch ratio {
+            case 2:
+                while index < count {
+                    unsafe into[index] = Float(from[index * 2] &+ from[index * 2 + 1])
+                    index += 1
+                }
+            case 3:
+                while index < count {
+                    unsafe into[index] = Float(from[index * 3] &+ from[index * 3 + 1] &+ from[index * 3 + 2])
+                    index += 1
+                }
+            default:
+                while index < count {
+                    let at = index * 4
+                    unsafe into[index] = Float(from[at] &+ from[at + 1] &+ from[at + 2] &+ from[at + 3])
+                    index += 1
+                }
+            }
+            channel += 1
         }
     }
 
