@@ -213,6 +213,11 @@ leaves open, and a wide character it splits is left as a blank cell in the view'
 filled right up to the cut rather than one cell short. Lines that were already closed where they were cut are written
 exactly as before.
 
+**A pane served after its page's write keeps the memos inside it.** When a page's `@State` changed and a pane below
+it compared unchanged, the pane was served, but every row memoized inside it was thrown away at the end of the
+frame, so the next change inside the pane (a hover, a selection, one row's data) drew all its rows again. Those rows
+are now kept, and that change draws only the row it touched: one row instead of 200 on a pane of 200 rows.
+
 **A tinted glass keeps its tint's transparency while the window is inactive.** `.glassEffect(.regular.tint(…))` with a
 translucent tint went more solid as the terminal lost focus, because greying the tint dropped its alpha. The colour
 effects' arithmetic now keeps a colour's alpha.

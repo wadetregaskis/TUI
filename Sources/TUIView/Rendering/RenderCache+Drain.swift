@@ -138,6 +138,8 @@ extension RenderCache {
     /// recorded what it was drawn from and under is kept, a suspect, and one
     /// that did not goes.
     func clearAffected(softlyBy writer: ViewIdentity) {
+        // It marks afresh: what a re-check verified before says nothing of it.
+        revalidation.forgetVerifiedRoots()
         sizeClearGeneration &+= 1
         stats.subtreeClears += 1
         plainMemo.frameBodies.drop(at: writer, includingDescendants: true)
@@ -240,6 +242,10 @@ extension RenderCache {
         // that recorded what it was drawn from and under is kept, a suspect,
         // to be re-checked when it is looked up; one that did not is dropped.
         // Below a hard writer, everything goes, as below every writer before.
+        // As `clearAffected(softlyBy:)`, and after hard writers too: they mark
+        // nothing, but forgetting costs only what a re-check after it verifies
+        // again, and a walk made again is rare.
+        revalidation.forgetVerifiedRoots()
         let hard = soft.isEmpty && keptOnly.isEmpty ? writers : writers.subtracting(soft).subtracting(keptOnly)
         var belowHard = RetainedSubtreeIndex(roots: Array(hard))
         var belowSoft = RetainedSubtreeIndex(roots: Array(soft))

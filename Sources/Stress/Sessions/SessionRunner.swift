@@ -384,7 +384,8 @@ enum SessionRunner {
                 "re-check (Option C): \(rows.stamped) stores recorded, \(rows.suspectsMarked) suspects marked, "
                     + "\(rows.rechecked) re-checked and served, \(rows.unequalValues) unequal values, "
                     + "\(rows.unequalEnvironments) unequal environments, \(rows.suspectsDropped) dropped unchecked, "
-                    + "\(rows.unstampedDropped) unrecorded dropped")
+                    + "\(rows.unstampedDropped) unrecorded dropped, "
+                    + "\(rows.suspectsKept) kept below an entry re-checked unchanged")
             for (reason, count) in report.unequalEnvironmentReasons.sorted(by: { $0.value > $1.value }).prefix(8) {
                 lines.append("  unequal environment: \(reason) ×\(count)")
             }

@@ -108,10 +108,12 @@ extension RenderCache {
         pruneWitness.changes += 1
     }
 
-    /// The keys of the pictures and sizes the prune drops: each suspect, or
-    /// whose identity `isLive` says is neither marked nor retained. None, and
-    /// nothing walked, when the pass changed nothing a verdict reads
-    /// (``PruneWitness``).
+    /// The keys of the pictures and sizes the prune drops: each suspect not
+    /// below an entry a re-check found unchanged (``VerifiedSubtrees``), and
+    /// each whose identity `isLive` says is neither marked nor retained. None,
+    /// and nothing walked, when the pass changed nothing a verdict reads
+    /// (``PruneWitness``). A suspect kept is unmarked: an ordinary entry from
+    /// here, which later drains treat as any other.
     ///
     /// Collected, then removed by the caller — the spelling
     /// `AnimationStore.endRenderPass()` uses and for its reason: removing
@@ -125,11 +127,30 @@ extension RenderCache {
             active: active, roots: roots, entryCount: entries.count + sizeEntries.count)
         pruneWitness.notePrune(walked: !unchanged)
         guard !unchanged else { return ([], []) }
+        let verifiedRoots = revalidation.verifiedRootList
+        var verified =
+            verifiedRoots.isEmpty ? nil : VerifiedSubtrees(roots: verifiedRoots, hostedMembers: hostedMembers)
+        // Whether a suspect stays: below a verified root, and live as any entry.
+        func keeps(_ identity: ViewIdentity) -> Bool {
+            guard verified?.keeps(identity) == true, isLive(identity) else { return false }
+            revalidation.counts.suspectsKept += 1
+            return true
+        }
         var staleKeys: [Int] = []
-        for (key, entry) in entries where unsafe entry.isSuspect || !isLive(entry.identity) { staleKeys.append(key) }
+        for (key, entry) in entries {
+            if unsafe entry.isSuspect {
+                if keeps(entry.identity) { unsafe entry.isSuspect = false } else { staleKeys.append(key) }
+            } else if !isLive(entry.identity) {
+                staleKeys.append(key)
+            }
+        }
         var staleSizeKeys: [SizeKey] = []
-        for (key, entry) in sizeEntries where unsafe entry.isSuspect || !isLive(entry.identity) {
-            staleSizeKeys.append(key)
+        for (key, entry) in sizeEntries {
+            if unsafe entry.isSuspect {
+                if keeps(entry.identity) { unsafe entry.isSuspect = false } else { staleSizeKeys.append(key) }
+            } else if !isLive(entry.identity) {
+                staleSizeKeys.append(key)
+            }
         }
         return (staleKeys, staleSizeKeys)
     }

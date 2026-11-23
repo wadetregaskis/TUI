@@ -55,6 +55,9 @@ package final class RevalidationState {
         package var unequalValues = 0
         /// Suspects whose environment, or modifier depth, differed.
         package var unequalEnvironments = 0
+        /// Suspects never looked up, kept at the prune because they were below
+        /// an entry a re-check found unchanged (``VerifiedSubtrees``).
+        package var suspectsKept = 0
     }
 
     /// Whether a suspect is re-checked and served when it is unchanged (C4c),
@@ -79,6 +82,11 @@ package final class RevalidationState {
 
     /// The passes begun: what a cooldown is counted in.
     private var pass = 0
+
+    /// The identities a re-check found unchanged this pass, `false` once one
+    /// there found otherwise: the roots the prune keeps suspects below
+    /// (``VerifiedSubtrees``). See `RenderCache+VerifiedSubtrees.swift`.
+    var verifiedRoots: [ViewIdentity: Bool] = [:]
 
     /// The lease the walk's re-checks arm their rebuilds' scopes under, made
     /// by the first (``walkRebuildLease()``): one for the walk, not one a row.
@@ -117,6 +125,7 @@ package final class RevalidationState {
     package func beginPass() {
         pass &+= 1
         beginWalk()
+        forgetVerifiedRoots()
         stamps.beginPass()
         if pass.isMultiple(of: 64), !cooldowns.isEmpty { cooldowns = cooldowns.filter { $0.value.until >= pass - 64 } }
     }
@@ -124,6 +133,7 @@ package final class RevalidationState {
     /// Ends a pass: this pass's stamps, and the environments they were
     /// memoized by, are let go (``EnvironmentStamps/endPass()``).
     package func endPass() {
+        forgetVerifiedRoots()
         stamps.endPass()
     }
 
@@ -368,6 +378,7 @@ extension RenderCache {
     func resolveSuspect(_ entry: CacheEntry, recheck: (Revalidation) -> RecheckVerdict, drop: () -> Void) -> Bool {
         let verdict = unsafe entry.revalidation.map(recheck) ?? .off
         revalidation.noteVerdict(verdict, at: entry.identity.structuralHash)
+        revalidation.noteVerifiedRoot(verdict, at: entry.identity)
         guard verdict == .unchanged else {
             drop()
             return false

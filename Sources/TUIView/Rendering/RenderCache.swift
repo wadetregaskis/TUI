@@ -1118,6 +1118,7 @@ extension RenderCache {
                 unsafe found.revalidation.map { recheckRow($0, rebuild: rebuild, of: V.self, at: found.identity, environment: environment, depth: depth) }
             } ?? .off
             revalidation.noteVerdict(verdict, at: found.identity.structuralHash)
+            revalidation.noteVerifiedRoot(verdict, at: found.identity)
             if verdict == .unchanged {
                 unsafe found.isSuspect = false
                 revalidation.counts.rechecked += 1
@@ -1408,11 +1409,18 @@ extension RenderCache {
         // Over the PAIRS, not the keys: a key is now just a hash, and `isLive`
         // needs the chain `retained.retains` climbs, which lives in the entry.
         // Collect-then-remove is kept, so nothing mutates the dictionary mid-walk.
-        // A suspect still unresolved at the pass's end goes too: kept, it is
-        // walked by every drain after (measured on `scrollfollow`: 2.6× the
-        // entries a clear visited, the sizes at proposals nobody asked again),
-        // for a re-check that may never come — and that the hard drain never
-        // offered, so dropping it loses nothing that was there before.
+        // A suspect still unresolved at the pass's end goes too, unless it is
+        // below an entry a re-check found unchanged (`VerifiedSubtrees`, why it
+        // is sound there): then it is unmarked and kept, an ordinary entry. A
+        // pane re-checked and served after its page's write kept nothing below
+        // it, and the next change inside the pane drew every row again
+        // (VIEWR-4, O-21, 2026-11-23). Kept MARKED, every suspect was walked by
+        // every drain after (measured on `scrollfollow`: 2.6× the entries a
+        // clear visited, the sizes at proposals nobody asked again), for a
+        // re-check that may never come; so the rest still go, as the hard drain
+        // would have dropped them. The A/B of keeping these is in
+        // `Documentation/Historical/State and dynamic properties/When a body
+        // runs - the plain-body memo.md` (O-21).
         //
         // Not at all when the pass changed nothing a verdict reads: every
         // entry is live again (`PruneWitness`). A page served whole from a

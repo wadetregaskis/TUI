@@ -367,3 +367,95 @@ owner chose (a), bytes, on 2026-11-21. Built so:
   key was not measured.
 
 Pinned by `PlainDataComparisonTests` and `ValueComparisonTests`.
+
+### O-21. Suspects kept below an entry re-checked unchanged, 2026-11-23
+
+Bug hunt VIEWR-4 (2026-11-20, verdict PARTLY: a recorded decision, its cost
+unmeasured). A page's `@State` write marks every entry kept below the page
+suspect. The walk re-checks the pane below it, finds its value and environment
+unchanged, serves it, and visits nothing below. The rows in it were still
+suspect at the pass's end, and the prune dropped them, so the next change
+inside the pane (one row's write) drew every row: on a page owning `@State
+query` above a plain-memoized `Sidebar` of 200 `ForEach` rows, 200 rows and 202
+memos composed for one row's write. The decision at
+`RenderCache.removeInactive()` had been to drop every suspect left at the
+pass's end, since kept marked they were walked by every later drain (2.6× the
+entries a clear visited on `scrollfollow`). The owner asked to explore keeping
+them and to bring the A/B cost (O-21); with the cost measured at about zero, they chose to take it
+(owner 2026-11-23, O-21 (b)).
+
+**What was built.** A re-check that finds an entry unchanged notes its identity
+as a verified root for the pass; one that finds it changed at any lookup in the
+pass unmakes it. At the prune, a suspect strictly below a verified root, and
+live as any entry must be, is unmarked and kept: an ordinary entry, which later
+drains treat as any other, so the cost the old decision measured, suspects
+walked by every drain, does not come back. One `RetainedSubtreeIndex` over the
+roots answers it, the question the prune already asks of retained roots
+(`VerifiedSubtrees`).
+
+**Why it is sound.** Before the drain every kept entry was current. The write
+reaches an entry below a verified root only through that root: a write at the
+root or between it and the entry drops the root (a writer's ancestors go), so
+the root could not have been re-checked. The root's value compared equal (a
+plain composite's suspect comparison counts a closure or `Binding` as changed;
+a row with an `==` of its own is equal when that says so), and so did its
+environment, by a stamp that covers every key a render below reads. What is
+below it is built from those, from the state between (unwritten) and from what
+it observes (whose change reports at or below the root, which drops it). So it
+would be drawn as it was. This is what serving the root's buffer, which holds
+these entries' drawing, already rests on; the documented gap of an `==` that
+leaves something out is the gap serving the root has, no wider. One case looks
+wider and is SwiftUI's: below a row whose `==` leaves out a closure, a kept
+entry keeps the closures it was drawn with, and a later write beside it, which
+draws the row's body again, finds it unchanged (not suspect, so a closure does
+not count) and serves it. SwiftUI runs neither the row's body nor that entry's
+for a sibling's write, so it keeps the same closures.
+
+**What is excluded, and why.**
+- A second soft drain in the pass, a walk made again for what effects wrote:
+  it marks afresh, and a root verified before it says nothing of what it marked
+  (a writer between the root and an entry drops the root's entry, but not the
+  root's place in the verified set). Every soft drain forgets the verified
+  roots, so the pass keeps only what it re-checks after it.
+- A member drawn away from its own identity (a `Subview` a container puts
+  elsewhere) whose place is not itself below a verified root: it is drawn under
+  the place's environment, which the root's re-check did not compare. It and
+  what is below it are not kept; a place inside an excluded member is excluded
+  in turn, to a fixed point.
+- A suspect at the root's own identity: kept only if its own lookup re-checks
+  it, as before.
+
+**Measured.** Rows composed on the second frame of the page above (write the
+page's query, then one row's state): 200 before, 1 after; memos composed 202
+before, 3 after (the row, and the sidebar and page above the write). Pinned by
+`VerifiedSubtreeKeepTests`.
+
+**The A/B** (2026-11-23, release `Stress`, Xcode 6.2, `ab_bench.py` cpu-per-frame,
+10 reps in the exclusive slot, base `b44334ac7`; the box was busy, load 3 to 13):
+
+| scenario | base µs | kept µs | change | 95% CI | verdict |
+|---|---|---|---|---|---|
+| `scrollfollow` | 415.3 | 430.1 | +2.4% | −0.1% to +4.5% | indistinguishable |
+| `churn` | 8580.0 | 8659.8 | +0.1% | −1.2% to +2.6% | indistinguishable |
+| `session/notes` | 5431.9 | 5424.2 | −0.1% | −1.4% to +7.6% | indistinguishable |
+| `kitchensink` | 12.2 | 12.1 | +0.0% | −1.6% to +0.4% | indistinguishable |
+| `megalist` | 9.0 | 9.0 | +0.0% | −2.2% to +3.3% | indistinguishable |
+| `session/chat` | 2057.1 | 2058.1 | −0.5% | −2.5% to +4.7% | indistinguishable |
+| `table-churn` | 389.4 | 391.0 | +0.0% | −0.4% to +1.3% | indistinguishable |
+
+Memory moved by less than 1 MB either way. `ab_counters.py` found no count moved
+past 1% on the five bench scenarios: none of them writes a page's state above a
+pane that is then re-checked and served, so the path does not run there and the
+old cost (suspects walked by every drain) cannot come back on them. The two
+sessions' counts differ by as much between two runs of the base binary as
+between base and the change (their composites learn what to memoize from
+measured time), so they say nothing either way; their census (`Stress --session
+notes --census`, and `chat`, a debug build) keeps 0 suspects below a re-checked
+entry. So on the scenarios measured the change costs nothing and buys nothing.
+Of the 70 perf cases (`Stress --check-counts`) one moved, `sheet-item-switch`'s
+Escape, which dismisses an item sheet over the page below it: memos composed
+25 → 3, bodies run 60 → 16, measure misses 44 → 0, served 22 → 44, the same
+2,440 bytes written (re-recorded). That and the page-above-pane shape the test
+pins are what it buys. `TUI_VERIFY_RENDER_MEMO=1 Stress --selfcheck` passed
+(214 cases, 103 sessions verified). Results:
+`TUIkit-session-notes/perf/results/o21/`.

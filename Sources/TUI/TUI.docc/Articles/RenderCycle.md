@@ -646,7 +646,14 @@ When the walk next asks for it, the row's value is built again and compared
 with the one it was drawn from by the row's own `==`, and the environment it
 would be drawn under now with the one it was drawn under. Both equal, it is
 served; otherwise it is drawn again. A marked entry nothing asks for within the
-pass is dropped. A row whose value keeps changing — a list whose rows change
+pass is dropped, unless it is below an entry the pass re-checked and found
+unchanged: a pane served whole after its page's write. Nothing between that
+entry and it was written, and it is drawn from what that entry was drawn from,
+so it is kept and unmarked, and the next change inside the pane draws only what
+it changed rather than every row of the pane. Not kept: anything marked again by
+a later write in the same pass, and a subview a container draws in a place
+outside the re-checked entry, since it is drawn under that place's environment.
+A row whose value keeps changing — a list whose rows change
 every frame — is not re-checked for a while (2, 4, 8 … up to 64 passes), since
 each check would be followed by a draw anyway.
 
