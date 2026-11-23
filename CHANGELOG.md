@@ -29,6 +29,12 @@ slow frame) ran the focused button's action, and could draw a frame, in an app t
 typed behind it reached the app too. A quit now ends the reading of input where it is read, and the app leaves at
 once, dropping the rest, as it already did when the keys arrived a moment later.
 
+**A sectioned table's scrollbar stands in its column on the section headers' lines.** In a `Table` with sections
+whose rows overflow, with the bar beside the rows, each section header's line drew the bar's cell straight after the
+header's text (`Fruits▲`) rather than at the right edge. And a table with a bar measured one cell narrower than it
+drew under `.scrollbarWidth(2)`, or, with wrapping columns or sections, at the default `.scrollbarSpacing`, wherever
+its column headers were hidden: a parent sizing it by the measure gave it a cell too few.
+
 **A focused value whose publisher stops publishing is gone from the next frame.** When a view publishing a
 `.focusedValue` or a `.focusedSceneValue` was taken away, or published `nil`, every `@FocusedValue` reader went on
 reading its old value, and no frame was asked for to show it gone: a command written `.disabled(selection == nil)`

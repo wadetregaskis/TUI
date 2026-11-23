@@ -1247,8 +1247,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             contentSize = (gutter + lines.map(\.strippedLength).max()!, lines.count)
         } else if wantsScrollbar {
             // The scrollbar path fills the whole content area: every line is
-            // the row content padded to `contentInnerWidth` plus the bar cell.
-            contentSize = (contentInnerWidth + 1, rowArea)
+            // the row content padded to `contentInnerWidth` plus the bar's
+            // cells — two of them under `.scrollbarWidth(2)`, which a `+ 1`
+            // measured one short wherever no header line set the width.
+            contentSize = (contentInnerWidth + context.environment.scrollbarWidth, rowArea)
         } else {
             // The plain path emits the visible rows plus indicator lines,
             // filling the content area exactly when overflowing; rows are
@@ -1361,11 +1363,21 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         let content: (width: Int, height: Int)
         if wantsScrollbar {
-            // A bar costs a column, not a line, and ``composeMultiLineRows``
+            // A bar costs columns, not a line, and ``composeMultiLineRows``
             // pads its output to the content area before merging the bar in as
-            // the rightmost cell. So the block is the area, exactly, whatever
-            // the rows do — no row need be wrapped at all to know this.
-            content = (contentWidth + 1, rowArea)
+            // the rightmost cells. So the block is the area, exactly, whatever
+            // the rows do — no row need be wrapped at all to know this. Its
+            // width is the composer's (``multiLineRowWidth(tableContentWidth:innerWidth:barWidth:environment:)``):
+            // the rows run on past the columns by the spacing kept clear of
+            // the bar, and the bar is as wide as it is drawn. A `+ 1` here
+            // measured neither, hidden while a header line set the width.
+            let barWidth = context.environment.scrollbarWidth
+            content = (
+                Self.multiLineRowWidth(
+                    tableContentWidth: contentWidth, innerWidth: innerWidth, barWidth: barWidth,
+                    environment: context.environment) + barWidth,
+                rowArea
+            )
         } else if !overflows {
             // Rows that fit draw no indicator and take no clip, so the block is
             // exactly their lines, each padded to the row content width.
@@ -2216,17 +2228,34 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return (
             lines: composed.lines, runs: composed.runs, claims: composed.claims, payload: composed.payload,
             state: PopulatedRenderState(
-                handler: handler,
-                focusID: persistedFocusID,
-                visibleRange: window.range,
-                scrollOffsetAbove: indicatorLines,
-                drawnBands: bands,
+                handler: handler, focusID: persistedFocusID, visibleRange: window.range,
+                scrollOffsetAbove: indicatorLines, drawnBands: bands,
                 hasScrollbar: showsScrollbar || composed.overlaidBar != nil,
-                overlaidScrollbarColumn: composed.overlaidBar,
-                columnWidths: columnWidths,
-                rowContentWidth: tableContentWidth(columnWidths, within: innerWidth, gutter: gutter)
+                overlaidScrollbarColumn: composed.overlaidBar, columnWidths: columnWidths,
+                rowContentWidth: tableContentWidth(columnWidths, within: innerWidth, gutter: gutter),
+                uniformLineWidth: multiLineUniformWidth(
+                    columnWidths, innerWidth: innerWidth, window: window,
+                    barWidth: bar.isEmpty || handler.overlaysScrollbar ? nil : bar.width, context: context)
             )
         )
+    }
+
+    /// Every line's width where ``composeMultiLineRows`` drew them all one
+    /// width, as the single-line path states its own: beside a bar, when the
+    /// cells fit the row width, every row is padded to it, a section header's
+    /// lines too (`RenderedRow.within(above:below:width:)`), every blank is
+    /// that wide, no "N more" line is drawn, and the bar's cells follow.
+    /// `nil` otherwise, and each line is measured.
+    private func multiLineUniformWidth(
+        _ columnWidths: [Int], innerWidth: Int, window: ScrollRowWindow, barWidth: Int?, context: RenderContext
+    ) -> Int? {
+        guard let barWidth, !window.reservesAbove, !window.reservesBelow else { return nil }
+        let cellsWidth = tableContentWidth(
+            columnWidths, within: innerWidth, gutter: selectionGutter(context.environment))
+        let rowWidth = Self.multiLineRowWidth(
+            tableContentWidth: cellsWidth, innerWidth: innerWidth, barWidth: barWidth,
+            environment: context.environment)
+        return cellsWidth <= rowWidth ? rowWidth + barWidth : nil
     }
 
     /// The vertical scrollbar cells for a multi-line table — one styled cell per
@@ -2714,10 +2743,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let showsBar = !bar.isEmpty && !handler.overlaysScrollbar
         // …and, before a bar, the cells the rows keep clear of it, which the
         // columns were laid out without (`View.scrollbarSpacing(_:)`).
-        let contentWidth = min(
-            innerWidth - (showsBar ? bar.width : 0),
-            tableContentWidth(rows.columnWidths, within: innerWidth, gutter: gutter)
-                + context.environment.rowScrollbarSpacing(showsBar: showsBar))
+        let cellsWidth = tableContentWidth(rows.columnWidths, within: innerWidth, gutter: gutter)
+        let contentWidth = Self.multiLineRowWidth(
+            tableContentWidth: cellsWidth, innerWidth: innerWidth, barWidth: showsBar ? bar.width : nil,
+            environment: context.environment)
         // Whether the "N more" lines are this table's indicator — false for a
         // bar AND for hidden indicators, which is why it is the handler's
         // resolved answer rather than `!showsBar`.
@@ -2870,6 +2899,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             zip(lines, bar.lines).map { $0 + $1 },
             runs + chromeRuns, claims + chromeClaims + bar.claims(atColumn: contentWidth), payload,
             rowsEnd, nil)
+    }
+
+    /// How wide the multi-line composer draws each row: to the cells' span
+    /// (`tableContentWidth`), and before a bar `barWidth` wide on past it by
+    /// the cells the rows keep clear of the bar (`View.scrollbarSpacing(_:)`),
+    /// short of the bar's own cells. Shared by the composer and the analytic
+    /// measure, so the two cannot disagree on it.
+    private static func multiLineRowWidth(
+        tableContentWidth: Int, innerWidth: Int, barWidth: Int?, environment: EnvironmentValues
+    ) -> Int {
+        min(
+            innerWidth - (barWidth ?? 0),
+            tableContentWidth + environment.rowScrollbarSpacing(showsBar: barWidth != nil))
     }
 
     /// Renders one (possibly multi-line) row: the selection indicator on the first
@@ -3027,7 +3069,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             pulseFrames: framePaints.map { paints in bareLines.map { bare in paints.map { $0.painting(bare) } } },
             pulseTiming: framePaints == nil ? nil : visual.background.pulseTiming,
             claims: claims, payload: layout.payload)
-        return rendered.within(above: layout.above, below: layout.below)
+        return rendered.within(above: layout.above, below: layout.below, width: rowWidth)
     }
 
     /// Hands the handler this frame's row actions: one call for both layout
@@ -7190,10 +7232,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// This row between section headers' lines: `above` before its own lines
         /// and `below` after them, everything indexed by line moved past the
         /// lines above. A header line draws no background and never breathes.
-        func within(above: [String], below: [String]) -> Self {
+        ///
+        /// Each header line is padded to `width`, the row's: a header draws
+        /// its own width (a `Text("Fruits")` six cells), and nothing after
+        /// this pads it, so a bar merged in beside the rows was drawn straight
+        /// after the header's text, one cell past it, on every header line.
+        func within(above: [String], below: [String], width: Int) -> Self {
             guard !above.isEmpty || !below.isEmpty else { return self }
+            func padded(_ line: String) -> String {
+                let short = width - line.strippedLength
+                return short > 0 ? line + String.spaces(short) : line
+            }
             var row = self
-            row.lines = above + lines + below
+            row.lines = above.map(padded) + lines + below.map(padded)
             row.pulseFrames = pulseFrames.map {
                 Array(repeating: [], count: above.count) + $0 + Array(repeating: [], count: below.count)
             }

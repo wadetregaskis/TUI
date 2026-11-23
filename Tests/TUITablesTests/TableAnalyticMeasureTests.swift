@@ -210,6 +210,105 @@ struct TableAnalyticMeasureTests {
         }
     }
 
+    /// Which composer a table of the bar sweep below draws its rows with.
+    enum BarLayout: CaseIterable, Sendable {
+        case singleLine, multiLine, sectioned
+    }
+
+    /// A table of the bar sweep: `rowCount` rows on either composer, or in two
+    /// sections (a sectioned table always takes the multi-line one).
+    private func barTable(_ layout: BarLayout, data: [MeasureRow]) -> AnyView {
+        switch layout {
+        case .singleLine:
+            return AnyView(
+                Table(data, selection: .constant(Int?.none)) {
+                    TableColumn("Name", value: \MeasureRow.name)
+                    TableColumn("Detail", value: \MeasureRow.detail).width(10)
+                })
+        case .multiLine:
+            return AnyView(
+                Table(data, selection: .constant(Int?.none)) {
+                    TableColumn("Name", value: \MeasureRow.name).lineLimit(3)
+                    TableColumn("Detail", value: \MeasureRow.detail).width(10)
+                })
+        case .sectioned:
+            let half = data.count / 2
+            return AnyView(
+                Table(of: MeasureRow.self, selection: .constant(Int?.none)) {
+                    TableColumn("Name", value: \MeasureRow.name)
+                    TableColumn("Detail", value: \MeasureRow.detail).width(10)
+                } rows: {
+                    Section("Fruits") { ForEach(Array(data[..<half])) { TableRow($0) } }
+                    Section("Vegetables") { ForEach(Array(data[half...])) { TableRow($0) } }
+                })
+        }
+    }
+
+    /// TABLES-9: the bar was measured as one cell, and on the multi-line
+    /// composer without the cells the rows keep clear of it — hidden while a
+    /// header line, padded to the interior, set the width.
+    @Test(
+        "With a bar beside the rows, the measure equals the render at either bar width, headers shown or hidden",
+        arguments: BarLayout.allCases, [Visibility.visible, .hidden])
+    func barWidthsMatchRender(layout: BarLayout, headers: Visibility) {
+        for barWidth in [1, 2] {
+            for spacing in [0, 1, 2] {
+                for (width, height) in [(30, 8), (60, 12)] {
+                    let table = barTable(layout, data: rows(40))
+                        .scrollIndicators(.visible)
+                        .scrollbarWidth(barWidth)
+                        .scrollbarSpacing(spacing)
+                        .tableColumnHeaders(headers)
+                    let context = makeRenderContext(width: width, height: height) { env, _ in
+                        env.scrollIndicatorPlacement = .besideContent
+                    }
+                    var renderContext = context
+                    renderContext.hasExplicitWidth = false
+                    let buffer = renderToBuffer(table, context: renderContext)
+                    let measured = measureChild(
+                        table, proposal: ProposedViewSize(width: width, height: height), context: context)
+                    #expect(
+                        measured.width == buffer.width && measured.height == buffer.height,
+                        """
+                        \(layout) headers=\(headers) bar=\(barWidth) spacing=\(spacing) \(width)x\(height): \
+                        measured \(measured.width)x\(measured.height) vs rendered \(buffer.width)x\(buffer.height)
+                        \(buffer.lines.map(\.stripped).joined(separator: "\n"))
+                        """)
+                }
+            }
+        }
+    }
+
+    /// TABLES-2: a section header's lines joined the rows unpadded, so the
+    /// bar's cell was drawn straight after the header's text.
+    @Test(
+        "A sectioned table's bar stands in one column on header lines and row lines alike",
+        arguments: [1, 2], [Visibility.visible, .hidden])
+    func sectionHeaderLinesReachTheBar(barWidth: Int, headers: Visibility) {
+        // Twelve rows in a six-line table, the hunter's frame.
+        let table = barTable(.sectioned, data: rows(12))
+            .scrollIndicators(.visible)
+            .scrollbarWidth(barWidth)
+            .tableColumnHeaders(headers)
+        let context = makeRenderContext(width: 30, height: 6) { env, _ in
+            env.scrollIndicatorPlacement = .besideContent
+        }
+        let buffer = renderToBuffer(table, context: context)
+        let lines = buffer.lines.map(\.stripped)
+        let dump = lines.joined(separator: "\n")
+        #expect(lines.contains { $0.contains("Fruits") }, "a header is on screen:\n\(dump)")
+        // Every line as wide as the next, and the bar's top arrow — on the
+        // header's line, the first the rows draw — in the column its bottom
+        // arrow is in, on a row's line. Unpadded, the header's line put it
+        // straight after "Fruits".
+        #expect(Set(lines.map(\.count)).count == 1, "lines of one width:\n\(dump)")
+        let header = lines.first { $0.contains("Fruits") }.map(Array.init) ?? []
+        let last = lines.dropLast().last.map(Array.init) ?? []
+        let up = header.firstIndex { "▲◢".contains($0) }
+        let down = last.firstIndex { "▼◥".contains($0) }
+        #expect(up != nil && up == down, "the bar stands in one column:\n\(dump)")
+    }
+
     @Test("A tall budget — the extent ladder's case — still measures exactly")
     func laddersTallBudgetsMatchTheRender() {
         // `measureNaturalExtent` probes with budgets far past the content, and
