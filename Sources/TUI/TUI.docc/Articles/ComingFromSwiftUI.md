@@ -105,7 +105,7 @@ In a `List` or `Table`, the arrow keys move a cursor, and Space or Return select
 
 ## Long content belongs in a `List`
 
-A `LazyVStack` draws only the rows it can show, but it doesn't save as much as it does in SwiftUI: rows that scroll away stay in the view tree, and a lazy stack nested inside other scrolling content draws everything. For a lot of data, use `List`, which is built for it.
+A `LazyVStack` draws only the rows it can show, wherever it stands in a scroll view's content, but it doesn't save as much as it does in SwiftUI: rows that scroll away stay in the view tree, and a custom `Layout` or a `Grid` that places two lazy stacks one above the other draws both whole. For a lot of data, use `List`, which is built for it.
 
 Because of this, a row that scrolls away **keeps its `@State`**, where SwiftUI would eventually discard it. A collapsed `DisclosureGroup` keeps its content's state too. `onAppear` and `task` still run when a row comes into view, so don't use a reset of `@State` to notice a row coming back.
 

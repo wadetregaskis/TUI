@@ -745,10 +745,12 @@ as above, and hands each pulled child a request in the child's own lines
 [the SCROLL-FIT design](<../Historical/Scrolling/SCROLL-FIT design.md>)). So the
 stack below the header here, two stacks one above the other, and stacks in the
 rows of an outer one each build only the rows on screen, and each is priced by
-its sample, never walked. A stack below any other container — a bordered box,
-an `HStack` — is still drawn whole as the next paragraph tells, until a later
-lane makes that container pull; which it is the stack reads from its identity
-(`isPulledWhereItStands`). A `scrollTo` of a row inside any of them is located
+its sample, never walked. Later lanes made the other containers pull: a
+bordered box, an `HStack` and a `ZStack` (P2's second lane), an app's `Layout`
+(P9) and a `Grid` (P8's leftovers). A stack below a container that does not
+pull, or in a layout or grid whose places the pull cannot serve (two lazy
+stacks one above the other), is still drawn whole as the next paragraph tells;
+which it is the stack reads from its identity (`isPulledWhereItStands`). A `scrollTo` of a row inside any of them is located
 by route (`StackNestedSeek.swift`): the rows above the key's are measured for
 the search alone, a level deeper each round, and the row it is found in is
 handed the seek when it is pulled, or aimed into when it is drawn whole — that

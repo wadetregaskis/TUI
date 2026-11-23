@@ -24,16 +24,18 @@
 ///   intersecting the scrolled slice render (and fire their lifecycle), the
 ///   rest becoming blank placeholders in a full-height buffer, so scrolling a
 ///   1000-row list costs a viewport's worth of rendering, not all 1000 — and
-///   `onAppear` fires on visibility, matching SwiftUI. (A `LazyVStack` nested
-///   *below* other scroll content isn't at the content origin, so it is left
-///   un-windowed — and so is one alone inside an outer lazy stack, which takes
-///   the window itself. A `Section`'s header and footer are not such content:
-///   the section hands its content the window moved below its header, so a
-///   lazy stack there windows, seeks and reports its row as it would with
-///   neither. Every row of a stack left un-windowed is measured and drawn, as
-///   in a `VStack`, so its cost per frame tracks its row count — and in a row
-///   of an outer lazy stack it is measured whenever the outer stack places
-///   that row, on screen or not.)
+///   `onAppear` fires on visibility, matching SwiftUI. (A `LazyVStack` further
+///   in builds only the rows on screen too: below a header in a `VStack`,
+///   beside other views in an `HStack` or a `ZStack`, in a `GroupBox` or a
+///   bordered box, in a `Grid` cell, in an app's own `Layout`, or in a row of
+///   an outer lazy stack, the containers around it hand it the part of it the
+///   viewport shows, so its cost per frame tracks the viewport, not its row
+///   count. A `Section`'s header and footer hand their content the window
+///   moved below the header, so a lazy stack there windows, seeks and reports
+///   its row as it would with neither. What still draws one whole, every row
+///   measured and drawn as in a `VStack`, is a container that cannot place it
+///   a viewport at a time: a `Layout` or a `Grid` that places two lazy stacks
+///   one above the other, or one twice.)
 ///
 /// # Pinned section headers and footers
 ///

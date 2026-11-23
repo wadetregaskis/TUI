@@ -191,7 +191,7 @@ A plain ``VStack`` draws all of its rows on every frame, however few of them sho
 For more than that, choose by what you need:
 
 - **``List`` and ``Table``** are built for a lot of data. They draw only the rows that show, with a cost per key that doesn't grow with the number of rows. Reach for these first. See <doc:ListAndTable>.
-- **``LazyVStack`` directly inside a ``ScrollView``** draws only the rows it can show, for when a list's look or behaviour isn't what you want. Rows that have scrolled away stay in the view tree, so it doesn't save as much as it does in SwiftUI, and one nested inside other scrolling content draws everything. See <doc:ScrollingGuide>.
+- **``LazyVStack`` inside a ``ScrollView``** draws only the rows it can show, for when a list's look or behaviour isn't what you want. That holds wherever it stands in the scroll view's content: directly inside, under a title, beside other views or in a ``GroupBox``. Rows that have scrolled away stay in the view tree, so it doesn't save as much as it does in SwiftUI, and a custom `Layout` or a `Grid` that places two lazy stacks one above the other draws both whole. See <doc:ScrollingGuide>.
 
 ```swift
 ScrollView {
