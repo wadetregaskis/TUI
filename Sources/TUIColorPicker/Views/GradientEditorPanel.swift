@@ -77,7 +77,9 @@ import TUIStyling
 /// dialog matches what the binding can hold, and the binding type makes the
 /// wrong choice fail to compile.
 public struct GradientEditorPanel {
-    private let title: String
+    /// The title the app gave, or `nil` for TUI's own word for gradient, read
+    /// where the panel is drawn (``init(gradient:isPresented:)``).
+    private let title: String?
     private let gradient: Binding<Gradient>
     private let isPresented: Binding<Bool>
 
@@ -91,6 +93,10 @@ public struct GradientEditorPanel {
 
     /// How words are spelled here: where in ASCII, the dashed rule is `- - -`.
     @Environment(\.textSpelling) private var textSpelling
+
+    /// The language a subtree's `\.locale` names, which the default title and
+    /// the gradient switch are read in.
+    @Environment(\.stringLanguage) private var language
 
     /// Which of ◀ and ▶ holds the keyboard, bound only so each can name the other
     /// as where its focus goes when it disables itself: see ``actionRow``.
@@ -149,20 +155,24 @@ public struct GradientEditorPanel {
         gradient: Binding<Gradient>,
         isPresented: Binding<Bool>
     ) {
-        self.title = String(title)
+        self.init(resolvedTitle: String(title), gradient: gradient, isPresented: isPresented)
+    }
+
+    /// The one initialiser the others forward to; a `nil` title is TUI's.
+    private init(resolvedTitle: String?, gradient: Binding<Gradient>, isPresented: Binding<Bool>) {
+        self.title = resolvedTitle
         self.gradient = gradient
         self.isPresented = isPresented
     }
 
-    /// Creates a gradient-editor panel titled `"Gradient"`.
+    /// Creates a gradient-editor panel titled with TUI's word for gradient —
+    /// "Gradient" in English, "Verlauf" in German — in the app's language, or
+    /// the language a subtree's `\.locale` names.
     ///
     /// The title's default lives here rather than on either titled overload:
     /// neither of those can carry it — a generic parameter cannot have a
     /// default, and defaulting the ``LocalizedStringKey`` one would make the
-    /// two ambiguous wherever the title is omitted. The forwarded default is
-    /// written `as String` so it stays on the disfavoured side: a bare literal
-    /// would bind to the key overload and go looking for a `"Gradient"` key
-    /// that is in no table.
+    /// two ambiguous wherever the title is omitted.
     ///
     /// - Parameters:
     ///   - gradient: The gradient being edited. Rewritten live on every
@@ -173,13 +183,13 @@ public struct GradientEditorPanel {
         gradient: Binding<Gradient>,
         isPresented: Binding<Bool>
     ) {
-        self.init("Gradient" as String, gradient: gradient, isPresented: isPresented)
+        self.init(resolvedTitle: nil, gradient: gradient, isPresented: isPresented)
     }
 
     /// The content and behavior of this view.
     @MainActor @ViewBuilder public var body: some View {
         let recents = Self.decodeRecents(recentsRaw)
-        _EditorPanelChrome(title: title, edited: gradient, isPresented: isPresented) {
+        _EditorPanelChrome(title: title ?? gradientWord, edited: gradient, isPresented: isPresented) {
             VStack(alignment: .center, spacing: 1) {
                 modeSwitch
                 previewStrip
@@ -211,6 +221,12 @@ public struct GradientEditorPanel {
 
     // MARK: Mode
 
+    /// TUI's word for gradient (`label.gradient`), in ``language``: the default
+    /// title, and the switch's.
+    @MainActor private var gradientWord: String {
+        LocalizationService.shared.frameworkReading(LocalizationKey.Label.gradient.rawValue, in: language).text
+    }
+
     /// Whether this is a ramp at all. One stop is a solid colour, and the
     /// dialog shows the colour editor alone for it.
     @MainActor private var isGradient: Bool { gradient.wrappedValue.stops.count > 1 }
@@ -221,7 +237,7 @@ public struct GradientEditorPanel {
     /// that could disagree with the stops.
     @MainActor private var modeSwitch: some View {
         Toggle(
-            LocalizationService.shared.string(for: LocalizationKey.Label.gradient),
+            gradientWord,
             isOn: Binding(
                 get: { isGradient },
                 set: { wantsGradient in

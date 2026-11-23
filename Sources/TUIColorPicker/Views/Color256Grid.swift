@@ -624,10 +624,14 @@ struct _Palette256Editor: View {
     let selection: Binding<Color>
     @AppStorage("tuikit.colorPicker.palette256.showNumbers") private var showNumbers = false
 
+    /// The language a subtree's `\.locale` names, which the toggle's title is
+    /// read in.
+    @Environment(\.stringLanguage) private var language
+
     var body: some View {
         VStack(alignment: .center, spacing: 0) {
             _Color256GridCore(selection: selection, showNumbers: showNumbers)
-            Toggle("Show numbers", isOn: $showNumbers)
+            Toggle(colorPickerWord(.showNumbers, in: language), isOn: $showNumbers)
         }
     }
 }

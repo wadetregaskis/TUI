@@ -350,7 +350,17 @@ extension LocalizationService {
       "imagePlaceholder.failed": "Error: %@",
 
       "undoTitle.undo": "Undo %@",
-      "undoTitle.redo": "Redo %@"
+      "undoTitle.redo": "Redo %@",
+
+      "colorPicker.title": "Colour",
+      "colorPicker.semantic": "Semantic",
+      "colorPicker.xterm256": "256 (Xterm)",
+      "colorPicker.greyscale": "Greyscale",
+      "colorPicker.named": "Named",
+      "colorPicker.webSafe": "Web Safe",
+      "colorPicker.crayons": "Crayons",
+      "colorPicker.opacity": "Opacity",
+      "colorPicker.showNumbers": "Show numbers"
     }
     """#
 }

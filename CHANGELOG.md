@@ -25,6 +25,11 @@ cannot see. An app that draws its own progress or posts its own notice where the
 before; one that tells the person their terminal cannot do them should not. `TUI_NOTIFICATIONS`, `TUI_PROGRESS` and
 `TUI_OSC52` set to `0` still make each unsupported.
 
+**The colour picker and the gradient editor speak the app's language.** Their default titles ("Colour",
+"Gradient"), the tabs from Semantic to Crayons, the opacity row's label and the 256 tab's "Show numbers" were English
+whatever the language; they are TUI's words now, in all seven languages, and follow a subtree's `\.locale`. The
+English is as it was.
+
 **Undo and Redo titles are joined as macOS joins them, in every language.** Off macOS, and in the menu bar's Edit
 menu everywhere, a named step's title was the verb, a space and the name ("Widerrufen Löschen"). It is now
 Foundation's own format for the language, read off macOS: "Löschen widerrufen" in German, "撤销删除" in Chinese,

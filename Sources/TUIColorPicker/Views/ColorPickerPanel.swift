@@ -45,7 +45,9 @@ import TUITextInput
 /// reported for it, or xterm's value while it has reported none;
 /// a semantic colour has no fixed RGB and reads as black until edited.
 public struct ColorPickerPanel {
-    private let title: String
+    /// The title the app gave, or `nil` for TUI's own word for colour,
+    /// read where the panel is drawn (``init(selection:supportsOpacity:isPresented:)``).
+    private let title: String?
     private let selection: Binding<Color>
     private let supportsOpacity: Bool
     private let isPresented: Binding<Bool>
@@ -56,7 +58,12 @@ public struct ColorPickerPanel {
     /// Resolves a semantic ``selection`` to concrete RGB for the read-out.
     @Environment(\.palette) private var palette
 
-    /// The editor tabs. `rawValue` doubles as the tab's button label.
+    /// The language a subtree's `\.locale` names, which the default title is
+    /// read in.
+    @Environment(\.stringLanguage) private var language
+
+    /// The editor tabs. The tabs' titles are TUI's words for them, in the
+    /// app's language; `rawValue` is the English.
     public enum Mode: String, CaseIterable, Sendable {
         case rgb = "RGB"
         case hsl = "HSL"
@@ -131,21 +138,29 @@ public struct ColorPickerPanel {
         supportsOpacity: Bool = true,
         isPresented: Binding<Bool>
     ) {
-        self.title = String(title)
+        self.init(
+            resolvedTitle: String(title), selection: selection, supportsOpacity: supportsOpacity,
+            isPresented: isPresented)
+    }
+
+    /// The one initialiser the others forward to; a `nil` title is TUI's.
+    private init(
+        resolvedTitle: String?, selection: Binding<Color>, supportsOpacity: Bool, isPresented: Binding<Bool>
+    ) {
+        self.title = resolvedTitle
         self.selection = selection
         self.supportsOpacity = supportsOpacity
         self.isPresented = isPresented
     }
 
-    /// Creates a colour-picker panel titled `"Colour"`.
+    /// Creates a colour-picker panel titled with TUI's word for colour —
+    /// "Colour" in English, "Farbe" in German — in the app's language, or the
+    /// language a subtree's `\.locale` names.
     ///
     /// The title's default lives here rather than on either titled overload:
     /// neither of those can carry it — a generic parameter cannot have a
     /// default, and defaulting the ``LocalizedStringKey`` one would make the
-    /// two ambiguous wherever the title is omitted. The forwarded default is
-    /// written `as String` so it stays on the disfavoured side: a bare literal
-    /// would bind to the key overload and go looking for a `"Colour"` key that
-    /// is in no table.
+    /// two ambiguous wherever the title is omitted.
     ///
     /// - Parameters:
     ///   - selection: The colour to edit. Rewritten live on every change;
@@ -159,14 +174,14 @@ public struct ColorPickerPanel {
         supportsOpacity: Bool = true,
         isPresented: Binding<Bool>
     ) {
-        self.init(
-            "Colour" as String, selection: selection, supportsOpacity: supportsOpacity,
-            isPresented: isPresented)
+        self.init(resolvedTitle: nil, selection: selection, supportsOpacity: supportsOpacity, isPresented: isPresented)
     }
 
     /// The content and behavior of this view.
     @MainActor @ViewBuilder public var body: some View {
-        _EditorPanelChrome(title: title, edited: selection, isPresented: isPresented) {
+        _EditorPanelChrome(
+            title: title ?? colorPickerWord(.title, in: language), edited: selection, isPresented: isPresented
+        ) {
             _ColorPickerBody(selection: selection, supportsOpacity: supportsOpacity)
         }
     }
@@ -247,6 +262,15 @@ package struct _ColorPickerBody {
     /// Resolves a semantic ``selection`` to concrete RGB for the read-out.
     @Environment(\.palette) private var palette
 
+    /// The language a subtree's `\.locale` names, which the tabs' titles are
+    /// read in.
+    @Environment(\.stringLanguage) private var language
+
+    /// A tab's title: TUI's word for it, in ``language``.
+    @MainActor private func word(_ key: LocalizationKey.ColorPicker) -> String {
+        colorPickerWord(key, in: language)
+    }
+
     @MainActor @ViewBuilder package var body: some View {
             // Centre the preview and the tab view relative to each other (the tab
             // view is the widest, so the preview centres within it).
@@ -266,9 +290,9 @@ package struct _ColorPickerBody {
                     Tab("HSL", value: Mode.hsl) { tabBody { _ChannelEditor(mode: .hsl, selection: colorOnly) } }
                     Tab("HSB", value: Mode.hsb) { tabBody { _ChannelEditor(mode: .hsb, selection: colorOnly) } }
                     Tab("CMYK", value: Mode.cmyk) { tabBody { _ChannelEditor(mode: .cmyk, selection: colorOnly) } }
-                    Tab("Semantic", value: Mode.semantic) { tabBody { semanticEditor } }
-                    Tab("256 (Xterm)", value: Mode.palette256) { tabBody { _Palette256Editor(selection: colorOnly) } }
-                    Tab("Greyscale", value: Mode.greyscale) {
+                    Tab(word(.semantic), value: Mode.semantic) { tabBody { semanticEditor } }
+                    Tab(word(.xterm256), value: Mode.palette256) { tabBody { _Palette256Editor(selection: colorOnly) } }
+                    Tab(word(.greyscale), value: Mode.greyscale) {
                         // Only 8 columns, so there's room for larger 4×2 swatches.
                         tabBody {
                             _SwatchGridCore(
@@ -276,17 +300,17 @@ package struct _ColorPickerBody {
                                 selection: colorOnly, cellWidth: 4, cellHeight: 2)
                         }
                     }
-                    Tab("Named", value: Mode.named) {
+                    Tab(word(.named), value: Mode.named) {
                         tabBody { _NamedSwatchGrid(entries: SwatchPalettes.cssNamed, columns: 18, selection: colorOnly) }
                     }
-                    Tab("Web Safe", value: Mode.webSafe) {
+                    Tab(word(.webSafe), value: Mode.webSafe) {
                         tabBody {
                             _SwatchGridCore(
                                 entries: SwatchPalettes.webSafe, columns: 18,
                                 selection: colorOnly, exactMatchOnly: true)
                         }
                     }
-                    Tab("Crayons", value: Mode.crayons) {
+                    Tab(word(.crayons), value: Mode.crayons) {
                         // 8 columns like Greyscale — room for larger 4×2 swatches.
                         tabBody {
                             _NamedSwatchGrid(
@@ -326,7 +350,7 @@ package struct _ColorPickerBody {
     /// backdrop — see `Documentation/Colour and styling/Opacity as composition.md` §27.
     @MainActor private var opacityRow: some View {
         HStack(spacing: 1) {
-            Text("Opacity").foregroundStyle(.palette.foregroundTertiary)
+            Text(localized: LocalizationKey.ColorPicker.opacity).foregroundStyle(.palette.foregroundTertiary)
             _ChannelRow(label: "A", idBase: "alpha", binding: alphaBinding, range: 0...255)
         }
     }
@@ -756,12 +780,14 @@ struct _EditableValueField: View {
 @MainActor extension ColorPickerPanel: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _palette.resolveEnvironment(environment)
+        _language.resolveEnvironment(environment)
     }
 }
 
 @MainActor extension _ColorPickerBody: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _palette.resolveEnvironment(environment)
+        _language.resolveEnvironment(environment)
     }
 }
 

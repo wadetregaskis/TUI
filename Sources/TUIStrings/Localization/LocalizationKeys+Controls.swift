@@ -25,6 +25,23 @@ extension LocalizationKey {
         case undo = "undoTitle.undo"
         case redo = "undoTitle.redo"
     }
+
+    /// The words of the colour picker and the gradient editor (TUIColorPicker):
+    /// the colour panel's default title, its tabs, its opacity row and the 256
+    /// tab's toggle. Internal to the package, as the file panel's are. The
+    /// gradient editor's title is ``Label/gradient``.
+    package enum ColorPicker: String, CaseIterable {
+        case title = "colorPicker.title"
+        case semantic = "colorPicker.semantic"
+        case xterm256 = "colorPicker.xterm256"
+        case greyscale = "colorPicker.greyscale"
+        case named = "colorPicker.named"
+        case webSafe = "colorPicker.webSafe"
+        case crayons = "colorPicker.crayons"
+        case opacity = "colorPicker.opacity"
+        case showNumbers = "colorPicker.showNumbers"
+    }
 }
 
 extension LocalizationKey.ImagePlaceholder: FrameworkLocalizationKey {}
+extension LocalizationKey.ColorPicker: FrameworkLocalizationKey {}

@@ -318,5 +318,14 @@
   "timeSpan.month.abbreviated.other": "%@\u00a0m",
   "imagePlaceholder.failed": "Erreur\u00a0: %@",
   "undoTitle.undo": "Annuler %@",
-  "undoTitle.redo": "Rétablir %@"
+  "undoTitle.redo": "Rétablir %@",
+  "colorPicker.title": "Couleur",
+  "colorPicker.semantic": "Sémantiques",
+  "colorPicker.xterm256": "256 (Xterm)",
+  "colorPicker.greyscale": "Niveaux de gris",
+  "colorPicker.named": "Nommées",
+  "colorPicker.webSafe": "Compatibles Web",
+  "colorPicker.crayons": "Crayons",
+  "colorPicker.opacity": "Opacité",
+  "colorPicker.showNumbers": "Afficher les numéros"
 }

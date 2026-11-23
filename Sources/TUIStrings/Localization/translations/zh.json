@@ -318,5 +318,14 @@
   "timeSpan.month.abbreviated.other": "%@个月",
   "imagePlaceholder.failed": "错误：%@",
   "undoTitle.undo": "撤销%@",
-  "undoTitle.redo": "重做%@"
+  "undoTitle.redo": "重做%@",
+  "colorPicker.title": "颜色",
+  "colorPicker.semantic": "语义",
+  "colorPicker.xterm256": "256（Xterm）",
+  "colorPicker.greyscale": "灰度",
+  "colorPicker.named": "命名",
+  "colorPicker.webSafe": "Web 安全色",
+  "colorPicker.crayons": "蜡笔",
+  "colorPicker.opacity": "不透明度",
+  "colorPicker.showNumbers": "显示编号"
 }
