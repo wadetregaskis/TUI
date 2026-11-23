@@ -142,6 +142,11 @@ key left the first row lit as it scrolled away and the row under the pointer unl
 the line afterwards, and after the drop the first row could stay drawn as selected until the next drag. The row under
 the pointer is now the one lit, and none stays lit.
 
+**A colour in the colon form (`38:5:n`, `48:2::r:g:b`) ends at its `39` or `49`.** Kept escapes spelling a
+foreground or background colour as ITU T.416 does were passed through as codes TUI does not know, which only a full
+reset ends, so the `39` or `49` after one was netted away as a change of nothing and the colour ran on. Such a colour is
+now read as the colour it names and written in the semicolon form.
+
 **A row's fill, faint, bold or reversal carries on after git's and grep's `ESC[m`.** Text drawn with
 `.textKeepsEscapeSequences()` keeps the tool's own resets, and only `ESC[0m` (and the collapsed `ESC[0;…m`) was
 recognised as one: after a bare `ESC[m`, `ESC[00m`, `ESC[;1m` or a reset after another parameter (`ESC[1;0m`), a

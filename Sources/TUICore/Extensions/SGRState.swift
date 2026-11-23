@@ -38,7 +38,12 @@
 ///
 /// A code outside that set is passed through verbatim, in order, ahead of the
 /// netted state: unknown means "not safe to reason about", and dropping a code
-/// is worse than emitting one too many.
+/// is worse than emitting one too many. A colour in ITU T.416's colon form
+/// (`38:5:n`, `38:2::r:g:b`, and the same for 48) is not such a code: it is
+/// read into the colour it names and spelled again in the semicolon form, which
+/// every terminal reads. Passed through, it was a code only a reset ended, and
+/// the `39` or `49` after it changed nothing this model held, so it was netted
+/// away and the colour ran on.
 ///
 /// ## Representation
 ///
@@ -441,7 +446,7 @@ package struct SGRState: Sendable, Equatable {
         var index = 0
         while index < codes.count {
             guard case .number(let value) = codes[index] else {
-                if case .text(let text) = codes[index], applySubparameters(text) {
+                if case .text(let text) = codes[index], applySubparameters(text, statement: &statement) {
                     index += 1
                     continue
                 }
@@ -528,10 +533,15 @@ package struct SGRState: Sendable, Equatable {
     }
 
     /// Folds one parameter with colon-separated arguments that this model
-    /// reads — an underline's shape, `4:n`, or its colour, `58:5:n`,
-    /// `58:2::r:g:b` (or `58:2:r:g:b`, without the colour-space slot) — and
-    /// says whether it was one. Any other is left for the passthrough.
-    private mutating func applySubparameters(_ text: String) -> Bool {
+    /// reads — an underline's shape, `4:n`, or a colour: the underline's,
+    /// `58:5:n`, `58:2::r:g:b` (or `58:2:r:g:b`, without the colour-space
+    /// slot), and the foreground's and background's in the same forms, `38:…`
+    /// and `48:…` — and says whether it was one. Any other is left for the
+    /// passthrough.
+    ///
+    /// - Parameter statement: Set as ``apply(_:)``'s `;` form sets it, when the
+    ///   parameter states a background.
+    private mutating func applySubparameters(_ text: String, statement: inout BackgroundStatement?) -> Bool {
         let fields = text.split(separator: ":", omittingEmptySubsequences: false)
         switch fields.first {
         case "4":
@@ -544,24 +554,40 @@ package struct SGRState: Sendable, Equatable {
                 underlineShape = shape == 1 ? 0 : shape
             }
             return true
+        case "38":
+            guard let colour = Self.colonColour(fields) else { return false }
+            foreground = colour
+            return true
+        case "48":
+            guard let colour = Self.colonColour(fields) else { return false }
+            background = colour
+            statement = .colour
+            return true
         case "58":
-            let arguments = fields.dropFirst().map { Int($0) }
-            switch (arguments.first, arguments.count) {
-            case (5, 2):
-                guard let index = arguments[1] else { return false }
-                underlineColour = .indexed(index)
-            case (2, 4), (2, 5):
-                let channels = arguments.suffix(3)
-                guard let red = channels[channels.startIndex], let green = channels[channels.startIndex + 1],
-                    let blue = channels[channels.startIndex + 2]
-                else { return false }
-                underlineColour = .rgb(red, green, blue)
-            default:
-                return false
-            }
+            guard let colour = Self.colonColour(fields) else { return false }
+            underlineColour = colour
             return true
         default:
             return false
+        }
+    }
+
+    /// The colour a colon-form `38`, `48` or `58` names — `n:5:i`, `n:2::r:g:b`
+    /// or `n:2:r:g:b` — or `nil` for one this model does not read.
+    private static func colonColour(_ fields: [Substring]) -> Colour? {
+        let arguments = fields.dropFirst().map { Int($0) }
+        switch (arguments.first, arguments.count) {
+        case (5, 2):
+            guard let index = arguments[1] else { return nil }
+            return .indexed(index)
+        case (2, 4), (2, 5):
+            let channels = arguments.suffix(3)
+            guard let red = channels[channels.startIndex], let green = channels[channels.startIndex + 1],
+                let blue = channels[channels.startIndex + 2]
+            else { return nil }
+            return .rgb(red, green, blue)
+        default:
+            return nil
         }
     }
 

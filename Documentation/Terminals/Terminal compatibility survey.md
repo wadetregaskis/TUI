@@ -1131,6 +1131,16 @@ So TUI (`TerminalHost.lineStyles`, since 2026-10-18):
 The render loop reads this once, when it is made (B-TLCTRL-6, 2026-11-19), as
 its diff writer reads the host: the terminal is named before the loop exists.
 
+A foreground or background colour that reaches TUI in the colon form (`38:5:n`,
+`38:2::r:g:b`, the same for 48, as kept escapes from a T.416-aware tool can
+spell it) is read into the colour it names and written back in the semicolon
+form, `38;5;n` and `38;2;r;g;b` (H-37, 2026-11-22). No host was measured for
+it: the semicolon form is what TUI writes for every colour it states, so it is
+read everywhere TUI draws colour at all, where Apple Terminal is recorded above
+misreading colon arguments. An underline's colour, 58, stays in the colon form,
+for the reason above: a host that does not know 58 reads its semicolon
+arguments as codes of their own.
+
 ### Ghostty's model is conditional on mode 2027 — measured 2026-08-26
 
 Every Ghostty number in this document was measured with DEC mode 2027

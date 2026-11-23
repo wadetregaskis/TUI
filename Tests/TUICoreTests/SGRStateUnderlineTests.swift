@@ -75,6 +75,36 @@ struct SGRStateUnderlineTests {
     @Test("Other colon-form parameters still pass through untouched")
     func otherSubparametersPassThrough() {
         #expect(state("\u{1B}[4:9m").rendered == "\u{1B}[4:9m")
-        #expect(state("\u{1B}[38:2::1:2:3m").rendered == "\u{1B}[38:2::1:2:3m")
+    }
+
+    /// A colon-form colour is read into the colour it names, not passed through:
+    /// the state is the semicolon form's, and `39` / `49` end it.
+    @Test("A colon-form foreground or background is the colour it names")
+    func colonFormColours() {
+        #expect(state("\u{1B}[38:2::1:2:3m") == state("\u{1B}[38;2;1;2;3m"))
+        #expect(state("\u{1B}[38:2:1:2:3m") == state("\u{1B}[38;2;1;2;3m"))
+        #expect(state("\u{1B}[38:5:196m") == state("\u{1B}[38;5;196m"))
+        #expect(state("\u{1B}[48:5:17m") == state("\u{1B}[48;5;17m"))
+        #expect(state("\u{1B}[48:2::9:8:7m").rendered == "\u{1B}[48;2;9;8;7m")
+        #expect(state("\u{1B}[38:5:196m", "\u{1B}[39m").isDefault)
+        #expect(state("\u{1B}[48:2::1:2:3m", "\u{1B}[49m").isDefault)
+        // One this model does not read still passes through.
+        #expect(state("\u{1B}[38:9:1m").rendered == "\u{1B}[38:9:1m")
+    }
+
+    @Test("The colour a colon form names ends at its 39 through the collapse")
+    func colonColourEndsInCollapse() {
+        let collapsed = "\u{1B}[0m\u{1B}[38:5:196mX\u{1B}[39mY".collapsingAdjacentSGR()
+        var replay = SGRState()
+        var atY: SGRState?
+        collapsed.forEachANSISegment { segment in
+            switch segment {
+            case .ansi(let sequence, isSGR: true): replay.apply(sequence)
+            case .ansi: break
+            case .visible(let character): if character == "Y" { atY = replay }
+            }
+            return true
+        }
+        #expect(atY?.foregroundColour == nil, "\(collapsed.debugDescription)")
     }
 }
