@@ -74,6 +74,11 @@ on, SwiftUI's nearest-neighbour read, where it used to mean that 2 × 2 read. A 
 path 17.6 ms). `RGBAImage.scaledBilinear(to:_:)` and `RGBAImage.boxReduced(by:)` are gone: call
 `resampled(to:_:)`.
 
+**A `Data` an app kept in `@AppStorage` under TUI 0.6.0 reads back as itself on macOS.** 0.6.0 kept every value as
+its JSON, a `Data` as a JSON string of base64, and the current build took those bytes for the value: `[1, 2, 3]` read
+as the six bytes of `"AQID"`. Bytes that are such a string are read as that now, and a write keeps the value as
+itself. A `URL` 0.6.0 kept was already read right; it is no longer handed to `UserDefaults.url(forKey:)` first.
+
 **A `JSONFileStorage` let go with a write still unsaved saves it.** A write is saved on a queue that holds the store
 weakly, so a store made in a function, written to and let go before the save ran wrote nothing and reported nothing.
 It writes what is unsaved as it goes now.

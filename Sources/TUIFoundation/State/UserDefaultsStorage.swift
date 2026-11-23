@@ -312,16 +312,44 @@ import TUICore
                 if defaults.object(forKey: key) is Data { return nil }
                 return .some(nil)
             }
+            // Where a `Data` belongs the typed read takes those bytes as they
+            // are, so they are told apart by their look: a JSON string of
+            // base64 is what 0.6.0 kept a `Data` as, its six bytes for
+            // `[1, 2, 3]` `"AQID"` with the quotes, and were the app's value
+            // until this (bug hunt FENV-7, 2026-11-20). The one value read
+            // wrongly so is one kept as itself that is such a string; a write
+            // keeps a value as itself afterwards.
+            if let bytes = found as? Data, isEarlierJSONData(bytes) { return nil }
             return .some(found as? T)
         }
+
+        /// Whether `bytes` are a `Data` as 0.6.0 kept it: a JSON string, its
+        /// first and last bytes `"`, of base64.
+        private static func isEarlierJSONData(_ bytes: Data) -> Bool {
+            let quote = UInt8(ascii: "\"")
+            guard bytes.count >= 2, bytes.first == quote, bytes.last == quote else { return false }
+            return (try? JSONDecoder().decode(Data.self, from: bytes)) != nil
+        }
+
+        /// What a keyed archive, as `UserDefaults` keeps a `URL` that is no
+        /// file's, begins with: a binary property list's header.
+        private static let archiveHeader = Data("bplist".utf8)
 
         /// The value stored for `key` as `type`, or `nil`.
         private static func value(_ type: Any.Type, from defaults: UserDefaults, forKey key: String) -> Any? {
             if let optional = type as? any PropertyListOptional.Type {
                 return value(optional.wrappedPropertyListType, from: defaults, forKey: key)
             }
-            if type == URL.self { return defaults.url(forKey: key) }
             guard let object = defaults.object(forKey: key) else { return nil }
+            if type == URL.self {
+                // `url(forKey:)` reads a path (a file's URL) or a keyed archive
+                // (any other); other bytes are 0.6.0's JSON, which it would try
+                // to unarchive. It answers `nil` for them (measured, macOS
+                // 15.8, 2026-11-23), so this costs nothing it read, but asks
+                // Foundation nothing it cannot answer.
+                if let bytes = object as? Data, !bytes.starts(with: archiveHeader) { return nil }
+                return defaults.url(forKey: key)
+            }
             if let raw = type as? any RawRepresentable.Type { return fromRawValue(raw, object) }
             switch type {
             case is Bool.Type: return object as? Bool

@@ -305,6 +305,39 @@ struct UserDefaultsStorageTests {
         }
     }
 
+    /// A `Data` is bytes either way, so its typed read took 0.6.0's JSON as
+    /// the value — `"AQID"`'s six bytes for `[1, 2, 3]` — and a `URL`'s asked
+    /// `url(forKey:)` to unarchive the JSON (bug hunt FENV-7, 2026-11-20).
+    @Test("A Data and a URL an earlier TUI kept as their JSON encoding read as themselves")
+    func earlierJSONEncodedDataAndURLRead() throws {
+        try Self.withSuite { suite, key in
+            let defaults = Self.defaults(suite)
+            let encoder = JSONEncoder()
+            let (bytesKey, linkKey, plainKey) = (key, key + ".link", key + ".plain")
+            defer { for other in [linkKey, plainKey] { defaults.removeObject(forKey: other) } }
+            let link = try #require(URL(string: "https://example.com"))
+            defaults.set(try encoder.encode(Data([1, 2, 3])), forKey: bytesKey)
+            defaults.set(try encoder.encode(link), forKey: linkKey)
+            // Bytes kept as themselves that merely start and end with a quote
+            // are no base64, so they are not taken for 0.6.0's.
+            let quoted = Data(#""not base64!""#.utf8)
+            defaults.set(quoted, forKey: plainKey)
+            let storage = UserDefaultsStorage(suiteName: suite)
+            #expect(storage.value(forKey: bytesKey) == Optional(Data([1, 2, 3])))
+            #expect(storage.value(forKey: bytesKey) == Optional(Optional(Data([1, 2, 3]))))
+            #expect(AppStorage(wrappedValue: Data(), bytesKey, store: storage).wrappedValue == Data([1, 2, 3]))
+            #expect(storage.value(forKey: linkKey) == Optional(link))
+            #expect(AppStorage(wrappedValue: URL(fileURLWithPath: "/"), linkKey, store: storage).wrappedValue == link)
+            #expect(storage.value(forKey: plainKey) == Optional(quoted))
+            // Written again, each is kept as itself.
+            storage.setValue(Data([4, 5]), forKey: bytesKey)
+            #expect(defaults.data(forKey: bytesKey) == Data([4, 5]))
+            storage.setValue(link, forKey: linkKey)
+            #expect(defaults.url(forKey: linkKey) == link)
+            #expect(storage.value(forKey: linkKey) == Optional(link))
+        }
+    }
+
     @Test("A case a later build added, or a value it retyped, reads as the default")
     func laterValuesReadAsDefault() {
         Self.withSuite { suite, key in
