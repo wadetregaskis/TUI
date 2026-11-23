@@ -240,6 +240,13 @@ to the store the body read. Give it a store that lives as long as the view: one
 made afresh in `body` is correct, but a new store each time redraws the subtree
 beneath it.
 
+Two stores over one suite are one store, made afresh or not: on Apple platforms
+two `UserDefaults(suiteName:)` read one domain, and on Linux, WebAssembly and
+Windows, where a suite is a JSON file of TUI's own, every
+`UserDefaultsStorage(suiteName:)` over one suite shares that file's one copy
+while any of them is alive. A write through any of them is read through every
+other at once, and redraws the views that read the key through any of them.
+
 A write is saved on a queue, so the app flushes as it quits: the default store
 and every store a scene's `defaultAppStorage(_:)` names, each with the scene
 state kept beside it. A store a view's `defaultAppStorage(_:)` or a property's

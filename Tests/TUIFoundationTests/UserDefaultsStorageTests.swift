@@ -89,13 +89,13 @@ struct UserDefaultsStorageTests {
         try body(suite, key)
     }
 
-    #if canImport(Darwin)
     /// A read keeps the value its bytes decoded to, so the bytes themselves
     /// must be read every time: another process — or here, another store on
     /// the same suite — may have written new ones, and a kept value served
-    /// past them would be a stale setting. Apple platforms only: elsewhere a
-    /// suite is a JSON file each store loads once, and two stores on one
-    /// never saw each other's writes.
+    /// past them would be a stale setting. Elsewhere than on Apple platforms a
+    /// suite is a JSON file, and the two stores share its one backing
+    /// (`JSONFileStorageTable`); until they did, neither saw the other's
+    /// writes (bug hunt FENV-2).
     @Test("Bytes another writer put in the suite are read, not the value kept from before")
     func anotherWritersBytesAreRead() {
         Self.withSuite { suite, key in
@@ -108,7 +108,6 @@ struct UserDefaultsStorageTests {
             #expect(storage.value(forKey: key) == Int?.none, "the kept 2 was served after a removal")
         }
     }
-    #endif
 
     @Test("A Codable value round-trips through the backend")
     func roundTrip() {

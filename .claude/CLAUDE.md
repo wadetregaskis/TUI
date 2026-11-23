@@ -53,6 +53,14 @@
     (`TerminalURLOpening.runLoopOpener`). One app runs per process, none of
     them makes a test depend on another, and making them per app would only
     make them harder to reach. Revisit if one starts doing either.
+  - And a weakly held table of file stores (2026-11-21, O-05 (a)):
+    `UserDefaultsStorage.suiteFiles`, where a suite is a JSON file of TUI's
+    own (Linux, WebAssembly, Windows), so every `UserDefaultsStorage` over one
+    suite's file shares one backing, as two `UserDefaults` over one suite do
+    on Apple platforms. It is keyed by the file alone, it holds each backing
+    weakly, so a backing goes with its last store and the table holds nothing
+    a store does not, and two stores or apps in one process sharing a suite's
+    file is the point, not a leak.
 - **Before implementing ANYTHING NEW: Search the codebase** for similar patterns, reusable code, existing solutions
 - Consolidate and reuse before adding new functions or types
 - "Reinventing the wheel" is a code smell: investigate why it exists first

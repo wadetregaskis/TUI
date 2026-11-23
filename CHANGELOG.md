@@ -92,6 +92,13 @@ on, SwiftUI's nearest-neighbour read, where it used to mean that 2 × 2 read. A 
 path 17.6 ms). `RGBAImage.scaledBilinear(to:_:)` and `RGBAImage.boxReduced(by:)` are gone: call
 `resampled(to:_:)`.
 
+**On Linux, WebAssembly and Windows, every `UserDefaultsStorage` over one suite is one store.** A suite there is a
+JSON file of TUI's own, and each `UserDefaultsStorage(suiteName:)` loaded the file and kept a copy of its own, so
+`@AppStorage("theme", store: UserDefaultsStorage(suiteName: "prefs"))`, which makes a store with every view, read
+another view's write only once it had loaded the file again, redrew nothing for it, and raced its save. Every store
+over one suite now shares the file's one copy, its saves and its readers while any of them is alive, as two
+`UserDefaults` over one suite do on Apple platforms: a write through any is read through every other at once.
+
 **A `Data` an app kept in `@AppStorage` under TUI 0.6.0 reads back as itself on macOS.** 0.6.0 kept every value as
 its JSON, a `Data` as a JSON string of base64, and the current build took those bytes for the value: `[1, 2, 3]` read
 as the six bytes of `"AQID"`. Bytes that are such a string are read as that now, and a write keeps the value as

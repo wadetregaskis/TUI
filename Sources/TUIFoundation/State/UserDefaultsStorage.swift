@@ -382,9 +382,26 @@ import TUICore
     /// Specification puts a user's settings there, and defaults are settings.
     /// One directory holds all of an app's settings, and `TUI_CONFIG_DIR`
     /// moves this file with the rest.
+    ///
+    /// Any number of these may stand over one suite — one made afresh each
+    /// time a view is, as `@AppStorage(_:store:)` makes it — and they share
+    /// one backing while any of them is alive (`suiteFiles`): a write
+    /// through any one of them is read through every other at once, and
+    /// redraws the views that read the key through any other.
     public final class UserDefaultsStorage: StorageBackend {
-        /// The underlying file storage.
+        /// The underlying file storage, shared by every store over its file.
         private let storage: JSONFileStorage
+
+        /// The backing of each suite's file, shared by every store over it
+        /// and held weakly (``JSONFileStorageTable``).
+        ///
+        /// Process-wide, as the owner granted under "No Singletons" (O-05 (a),
+        /// 2026-11-21): it is keyed by the file alone, so stores over one file
+        /// share it because they are one store's worth of state, whoever made
+        /// them, and two apps in one process sharing a suite's file is the
+        /// point; and it holds nothing a store does not, so a backing goes
+        /// with its last store.
+        static let suiteFiles = JSONFileStorageTable()
 
         /// The suite name (nil for standard defaults).
         private let suiteName: String?
@@ -397,7 +414,8 @@ import TUICore
 
         /// Creates a UserDefaults-compatible storage with a custom suite.
         ///
-        /// Each suite gets its own JSON file.
+        /// Each suite gets its own JSON file, and every store over one suite
+        /// shares its backing (`suiteFiles`).
         public init(suiteName: String?) {
             self.suiteName = suiteName
             self.storage = Self.createStorage(suiteName: suiteName)
@@ -510,18 +528,10 @@ import TUICore
     // MARK: - Private Helpers
 
     extension UserDefaultsStorage {
+        /// The backing of `suiteName`'s file: the one every live store over it
+        /// shares, or a new one (`suiteFiles`).
         fileprivate static func createStorage(suiteName: String?) -> JSONFileStorage {
             let appDir = appConfigDirectory()
-
-            // Create directory if needed
-            do {
-                try FileManager.default.createDirectory(
-                    at: appDir, withIntermediateDirectories: true)
-            } catch {
-                StorageDiagnostics.report(
-                    StorageFailure(
-                        operation: .createDirectory, path: appDir.path, underlying: error))
-            }
 
             // Use suite name in filename if provided
             let filename: String
@@ -532,7 +542,18 @@ import TUICore
             }
 
             let fileURL = appDir.appendingPathComponent(filename)
-            return JSONFileStorage(fileURL: fileURL)
+            return suiteFiles.store(at: fileURL) {
+                // Only for a backing about to be made: a live one's folder is
+                // there.
+                do {
+                    try FileManager.default.createDirectory(
+                        at: appDir, withIntermediateDirectories: true)
+                } catch {
+                    StorageDiagnostics.report(
+                        StorageFailure(
+                            operation: .createDirectory, path: appDir.path, underlying: error))
+                }
+            }
         }
 
         /// `suite` as part of a file's name. On Windows, each character a file
