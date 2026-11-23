@@ -46,7 +46,7 @@ extension Scene {
     }
 
     /// Gives the scene a second key, `shortcut`, for terminals that cannot
-    /// send its ``keyboardShortcut(_:)``: Settings…'s, or a `Window`'s in the
+    /// send its ``Scene/keyboardShortcut(_:)``: Settings…'s, or a `Window`'s in the
     /// Window menu, as the view modifier
     /// ``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)`` gives a
     /// button one.
@@ -72,8 +72,8 @@ extension Scene {
     }
 
     /// Gives the scene a second key, `key` with `modifiers`, for terminals
-    /// that cannot send its shortcut — see ``keyboardShortcutFallback(_:)``.
-    /// `modifiers` defaults to `.command`, as ``keyboardShortcut(_:modifiers:localization:)``'s does.
+    /// that cannot send its shortcut — see ``Scene/keyboardShortcutFallback(_:)``.
+    /// `modifiers` defaults to `.command`, as ``Scene/keyboardShortcut(_:modifiers:localization:)``'s does.
     public func keyboardShortcutFallback(_ key: KeyEquivalent, modifiers: EventModifiers = .command) -> some Scene {
         keyboardShortcutFallback(KeyboardShortcut(key, modifiers: modifiers))
     }

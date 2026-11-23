@@ -749,7 +749,7 @@ extension View {
 
     /// Gives the wrapped control a second key, `key` with `modifiers`, for
     /// terminals that cannot send its shortcut — see
-    /// ``keyboardShortcutFallback(_:)-(KeyboardShortcut?)``. `modifiers`
+    /// ``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``. `modifiers`
     /// defaults to `.command`, as ``keyboardShortcut(_:modifiers:)``'s does.
     nonisolated public func keyboardShortcutFallback(
         _ key: KeyEquivalent, modifiers: EventModifiers = .command
