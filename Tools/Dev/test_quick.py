@@ -8,11 +8,14 @@ No build, no toolchain. Every case is a way quick.py once printed a pass, or
 nothing at all, for a run that did not happen (H-56).
 """
 
+import contextlib
 import importlib.util
+import io
 import os
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _SPEC = importlib.util.spec_from_file_location("quick", os.path.join(_HERE, "quick.py"))
@@ -125,6 +128,65 @@ class TestCheckout(unittest.TestCase):
                          "(0.50s end to end, 0.2 cpu-s, 1.0x cores) with 0 known issues", [("g0", 2, "ok")])
         self.assertEqual(quick.test_verdict(0, out, " in " + quick.describe_tree(main))[1][-1],
                          "tests ok (2) in %s @ %s" % (main, head))
+
+
+def commit(repo, message):
+    subprocess.run(["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q",
+                    "--allow-empty", "-m", message], check=True)
+    return subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"], capture_output=True,
+                          text=True).stdout.strip()
+
+
+class TestSaysWhatItSkipped(unittest.TestCase):
+    """Nothing is skipped or misread silently (H-56, TOOLS-14)."""
+
+    def quietly(self, call):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), mock.patch.object(quick, "where", lambda: ""):
+            result = call()
+        return result, out.getvalue().splitlines()
+
+    def test_a_warning_fails_the_build_and_the_tests_say_they_did_not_run(self):
+        built = (0, "/x/Sources/A.swift:1:1: warning: unused\nBuild complete!\n")
+        with mock.patch.object(quick, "run", side_effect=[built]) as run:
+            ok, lines = self.quietly(lambda: quick.test(["SuiteA"]))
+        self.assertFalse(ok)
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(lines[-2:], ["build FAILED (1 warning)", "tests not run: the build failed"])
+
+    def test_a_clean_build_is_ok(self):
+        with mock.patch.object(quick, "run", return_value=(0, "Build complete!\n")):
+            ok, lines = self.quietly(quick.build)
+        self.assertEqual((ok, lines), (True, ["build ok"]))
+
+    def test_all_reads_a_commit_as_base_with_or_without_the_separator(self):
+        is_commit = {"origin/main", "HEAD~2"}.__contains__
+        self.assertEqual(quick.parse_all(["origin/main"], is_commit), ("origin/main", []))
+        self.assertEqual(quick.parse_all(["HEAD~2", "SuiteA"], is_commit), ("HEAD~2", ["SuiteA"]))
+        self.assertEqual(quick.parse_all(["origin/main", "--", "SuiteA"], is_commit), ("origin/main", ["SuiteA"]))
+        self.assertEqual(quick.parse_all(["--", "SuiteA"], is_commit), (None, ["SuiteA"]))
+        self.assertEqual(quick.parse_all(["SuiteA", "SuiteB"], is_commit), (None, ["SuiteA", "SuiteB"]))
+        self.assertIsInstance(quick.parse_all(["a", "b", "--", "SuiteA"], is_commit), str)
+
+    def test_lint_on_main_compares_with_what_is_pushed(self):
+        repo, _ = make_checkouts(self)
+        subprocess.run(["git", "-C", repo, "checkout", "-q", "-b", "main"], check=True)
+        pushed = commit(repo, "pushed")
+        self.assertEqual(quick.default_base(repo), ("HEAD", "HEAD"))  # no origin/main: nothing more to say
+        subprocess.run(["git", "-C", repo, "update-ref", "refs/remotes/origin/main", pushed], check=True)
+        commit(repo, "unpushed")
+        self.assertEqual(quick.default_base(repo), (pushed, "origin/main (%s)" % pushed[:9]))
+        self.assertTrue(quick.names_commit("origin/main", repo))
+        self.assertFalse(quick.names_commit("SuiteA", repo))
+
+    def test_lint_on_a_branch_compares_with_where_it_left_main(self):
+        repo, _ = make_checkouts(self)
+        subprocess.run(["git", "-C", repo, "checkout", "-q", "-b", "main"], check=True)
+        fork = commit(repo, "main")
+        subprocess.run(["git", "-C", repo, "checkout", "-q", "-b", "lane"], check=True)
+        self.assertEqual(quick.default_base(repo), ("HEAD", "HEAD"))  # nothing committed on the lane yet
+        commit(repo, "lane")
+        self.assertEqual(quick.default_base(repo), (fork, "main (%s)" % fork[:9]))
 
 
 if __name__ == "__main__":

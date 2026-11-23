@@ -9,9 +9,15 @@ whole build-and-run cycles or thousands of lines of output to read.
 Tools/Dev/quick.py build                     # build with tests: only errors and warnings, then one verdict line
 Tools/Dev/quick.py test SuiteA SuiteB        # build, then those suites (Swift type names): only the failures
 Tools/Dev/quick.py test --no-build SuiteA    # run again without building
-Tools/Dev/quick.py lint [BASE]               # SwiftLint --strict on the Swift files changed since BASE (default: main)
-Tools/Dev/quick.py all -- SuiteA SuiteB      # all three
+Tools/Dev/quick.py lint [BASE]               # SwiftLint --strict on the Swift files changed since BASE (see below)
+Tools/Dev/quick.py all [BASE] [--] SuiteA    # all three
 ```
+
+BASE defaults to where the branch left `main`, and on `main` itself to where it left `origin/main`, so the unpushed
+commits are linted (before H-56 the default there was `HEAD`, which linted only uncommitted files). A lint that found
+nothing to check says "nothing checked" and since what. With `all`, a first argument that names a commit is BASE, with
+or without `--` (`all origin/main` once read it as a suite to test). A warning fails the build, as zero is the rule:
+"build FAILED (N warnings)", then "tests not run: the build failed" rather than nothing.
 
 It runs suites through `Tools/ParallelTest/parallel_test.py`, never bare `swift test`, which doesn't set up the
 environment CI tests in, so colour tests fail spuriously. Its pass is parallel_test's: every group ran exactly the

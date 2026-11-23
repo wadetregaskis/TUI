@@ -5,10 +5,15 @@
     Tools/Dev/quick.py test SuiteA SuiteB ...    # build, then run those suites; failures only
     Tools/Dev/quick.py test --no-build SuiteA    # run only
     Tools/Dev/quick.py lint [BASE]               # SwiftLint --strict on Swift files changed since BASE
-    Tools/Dev/quick.py all [BASE] -- SuiteA ...  # build, test, lint
+    Tools/Dev/quick.py all [BASE] [--] SuiteA ...  # build, test, lint
 
 Each prints one verdict line last: "build ok", "tests ok (N)", "lint ok", or what failed, followed by
 "in <checkout> @ <HEAD>": the tree that was built and tested.
+
+A warning fails the build ("build FAILED (N warnings)"; zero is the rule), and tests after a failed build are not run,
+which "tests not run" says. BASE defaults to where the branch left main; on main itself, to origin/main, so that the
+unpushed commits are linted; a lint that had nothing to check says so. With `all`, a first argument that names a commit
+is BASE, with or without `--`.
 
 Why it exists (see README.md): the plain commands print thousands of lines that are then filtered by hand, and each
 has a trap that cost a whole build-and-run to find:
@@ -121,12 +126,17 @@ def build():
     if code != 0 or any(" error: " in p or p.startswith("error:") for p in problems):
         print("build FAILED" + where())
         return False
-    print("build ok" + (f" ({len(problems)} warnings)" if problems else "") + where())
-    return not problems
+    if problems:
+        # Zero warnings is the rule, so this fails; it once printed "build ok (N warnings)" and exited 1.
+        print(f"build FAILED ({len(problems)} warning{'' if len(problems) == 1 else 's'})" + where())
+        return False
+    print("build ok" + where())
+    return True
 
 
 def test(suites, build_first=True):
     if build_first and not build():
+        print("tests not run: the build failed")
         return False
     if not suites:
         print("tests: no suites named")
@@ -174,10 +184,38 @@ def test_verdict(code, out, tree=""):
     return False, lines
 
 
+def git(*args, repo=REPO):
+    """git's output, stripped; "" when it fails."""
+    process = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+    return process.stdout.strip() if process.returncode == 0 else ""
+
+
+def default_base(repo=REPO):
+    """-> (commit, what it is): what `lint` compares with when no BASE is named.
+
+    Where the branch left main. On main itself that is HEAD, which left only the uncommitted files to lint, and on a
+    main-only workflow nothing (H-56, TOOLS-14); there it is where main left origin/main, so the unpushed commits are
+    linted. HEAD when neither says more.
+    """
+    head = git("rev-parse", "HEAD", repo=repo)
+    fork = git("merge-base", "HEAD", "main", repo=repo)
+    if fork and fork != head:
+        return fork, "main (" + fork[:9] + ")"
+    if git("symbolic-ref", "--short", "-q", "HEAD", repo=repo) == "main":
+        pushed = git("merge-base", "HEAD", "origin/main", repo=repo)
+        if pushed and pushed != head:
+            return pushed, "origin/main (" + pushed[:9] + ")"
+    return "HEAD", "HEAD"
+
+
+def names_commit(argument, repo=REPO):
+    return bool(git("rev-parse", "--verify", "-q", argument + "^{commit}", repo=repo))
+
+
 def lint(base=None):
+    described = base
     if base is None:
-        base = subprocess.run(["git", "merge-base", "HEAD", "main"], cwd=REPO, capture_output=True,
-                              text=True).stdout.strip() or "HEAD"
+        base, described = default_base()
     changed = subprocess.run(["git", "diff", "--name-only", base], cwd=REPO, capture_output=True, text=True).stdout
     untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard"], cwd=REPO,
                                capture_output=True, text=True).stdout
@@ -185,15 +223,32 @@ def lint(base=None):
                     if f.endswith(".swift") and re.match(r"(Sources|Tests)/", f) and "CompileCorpus" not in f
                     and os.path.exists(os.path.join(REPO, f))})
     if not files:
-        print("lint ok (no Swift files changed)" + where())
+        print(f"lint ok (no Swift files changed since {described}, so nothing checked)" + where())
         return True
     swiftlint = "/opt/homebrew/bin/swiftlint" if os.path.exists("/opt/homebrew/bin/swiftlint") else "swiftlint"
     code, out = run([swiftlint, "lint", "--strict", "--quiet", "--config", ".swiftlint.yml", *files])
     problems = [relative(l)[:240] for l in out.splitlines() if l.strip()]
     for line in problems:
         print(line)
-    print(("lint ok" if code == 0 else f"lint FAILED ({len(problems)} lines, {len(files)} files)") + where())
+    print((f"lint ok ({len(files)} files changed since {described})" if code == 0
+           else f"lint FAILED ({len(problems)} lines, {len(files)} files)") + where())
     return code == 0
+
+
+def parse_all(rest, names_commit):
+    """`all`'s arguments -> (BASE or None, suites), or what is wrong with them.
+
+    `all BASE` once read BASE as a suite to test, matching nothing (H-56, TOOLS-14). A first argument that names a
+    commit is BASE, with or without `--`; after it, or after `--`, come suites.
+    """
+    if "--" in rest:
+        split = rest.index("--")
+        if split > 1:
+            return "all takes at most one BASE before --, not %s" % " ".join(rest[:split])
+        return (rest[0] if split == 1 else None), rest[split + 1:]
+    if rest and names_commit(rest[0]):
+        return rest[0], rest[1:]
+    return None, rest
 
 
 def main(argv):
@@ -213,11 +268,11 @@ def main(argv):
     if verb == "lint":
         return 0 if lint(rest[0] if rest else None) else 1
     if verb == "all":
-        base, suites = None, rest
-        if "--" in rest:
-            split = rest.index("--")
-            base = rest[0] if split == 1 else None
-            suites = rest[split + 1:]
+        parsed = parse_all(rest, names_commit)
+        if isinstance(parsed, str):
+            print("quick.py: " + parsed)
+            return 2
+        base, suites = parsed
         ok = test(suites) if suites else build()
         return 0 if lint(base) and ok else 1
     print(f"unknown verb {verb!r}; see --help")
