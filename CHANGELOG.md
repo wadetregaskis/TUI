@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A blend mode over a translucent view blends with it as it shows.** `Color.yellow.blendMode(.multiply)` over
+`Color.blue.opacity(0.5)` multiplied into the blue at full strength, drawing black, where SwiftUI multiplies into
+the blue as it shows over the page, an olive.
+
 **A soft hyphen in a `Text` is one cell wide.** U+00AD was measured as taking no cell, but terminals give it one
 (Ghostty and Apple's Terminal, measured), so a line holding one drew a cell wider than it was laid out, and pushed a
 border or the next column a cell to the right. It is now measured at the one cell it takes.

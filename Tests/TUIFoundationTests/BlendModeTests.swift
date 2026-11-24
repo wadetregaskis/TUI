@@ -201,6 +201,49 @@ struct BlendModeTests {
         #expect(line.ansiSGRStateAt(visibleColumn: 1).rendered.contains(ink), "\(line.debugDescription)")
     }
 
+    // MARK: - What a mode blends against
+
+    /// SwiftUI's yellow and blue as macOS 15.8 draws them in the light scheme
+    /// (`Tools/SwiftUIProbes/Blend modes/blendbackdrops.out`).
+    private static let yellow = Color.rgb(255, 204, 0)
+    private static let blue = Color.rgb(0, 122, 255)
+
+    /// The red, green and blue of a 24-bit field spelled `ESC[48;2;r;g;bm`.
+    private func components(ofField field: String) -> [Int] {
+        let parameters = field.dropFirst(2).dropLast().split(separator: ";").compactMap { Int($0) }
+        return parameters.count == 5 && parameters[0] == 48 && parameters[1] == 2 ? Array(parameters[2...]) : []
+    }
+
+    @Test("A mode over a fade blends with the fade as it shows over the page, not with its opaque colour")
+    func modeOverAFade() {
+        // SwiftUI multiplies the yellow into the blue at one half over the page, never
+        // into the opaque blue: over white (128, 151, 0), not (0, 98, 0).
+        let line = drawn(
+            ZStack {
+                Self.blue.opacity(0.5)
+                Self.yellow.blendMode(.multiply)
+            })
+        let behind = Self.blue.blending(.normal, at: 0.5, over: palette().background)
+        let product = components(Self.yellow.blending(.multiply, at: 1, over: behind))
+        // Within rounding: the blue at one half is a cell's colour, in whole levels, before it is multiplied.
+        let read = components(ofField: field(line, at: 1))
+        #expect(close(read, product), "\(read), \(product) due: \(line.debugDescription)")
+        // Never the yellow times the opaque blue.
+        #expect(!close(read, components(Self.yellow.blending(.multiply, at: 1, over: Self.blue))))
+    }
+
+    @Test("A mode over a fade over a white page draws what SwiftUI draws")
+    func modeOverAFadeOverWhite() {
+        let line = drawn(
+            ZStack {
+                Color.rgb(255, 255, 255)
+                Self.blue.opacity(0.5)
+                Self.yellow.blendMode(.multiply)
+            })
+        let read = components(ofField: field(line, at: 1))
+        #expect(close(read, [128, 151, 0]), "\(read): \(line.debugDescription)")
+    }
+
     @Test("A fade inside a blend keeps its alpha and takes the mode")
     func fadeInsideABlend() {
         let line = drawn(

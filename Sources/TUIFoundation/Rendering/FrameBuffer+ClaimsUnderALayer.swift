@@ -340,10 +340,11 @@ private struct ClaimsUnderALayer {
     }
 
     /// Whether `claim` is the content's own and scales only its ink: no fade on what
-    /// is behind it (``FrameBuffer/fadesOnWhatIsBehind(_:runAlphas:)``).
+    /// is behind it (``FrameBuffer/fadesOnWhatIsBehind(_:runAlphas:)``), and no mode,
+    /// which blends the ink with what is behind it.
     private static func scalesOnlyInk(_ claim: OpacityRegion) -> Bool {
         claim.fieldUnderContent == nil && claim.inkOpacity < 1 && claim.opacity >= 1 && claim.fieldOpacity >= 1
-            && claim.cycle == nil
+            && claim.cycle == nil && claim.blendMode == .normal
     }
 
     /// What becomes of claim `index` under the base's cell `(row, column)`.
@@ -450,16 +451,24 @@ private struct ClaimsUnderALayer {
     }
 
     /// Whether the layer fades its cell `(column, row)` on what is behind it: a claim
-    /// of its own there with a layer or field alpha, or cycling, or a run stating its
-    /// alpha there. A claim on the INK alone is not one: it is paint on the cell's own
-    /// field, contests no glyph, and blends nothing over the base's cell
+    /// of its own there with a layer or field alpha, or cycling, or a blend mode, or a
+    /// run stating its alpha there. A claim on the INK alone is not one: it is paint on
+    /// the cell's own field, contests no glyph, and blends nothing over the base's cell
     /// (``FrameBuffer/hasFadeOnWhatIsBehind``). Taken for one, the base's claims under
     /// a label in a translucent ink were spent over the page, and inside a painter the
     /// label sat on a patch of the colour mixed toward the page, beside the colour
     /// mixed toward the painter.
+    ///
+    /// A mode is one even at full strength: it combines the layer's colours with the
+    /// base's cell as it SHOWS, so the base's claims there are spent first. Left out,
+    /// `Color.yellow.blendMode(.multiply)` over `Color.blue.opacity(0.5)` punched the
+    /// blue's claim and multiplied into the blue's opaque spelling: black, where SwiftUI
+    /// multiplies into the blue at one half over the page (H-67,
+    /// `Tools/SwiftUIProbes/Blend modes/blendbackdrops.out`).
     private func layerFades(at column: Int, _ row: Int) -> Bool {
         layer.opacityRegions.contains {
-            ($0.opacity < 1 || $0.fieldOpacity < 1 || $0.cycle != nil) && $0.contains(column: column, row: row)
+            ($0.opacity < 1 || $0.fieldOpacity < 1 || $0.cycle != nil || $0.blendMode != .normal)
+                && $0.contains(column: column, row: row)
         }
             || layer.animatedCells.contains {
                 $0.alpha?.isTranslucent == true && $0.offsetY == row

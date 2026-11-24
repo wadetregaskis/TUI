@@ -7604,6 +7604,8 @@ source's colour (so `Text(…).overlay(gradient.blendMode(.sourceAtop))` draws g
 toward the page by the source's alpha where the source paints, its glyph going at ½. The glyph
 contest is §6a's: where both sides draw one, the view's at ½ or more, in the blended colour.
 
+A mode is a fade on what is behind it at any strength, under a layer and inside a painter (§122).
+
 ## 111. A material frosts what is behind it (2026-10-24)
 
 Owner ruling O5-FROSTED, 2026-10-23: (b), watching performance, (c) if its cost is significant.
@@ -8016,3 +8018,26 @@ Each now ends in `carryingAlpha(of: self)` (`saturated(keeping:)`, `hueRotated` 
 not composed: the result is the same colour re-spelled. `multiplied(by:)` keeps the
 colour's own alpha and not the tint's, because the modifier spends the tint's alpha on the
 layer (§25) and a canvas filter keeps the pixel's.
+
+## 122. A blend mode blends with what shows behind it (2026-11-23)
+
+A mode's claim (§110) is at opacity 1, and the two places that ask whether a claim fades on what is behind it
+asked only for a layer or field alpha below 1 or a cycle: `layerFades` under a layer (§108.1) and
+`fadesOnWhatIsBehind` at a painter (§96). Neither was extended when modes came, though `isTranslucent` was, so a
+mode was taken for no fade at either (hunt 11-20, BLEND-3, H-67). Under a layer, it multiplied into the base's
+opaque spelling: in `ZStack { Color.blue.opacity(0.5); Color.yellow.blendMode(.multiply) }` the yellow's cells
+state their own field, so the blue's claim under them was punched unspent, and the yellow multiplied into the
+blue at full strength, `0;98;0` where the blue at one half over the page is behind it.
+
+SwiftUI, measured (`Tools/SwiftUIProbes/Blend modes/blendbackdrops.out`, macOS 15.8.3): a mode blends with
+everything composited behind it. The yellow over the blue at one half over a white page is (128, 151, 0),
+multiply(yellow, the blue as it shows), not multiply(yellow, opaque blue), (0, 98, 0).
+
+**The rule.** A mode other than `.normal` is a fade on what is behind it, at any strength. Under a layer, the
+base's claims under a blended cell are spent first (`ClaimsUnderALayer.layerFades`), so the mode meets the base
+as it shows, by §108.1's approximation (the base over the palette's page, then the layer). A claim with a mode
+never scales only its ink (`scalesOnlyInk`), so it never goes up past a kept claim.
+
+`BlendModeTests` pins SwiftUI's answer, the yellow over the half blue over the page and over a white one. Before,
+the first failed; the second passed, since there the blue lands on the white and is resolved before the yellow
+comes.
