@@ -125,8 +125,9 @@ private struct StoredWriteReport<Value>: @unchecked Sendable {  // swiftlint:dis
 /// Whether a `@State` is being read or written on the main actor.
 enum StateIsolation {
     /// ``MainActorCheck/isCurrent``, but first, off Darwin, whether this is
-    /// the thread drawing a frame, a thread-local read: there a pool thread
-    /// drains the main actor, and the check asks the queue, which costs more.
+    /// the thread drawing a frame, which the walk marks (`WalkingThreadMark`):
+    /// there a pool thread drains the main actor, and the check asks the
+    /// queue, which costs more.
     @inline(__always)
     static var isMainActor: Bool {
         #if canImport(Darwin) || canImport(WASILibc)

@@ -51,6 +51,15 @@ gracefully); CI's Windows jobs build and test everything with no `continue-on-er
       raw VT mode is the user's problem);
    5. the clipboard: a `WinSDK` arm (`OpenClipboard`/`SetClipboardData(CF_UNICODETEXT)`), and locality from
       `SSH_CONNECTION` plus a Toolhelp32 walk of the parents.
+
+   Not on that list, found by the runs or by reading (each done, from the Mac where it could be):
+   - the stack guard: `StackGuard` had no Windows arm, so too deep a tree overflowed a stack of 1 MiB, an eighth of
+     macOS's and Linux's 8 MiB, where they cut it short. It reads `GetCurrentThreadStackLimits` (2026-11-16), and a
+     frame is drawn on an 8 MiB fiber ("The stack a frame is drawn on", below);
+   - the thread walking a frame: `BindingReads` notes a binding's read only on it, and took the main thread for it
+     everywhere but Linux, while a libdispatch worker drains the main actor on Windows as on Linux. Marked with
+     `TlsAlloc` (2026-11-16); since 2026-11-24 one `WalkingThreadMark` marks it on every platform but Darwin (the
+     main thread) and WebAssembly (one thread), so a platform not yet run on is right by default.
 3. **The tests.** Build and run the whole suite on Windows (`swift test`, and `Tools/ParallelTest/parallel_test.py`,
    which runs there since 2026-11-20). Expect path, line-ending and file-system differences in the file-panel and
    persistence tests.

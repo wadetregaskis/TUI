@@ -8,15 +8,8 @@
 
 import Foundation
 import Observation
+import Synchronization
 import TUICore
-
-#if canImport(Glibc)
-    import Glibc
-#elseif canImport(Musl)
-    import Musl
-#elseif os(Windows)
-    import WinSDK
-#endif
 
 // MARK: - Reads nothing keeps
 
@@ -138,10 +131,8 @@ package enum BindingReads {
     @MainActor
     package static func begin() {
         unsafe noted = []
-        #if canImport(Glibc) || canImport(Musl)
-            unsafe pthread_setspecific(walkingThreadKey, UnsafeRawPointer(bitPattern: 1))
-        #elseif os(Windows)
-            _ = unsafe TlsSetValue(walkingThreadSlot, UnsafeMutableRawPointer(bitPattern: 1))
+        #if !canImport(Darwin) && !canImport(WASILibc)
+            walkingThread.set()
         #endif
     }
 
@@ -150,56 +141,95 @@ package enum BindingReads {
     package static func end() -> [() -> Void] {
         defer {
             unsafe noted = nil
-            #if canImport(Glibc) || canImport(Musl)
-                pthread_setspecific(walkingThreadKey, nil)
-            #elseif os(Windows)
-                _ = TlsSetValue(walkingThreadSlot, nil)
+            #if !canImport(Darwin) && !canImport(WASILibc)
+                walkingThread.clear()
             #endif
         }
         return unsafe noted ?? []
     }
 
-    /// Notes `get`, a binding's getter, when a walk is noting. Generic, and
-    /// wrapped only after the checks, so a read outside a walk allocates
-    /// nothing.
-    /// Whether this thread is the one walking. On WebAssembly's wasip1, which
-    /// is single-threaded and has no `Thread` to ask, it always is (as
-    /// `BodyMutationDiagnostic.callingThread`). On Linux the main actor is
-    /// drained by a pool thread after the first suspension (see `StackGuard`),
-    /// so `Thread.isMainThread` is false for the walk: the walking thread marks
-    /// itself, and each thread reads only its own mark, so no thread reads what
-    /// another writes. So on Windows, where the main actor may be drained by a
-    /// libdispatch worker — Swift Testing's is (measured, 6.3.3): a top-level
-    /// `Toggle`'s binding went unnoted, and a write to it asked for no frame —
-    /// with a thread-local slot of the system's. Elsewhere the main actor is
-    /// the main thread.
+    /// Whether this thread is the one walking.
+    ///
+    /// On Darwin the main actor is the main thread, so the main thread is the
+    /// one walking. On WebAssembly's wasip1, which is single-threaded and has
+    /// no `Thread` to ask, it always is (as `BodyMutationDiagnostic.callingThread`).
+    /// Everywhere else the walk marks its thread (``WalkingThreadMark``): on
+    /// Linux the main actor is drained by a pool thread after the first
+    /// suspension (see `StackGuard`), and on Windows by a libdispatch worker —
+    /// Swift Testing's is (measured, 6.3.3): a top-level `Toggle`'s binding went
+    /// unnoted, and a write to it asked for no frame — so `Thread.isMainThread`
+    /// is false for the walk there. The mark is the default, not a list of the
+    /// platforms known to need it: a platform not yet run on whose main actor
+    /// is the main thread pays a comparison, and one whose is not stays right.
     static var isWalkingThread: Bool {
-        #if canImport(WASILibc)
-            true
-        #elseif canImport(Glibc) || canImport(Musl)
-            unsafe pthread_getspecific(walkingThreadKey) != nil
-        #elseif os(Windows)
-            unsafe TlsGetValue(walkingThreadSlot) != nil
-        #else
+        #if canImport(Darwin)
             Thread.isMainThread
+        #elseif canImport(WASILibc)
+            true
+        #else
+            walkingThread.isCallingThread
         #endif
     }
 
-    #if canImport(Glibc) || canImport(Musl)
-        /// The thread-local mark ``isWalkingThread`` reads.
-        private static let walkingThreadKey: pthread_key_t = {
-            var key = pthread_key_t()
-            unsafe pthread_key_create(&key, nil)
-            return key
-        }()
-    #elseif os(Windows)
-        /// The thread-local slot ``isWalkingThread`` reads.
-        private static let walkingThreadSlot: DWORD = TlsAlloc()
+    #if !canImport(Darwin) && !canImport(WASILibc)
+        /// The mark ``isWalkingThread`` reads, set and cleared by ``begin()``
+        /// and ``end()`` on the main actor.
+        private static let walkingThread = WalkingThreadMark()
     #endif
 
+    /// Notes `get`, a binding's getter, when a walk is noting. Generic, and
+    /// wrapped only after the checks, so a read outside a walk allocates
+    /// nothing.
     @inline(__always)
     static func note<Value>(_ get: @escaping () -> Value) {
         guard isWalkingThread, unsafe noted != nil else { return }
         unsafe noted?.append { _ = get() }
     }
 }
+
+#if !canImport(WASILibc)
+    /// Which thread, if any, is marked: a token for it, one word, set by the
+    /// thread itself and compared by any thread against its own.
+    ///
+    /// ``BindingReads`` marks the thread walking a frame with one. Not a
+    /// thread-local, which it was on Linux (`pthread_setspecific`) and on
+    /// Windows (`TlsSetValue`): one mark, cleared by whichever thread ends the
+    /// walk, cannot be left set on a thread the main actor has since left —
+    /// which a thread-local would be, were `begin()` and `end()` ever to run on
+    /// two — and needs nothing of the platform but Foundation's `Thread`.
+    ///
+    /// The token is the `Thread` object's identity, as
+    /// `BodyMutationDiagnostic.callingThread`'s is: stable while the thread
+    /// runs, as each thread keeps its `Thread` for its life, and so equal to
+    /// no other running thread's. An atomic rather than a `Mutex`, as the
+    /// whole state is the one word; with no thread marked a read is one load,
+    /// and asks `Thread` nothing. Compiled on Darwin too, unused there, so its
+    /// tests run there.
+    package final class WalkingThreadMark: Sendable {
+        /// The marked thread's token; `0` when none is marked.
+        private let holder = Atomic<UInt>(0)
+
+        package init() {}
+
+        /// Marks the calling thread, in place of any thread marked before.
+        package func set() {
+            holder.store(Self.callingThread, ordering: .releasing)
+        }
+
+        /// Marks no thread, whichever thread calls.
+        package func clear() {
+            holder.store(0, ordering: .releasing)
+        }
+
+        /// Whether the calling thread is the one marked.
+        package var isCallingThread: Bool {
+            let held = holder.load(ordering: .acquiring)
+            return held != 0 && held == Self.callingThread
+        }
+
+        /// The calling thread's token; never `0`, which no object's address is.
+        private static var callingThread: UInt {
+            UInt(bitPattern: ObjectIdentifier(Thread.current))
+        }
+    }
+#endif
