@@ -124,9 +124,19 @@ final class FileBrowser {
     /// folder's own. The panel redraws as one arrives.
     var folderRows: [String: [FileEntry]] = [:]
 
-    /// Each of those rows by its URL, for the selection's lookups
-    /// (``entry(for:)``): a branch's items can be selected too.
-    @ObservationIgnored var folderIndex: [URL: FileEntry] = [:]
+    /// Each of those folders' rows' places in its ``folderRows``, by URL, for
+    /// the selection's lookups (``entry(for:)``): a branch's items can be
+    /// selected too. Kept a folder at a time, as ``arrange(_:showsHiddenFiles:sortOrder:)``
+    /// makes it off the main actor, so that keeping a folder, or dropping
+    /// one, is a dictionary's work: one index of every folder's rows was
+    /// built again on the main actor after each refresh (45 ms for 50,000
+    /// rows, release), and filtered on each ``open(_:)`` by a URL made for
+    /// each row (350 ms for 50,000).
+    @ObservationIgnored var folderIndex: [String: [URL: Int]] = [:]
+
+    /// The "Loading…" rows of folders not read yet (``FileEntry/placeholder(in:)``),
+    /// by URL: indexed, so the selection finds one dimmed and refuses it.
+    @ObservationIgnored var placeholderIndex: [URL: FileEntry] = [:]
 
     /// The folders being read for ``loadFolder(_:)`` now, by path: each read's
     /// task, which every ask awaits, and the generation it began in.
@@ -199,8 +209,10 @@ final class FileBrowser {
             cancelLoadingPlaceholderTimer()
             listed = (folder, generation, read)
             rows = folderRows[folder.path] ?? []
-            rowIndex = Dictionary(
-                rows.indices.lazy.map { (self.rows[$0].url, $0) }, uniquingKeysWith: { first, _ in first })
+            rowIndex =
+                folderIndex[folder.path]
+                ?? Dictionary(
+                    rows.indices.lazy.map { (self.rows[$0].url, $0) }, uniquingKeysWith: { first, _ in first })
             state = .loaded
         } else {
             rows = []
@@ -345,7 +357,7 @@ final class FileBrowser {
     /// The row of `url`, if the folder shown lists it or an outline's branch
     /// read beneath it does.
     func entry(for url: URL) -> FileEntry? {
-        rowIndex[url].map { rows[$0] } ?? folderIndex[url]
+        rowIndex[url].map { rows[$0] } ?? folderEntry(for: url)
     }
 
     /// The rows of `urls` the folder shown lists, in the rows' order, then
@@ -360,7 +372,7 @@ final class FileBrowser {
         for url in urls {
             if let index = rowIndex[url] {
                 shown.append(index)
-            } else if let entry = folderIndex[url], entry.url.path.hasPrefix(base) {
+            } else if let entry = folderEntry(for: url), entry.url.path.hasPrefix(base) {
                 beneath.append(entry)
             }
         }

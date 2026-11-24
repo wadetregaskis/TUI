@@ -83,7 +83,7 @@ extension FileBrowser {
         folderListings[path] = read
         folderFailures[path] = failure
         folderRows[path] = arranged.rows
-        for row in arranged.rows { index(row) }
+        folderIndex[path] = arranged.rowIndex
         attachBranches()
     }
 
@@ -97,20 +97,17 @@ extension FileBrowser {
     func arrangeFolders(as key: RefreshKey) async {
         guard !folderListings.isEmpty else { return }
         var pending = folderListings
-        var arranged: [String: [FileEntry]] = [:]
+        var arranged: [String: (rows: [FileEntry], rowIndex: [URL: Int], hiddenCount: Int)] = [:]
         while !pending.isEmpty {
             for (path, read) in pending {
                 arranged[path] =
-                    await Self.arrange(read, showsHiddenFiles: key.showsHiddenFiles, sortOrder: key.sortOrder).rows
+                    await Self.arrange(read, showsHiddenFiles: key.showsHiddenFiles, sortOrder: key.sortOrder)
             }
             guard !Task.isCancelled, refreshKey == key else { return }
             pending = folderListings.filter { arranged[$0.key] == nil }
         }
-        folderRows = arranged
-        folderIndex = [:]
-        for rows in arranged.values {
-            for row in rows { index(row) }
-        }
+        folderRows = arranged.mapValues(\.rows)
+        folderIndex = arranged.mapValues(\.rowIndex)
     }
 
     /// Attaches the read folders to `rows` all the way down, as the
@@ -139,7 +136,7 @@ extension FileBrowser {
             if foldersShowingLoading.contains(folder.panelStandardized.path) {
                 // Indexed, so the selection finds it dimmed and refuses it.
                 let placeholder = FileEntry.placeholder(in: folder)
-                folderIndex[placeholder.url] = placeholder
+                placeholderIndex[placeholder.url] = placeholder
                 return [placeholder]
             }
             return []
@@ -152,9 +149,26 @@ extension FileBrowser {
         }
     }
 
-    /// Indexes `row` for the selection's lookups.
-    private func index(_ row: FileEntry) {
-        folderIndex[row.url] = row
+    /// The row of `url` among the folders read besides the one shown: found
+    /// in its own folder's index, by the folder its URL names.
+    func folderEntry(for url: URL) -> FileEntry? {
+        if let placeholder = placeholderIndex[url] { return placeholder }
+        // A row's URL is its folder's, as read, and its name
+        // (`DirectoryListing`), so the folder it names is the one whose path
+        // keys it; the standardized spelling, the one the paths are kept
+        // under, where that differs.
+        let folder = url.deletingLastPathComponent()
+        if let entry = keptEntry(for: url, in: folder.path) { return entry }
+        let standardized = folder.panelStandardized.path
+        return standardized == folder.path ? nil : keptEntry(for: url, in: standardized)
+    }
+
+    /// The row of `url` in the folder read at `path`.
+    private func keptEntry(for url: URL, in path: String) -> FileEntry? {
+        guard let place = folderIndex[path]?[url], let rows = folderRows[path], rows.indices.contains(place) else {
+            return nil
+        }
+        return rows[place]
     }
 
     /// Before the folder shown becomes `folder`: the folder shown joins the
@@ -171,6 +185,7 @@ extension FileBrowser {
         if state == .loaded, let listed, listed.directory.path == directory.path, listed.generation == generation {
             folderListings[directory.path] = listed.entries
             folderRows[directory.path] = rows
+            folderIndex[directory.path] = rowIndex
         }
         let target = folder.panelStandardized.path
         let inside = FolderPath.withSlash(target)
@@ -180,10 +195,8 @@ extension FileBrowser {
         folderListings = folderListings.filter { isKeptPath($0.key) }
         folderFailures = folderFailures.filter { isKeptPath($0.key) }
         folderRows = folderRows.filter { isKeptPath($0.key) }
-        folderIndex = folderIndex.filter { entry in
-            let folder = entry.value.isPlaceholder ? entry.value.placeholderFolder : entry.key.deletingLastPathComponent()
-            return isKeptPath(folder.panelStandardized.path)
-        }
+        folderIndex = folderIndex.filter { isKeptPath($0.key) }
+        placeholderIndex = placeholderIndex.filter { isKeptPath($0.value.placeholderFolder.panelStandardized.path) }
         for (path, timer) in folderLoadingTimers where !isKeptPath(path) {
             timer.cancel()
             folderLoadingTimers.removeValue(forKey: path)
@@ -201,5 +214,6 @@ extension FileBrowser {
         folderFailures = [:]
         folderRows = [:]
         folderIndex = [:]
+        placeholderIndex = [:]
     }
 }
