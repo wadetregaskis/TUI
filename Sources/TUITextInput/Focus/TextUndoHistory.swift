@@ -449,14 +449,17 @@ struct TextEdit: Equatable {
     /// canonically equivalent texts for one (a precomposed "é" and an "e"
     /// with a combining accent): a history of byte edits has to see the text
     /// it left, byte for byte. Storage two strings share is answered at once;
-    /// otherwise one comparison of the bytes.
+    /// otherwise one `memcmp` of the bytes — not `elementsEqual`, a loop of
+    /// a byte at a time, which was 22.7% of an undo-heavy session's time
+    /// once an undo checked its splice with it (H-87).
     static func sameBytes(_ a: String, _ b: String) -> Bool {
         var a = a
         var b = b
         return a.withUTF8 { x in
             b.withUTF8 { y in
-                unsafe x.count == y.count
-                    && (x.baseAddress == y.baseAddress || x.elementsEqual(y))
+                guard x.count == y.count else { return false }
+                guard let left = x.baseAddress, let right = y.baseAddress, unsafe left != right else { return true }
+                return unsafe memcmp(left, right, x.count) == 0
             }
         }
     }
