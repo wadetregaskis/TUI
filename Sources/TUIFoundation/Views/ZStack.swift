@@ -105,6 +105,11 @@ struct _ZStackCore<Content: View>: View, Renderable {
         // a ZStack is as wide/tall as its widest/tallest child). Spacers have
         // no visual box in a ZStack.
         let drawn = ordered.filter { !$0.isSpacer }
+        // A stack of spacers alone fills what it is given, painting nothing,
+        // as its measure says it does (`spacersSizeTheStack(_:)`).
+        if !children.isEmpty, drawn.isEmpty, split.departing.isEmpty {
+            return FrameBuffer(footprintWidth: context.availableWidth, height: context.availableHeight)
+        }
         let placed = childContexts(drawn, context: context)
         let buffers = drawn.indices.map { index in
             drawn[index].render(
@@ -263,11 +268,18 @@ extension _ZStackCore: Layoutable {
         // its own (`wholeContentWidth(of:limit:)`), and counted, it made the
         // stack as wide as the ladder's rung.
         let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
+        // Spacers size the stack only when it has nothing else
+        // (`spacersSizeTheStack(_:)`).
+        let measuresSpacers = Self.spacersSizeTheStack(children)
         for child in children {
-            let size = child.measure(proposal: proposal, context: context)
-            let width = asksIdealWidth ? wholeContentWidth(of: size, limit: widthLimit) : size.width
             // Spacers have no visual box in a ZStack — `renderToBuffer` filters
             // them — so they must not contribute a guide here either.
+            if child.isSpacer && !measuresSpacers {
+                if hasGuides { guideSizes.append((width: 0, height: 0)) }
+                continue
+            }
+            let size = child.measure(proposal: proposal, context: context)
+            let width = asksIdealWidth ? wholeContentWidth(of: size, limit: widthLimit) : size.width
             if hasGuides {
                 guideSizes.append(
                     child.isSpacer
@@ -310,6 +322,18 @@ extension _ZStackCore: Layoutable {
                 ? wholeContentFlexibility(hasFlexibleWidth, width: width, limit: widthLimit)
                 : hasFlexibleWidth,
             isHeightFlexible: hasFlexibleHeight)
+    }
+
+    /// Whether `children`'s spacers size the stack: only when it holds nothing
+    /// else, SwiftUI's measured rule (`Tools/SwiftUIProbes/ViewThatFits widths
+    /// and spacers across the axis (H-62, H-64)/fits.out`). `ZStack { Text("x");
+    /// Spacer() }` is the text's size however much it is offered, and does not
+    /// fill its row; `ZStack { Spacer() }` is as large as a spacer alone, its
+    /// minimum and all it is offered. Measured with the rest, a spacer made the
+    /// stack report itself flexible and claim a row's spare width, then draw
+    /// the text alone (hunt 11-20, LAYOUT-9).
+    static func spacersSizeTheStack(_ children: [ChildView]) -> Bool {
+        children.allSatisfy(\.isSpacer)
     }
 }
 

@@ -70,6 +70,12 @@ it did not know followed by a typed letter, so F1 typed a capital A. They now re
 and TUI dropped either spelling whole: those keys did nothing, and under xterm's level 2 no Control chord arrived,
 ⌃Q included. Both now read as the chord, the same key the kitty keyboard protocol reports for it.
 
+
+**A `Spacer` in a `ZStack` with other layers is ignored, as in SwiftUI.** It made the stack report itself flexible,
+and as large as its `minLength`, so a row dealt `ZStack { Text("x"); Spacer() }` all its spare width and then drew
+the text alone, narrower than it had measured. Now such a stack is its layers' size. A `ZStack` of spacers alone
+fills what it is offered, as SwiftUI's does, and draws nothing there.
+
 **A `Spacer(minLength:)` has no length across its stack.** Its minimum counted on both axes, so
 `HStackLayout { Text("a"); Spacer(minLength: 3); Text("b") }` (or the same through `AnyLayout`) was three rows tall,
 `VStackLayout { Text("ab"); Spacer(minLength: 10) }` ten cells wide, and a `VStack` like it measured ten wide while

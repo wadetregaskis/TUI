@@ -288,6 +288,38 @@ struct ZStackRenderTests {
         #expect(buffer.overlays.isEmpty)
         #expect(buffer.hitTestRegions.isEmpty)
     }
+
+    // MARK: - Spacers among the layers
+
+    // SwiftUI's `ZStack` sizes itself by its spacers only when it holds
+    // nothing else (`Tools/SwiftUIProbes/ViewThatFits widths and spacers
+    // across the axis (H-62, H-64)/fits.out`). Hunt 11-20, LAYOUT-9.
+
+    @Test("A spacer beside a layer neither sizes the stack nor makes it fill its row")
+    func spacerBesideALayerIsIgnored() {
+        let context = ctx(width: 20, height: 3)
+        let stack = ZStack { Text("x"); Spacer(minLength: 6) }
+        let size = measureChild(stack, proposal: .unspecified, context: context)
+        #expect(size.width == 1 && size.height == 1, "got \(size.width)x\(size.height)")
+        #expect(!size.isWidthFlexible && !size.isHeightFlexible)
+
+        let row = HStack { ZStack { Text("x"); Spacer() }; Text("y") }
+        let measured = measureChild(row, proposal: .unspecified, context: context)
+        let drawn = renderToBuffer(row, context: context)
+        #expect(drawn.lines.map(\.stripped) == ["x y"])
+        #expect(measured.width == drawn.width && measured.height == drawn.height,
+                "measured \(measured.width)x\(measured.height), drew \(drawn.width)x\(drawn.height)")
+    }
+
+    @Test("A stack of spacers alone fills what it is given, as it measures")
+    func spacersAloneFill() {
+        let context = ctx(width: 6, height: 3)
+        let size = measureChild(ZStack { Spacer() }, proposal: .unspecified, context: context)
+        #expect(size.isWidthFlexible && size.isHeightFlexible)
+        let buffer = renderToBuffer(ZStack { Spacer() }, context: context)
+        #expect(buffer.width == 6 && buffer.height == 3, "got \(buffer.width)x\(buffer.height)")
+        #expect(buffer.lines.allSatisfy { $0.stripped.trimmingCharacters(in: .whitespaces).isEmpty })
+    }
 }
 
 // MARK: - ForEach Expansion (issue #8)
