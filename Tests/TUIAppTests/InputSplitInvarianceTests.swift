@@ -228,6 +228,11 @@ struct InputSplitInvarianceTests {
             // Not the console's: the three bytes are no key, as before, and
             // what follows them parses on its own.
             ("bracket-bracket-then-up", esc + Array("[[".utf8) + esc + Array("[A".utf8), [.key(KeyEvent(key: .up))]),
+            ("rxvt-home", esc + Array("[7~".utf8), [.key(KeyEvent(key: .home))]),
+            ("rxvt-end", esc + Array("[8~".utf8), [.key(KeyEvent(key: .end))]),
+            ("rxvt-shift-up", esc + Array("[a".utf8), [.key(KeyEvent(key: .up, shift: true))]),
+            ("rxvt-ctrl-left-then-text", esc + Array("Odx".utf8),
+             [.key(KeyEvent(key: .left, ctrl: true)), .key(KeyEvent(character: "x"))]),
         ]
         var reports: [String] = []
         for (name, bytes, expected) in cases {

@@ -113,4 +113,30 @@ struct KeyDialectTests {
     func linuxConsoleOtherIsDropped(sequence: String) {
         #expect(parse(sequence) == nil)
     }
+
+    // MARK: rxvt
+
+    @Test("rxvt's Home and End are Home and End, with a modifier where one is sent")
+    func rxvtHomeEnd() {
+        #expect(parse("[7~") == KeyEvent(key: .home))
+        #expect(parse("[8~") == KeyEvent(key: .end))
+        #expect(parse("[7;5~") == KeyEvent(key: .home, ctrl: true))
+    }
+
+    @Test(
+        "rxvt's Shift- and Control-arrows are the arrows with Shift and Control",
+        arguments: zip(["a", "b", "c", "d"], [Key.up, .down, .right, .left]))
+    func rxvtArrows(letter: String, key: Key) {
+        #expect(parse("[\(letter)") == KeyEvent(key: key, shift: true))
+        #expect(parse("O\(letter)") == KeyEvent(key: key, ctrl: true))
+    }
+
+    @Test("A lowercase letter after a modifier in SS3, or past d, is no rxvt arrow")
+    func rxvtArrowsOnlyBare() {
+        #expect(parse("O2a") == nil)
+        #expect(parse("[e") == nil)
+        #expect(parse("Oe") == nil)
+        #expect(!KeyEvent.endsSS3Key(0x61, afterModifier: true))
+        #expect(KeyEvent.endsSS3Key(0x61, afterModifier: false))
+    }
 }

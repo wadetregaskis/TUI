@@ -6142,6 +6142,7 @@ for a terminal that sends them regardless (xterm's table, ctlseqs):
 | `j` `k` `l` `m` `n` `o`, `X` | keypad `*` `+` `,` `-` `.` `/`, `=`, with `.numericPad` |
 | `M`, `I`, space | keypad Enter, Tab, Space, with `.numericPad` |
 | `E` | the keypad's Begin: consumed, no key |
+| `a` `b` `c` `d`, with no modifier | rxvt's Control-Up, -Down, -Right, -Left (since 2026-11-23; "Modified keys an app did not ask for") |
 
 A modifier between the `O` and the key's byte (`ESC O 2 P`, xterm's older
 spelling, or `ESC O 1;5 A`) is read as the CSI forms' is; only those two
@@ -7036,9 +7037,19 @@ below for them, and the Linux console's, are from documentation.
   fourth byte leaves the three what they were, a sequence no key spells,
   dropped. Before, `ESC [ [` was taken for a whole CSI and the letter typed,
   so F1 was a capital A in a text field.
+- rxvt's Home and End (`ESC [ 7 ~`, `ESC [ 8 ~`), its Shift-arrows (`ESC [ a`
+  to `ESC [ d`) and its Control-arrows (`ESC O a` to `ESC O d`, nothing
+  between the `O` and the letter). Before, Home and End did nothing, the
+  Shift-arrows were dropped, and a Control-arrow was Alt-Shift-O and then a
+  letter typed. On a meta-sending terminal each spelling is also an Option
+  chord and a lowercase letter typed at once (Option-[ then `a`), as `ESC O A`
+  is for Up; the key is read.
+- Not yet read: rxvt's Shift, Control and both on Home, End and Delete (`$`,
+  `^`, `@` in place of `~`). `^` and `@` end the sequence, which is dropped;
+  `$` ends nothing, so the parser waits and the next letter typed ends the
+  sequence and is lost.
 
-Until 2026-11-23, under rxvt Home and End did nothing, and a Control-arrow
-typed `a` to `d` after an Alt-Shift-O. The console's `ESC TAB` is read as ⌥⇥,
+The console's `ESC TAB` is read as ⌥⇥,
 not as ⇧⇥, on purpose (`escTabIsAltTab`: it is what a meta-sending terminal
 sends for ⌥⇥, which a text editor types as a tab).
 

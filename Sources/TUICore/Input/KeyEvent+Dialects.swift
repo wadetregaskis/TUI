@@ -94,3 +94,31 @@ extension KeyEvent {
         return KeyEvent(key: keys[Int(params[1] - 0x41)])
     }
 }
+
+// MARK: - rxvt's modified arrows
+
+extension KeyEvent {
+    /// rxvt's and urxvt's arrows with Shift or Control (terminfo `rxvt`):
+    /// Shift-Up to Shift-Left are `ESC [ a` to `ESC [ d` (`kUP` `kDN` `kRIT`
+    /// `kLFT`), Control-Up to Control-Left `ESC O a` to `ESC O d` (`kUP5`…),
+    /// the arrows' own final bytes in lower case. `nil` for any other byte.
+    ///
+    /// Its Home and End, `ESC [ 7 ~` and `ESC [ 8 ~`, are read with the other
+    /// `~` keys (`parseExtendedKey`). Read since 2026-11-23: until then the
+    /// Shift arrows were dropped, and a Control arrow was Alt-Shift-O and
+    /// then a letter typed. Either spelling is also what a meta-sending
+    /// terminal sends for an Option chord and a lowercase letter typed at
+    /// once (Option-[ then `a`; Alt-Shift-O then `a`), as `ESC O A` is for
+    /// Up: no parser can tell those apart, and the key is the likelier.
+    static func rxvtArrow(_ byte: UInt8, ctrl: Bool, shift: Bool) -> KeyEvent? {
+        let key: Key
+        switch byte {
+        case 0x61: key = .up  // a
+        case 0x62: key = .down  // b
+        case 0x63: key = .right  // c
+        case 0x64: key = .left  // d
+        default: return nil
+        }
+        return KeyEvent(key: key, ctrl: ctrl, shift: shift)
+    }
+}

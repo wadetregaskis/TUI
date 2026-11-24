@@ -59,6 +59,9 @@ hands the terminal back (or, after an external stop, as it takes it back) and se
 first frame after, at the cost of one transmission a picture. On iTerm2, whose one image store serves both screens,
 the pictures no longer stay in the terminal while the shell or the other program has it.
 
+**rxvt's Home, End, Shift-arrows and Control-arrows work.** Home and End (`ESC[7~`, `ESC[8~`) did nothing, the
+Shift-arrows were dropped, and a Control-arrow typed a letter. They now read as their keys.
+
 **F1 to F5 work on the Linux console.** The console sends them as `ESC[[A` to `ESC[[E`, which TUI read as a sequence
 it did not know followed by a typed letter, so F1 typed a capital A. They now read as the function keys.
 

@@ -528,6 +528,8 @@ extension KeyEvent {
         case .code(let code): modifiers = decodeModifierCode(code)
         case .partial, .invalid: return nil
         }
+        // rxvt's Control-arrows, `ESC O a` … `ESC O d`, with no modifier.
+        if body.count == 1, let arrow = rxvtArrow(final, ctrl: true, shift: false) { return arrow }
         // 'E', the keypad's Begin, and anything else: a key with no `Key`.
         guard let (key, numericPad) = ss3Keys[final] else { return nil }
         return KeyEvent(
@@ -537,11 +539,11 @@ extension KeyEvent {
 
     /// Whether `byte`, after `ESC O` and any modifier, ends an SS3 key: one
     /// of ``ss3Keys``, or `E`, the keypad's Begin, consumed as a key with no
-    /// `Key`. The input extractor asks, so that `ESC O` and a byte that ends
-    /// none is read as Alt-Shift-O and typing, not dropped as a key no one
-    /// sends.
-    package static func endsSS3Key(_ byte: UInt8) -> Bool {
-        ss3Keys[byte] != nil || byte == 0x45
+    /// `Key`, or, straight after the `O`, rxvt's Control-arrows' `a` to `d`.
+    /// The input extractor asks, so that `ESC O` and a byte that ends none is
+    /// read as Alt-Shift-O and typing, not dropped as a key no one sends.
+    package static func endsSS3Key(_ byte: UInt8, afterModifier: Bool) -> Bool {
+        ss3Keys[byte] != nil || byte == 0x45 || (!afterModifier && (0x61...0x64).contains(byte))
     }
 
     /// The key each SS3 byte stands for, and whether it is on the keypad: see
@@ -611,6 +613,9 @@ extension KeyEvent {
             return KeyEvent(key: .tab, shift: true)
         case .some(0x50...0x53):  // 'P' 'Q' 'R' 'S'
             return parseModifiedFunctionKey(params, modifiers: modifiers)
+        case .some(let final) where params.count == 1:
+            // rxvt's Shift-arrows, `ESC [ a` … `ESC [ d`.
+            return rxvtArrow(final, ctrl: false, shift: true)
         default:
             return nil
         }
@@ -714,6 +719,7 @@ extension KeyEvent {
     ///
     /// These are VT-style sequences where `n` is a numeric key identifier:
     /// - 1=Home, 2=Insert, 3=Delete, 4=End, 5=PageUp, 6=PageDown
+    /// - 7=Home and 8=End, as rxvt and urxvt send them (terminfo `rxvt`)
     /// - 11-15=F1-F5, 17-21=F6-F10, 23-24=F11-F12, 25-34=F13-F20
     ///
     /// The gaps are historical: 16, 22, 27 and 30 were never assigned.
@@ -748,10 +754,10 @@ extension KeyEvent {
 
         switch number {
         // Navigation keys
-        case 1: return KeyEvent(key: .home, ctrl: ctrl, alt: alt, shift: shift)
+        case 1, 7: return KeyEvent(key: .home, ctrl: ctrl, alt: alt, shift: shift)  // 7: rxvt's
         case 2: return nil  // Insert - not commonly used in TUI apps
         case 3: return KeyEvent(key: .delete, ctrl: ctrl, alt: alt, shift: shift)
-        case 4: return KeyEvent(key: .end, ctrl: ctrl, alt: alt, shift: shift)
+        case 4, 8: return KeyEvent(key: .end, ctrl: ctrl, alt: alt, shift: shift)  // 8: rxvt's
         case 5: return KeyEvent(key: .pageUp, ctrl: ctrl, alt: alt, shift: shift)
         case 6: return KeyEvent(key: .pageDown, ctrl: ctrl, alt: alt, shift: shift)
 
