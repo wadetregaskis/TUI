@@ -30,14 +30,15 @@ import Foundation
 /// `holdUntil` keeps every response back until that many requests have
 /// arrived, so that two loads of one URL are both in flight, and both land
 /// about together: what a page loading one picture twice does on a fast
-/// network, without waiting on one.
+/// network, without waiting on one. `Int.max` keeps them back until
+/// ``answerHeld()``, for a test that says itself when every load has asked.
 final class LocalHTTPServer: @unchecked Sendable {
     let port: UInt16
 
     private let listener: Int32
     private let status: String
     private let body: Data
-    private let holdUntil: Int
+    private var holdUntil: Int
     private let lock = NSCondition()
     private var requests = 0
 
@@ -106,6 +107,14 @@ final class LocalHTTPServer: @unchecked Sendable {
     }
 
     enum SetupError: Error { case failed(String) }
+
+    /// Answers every request held back, and every one from now on, at once.
+    func answerHeld() {
+        lock.withLock {
+            holdUntil = 0
+            lock.broadcast()
+        }
+    }
 
     /// Stops listening. The accept loop ends when its `accept` fails.
     func stop() {

@@ -715,10 +715,22 @@ public final class URLImageCache: Sendable {
     /// Stores an image in the cache for the given URL string, letting the
     /// least recently used go until it fits.
     public func set(_ urlString: String, image: RGBAImage) {
+        _ = file(urlString, image: image, adopting: false)
+    }
+
+    /// Files `image` under `key`, letting the least recently used go until it
+    /// fits, and returns the picture filed there: `image`, or with `adopting`
+    /// the one already there, if there is one, which counts as a use.
+    private func file(_ key: String, image: RGBAImage, adopting: Bool) -> RGBAImage {
         let cost = Self.cost(of: image)
-        state.withLock { state in
-            if let old = state.entries.removeValue(forKey: urlString) { state.bytes -= Self.cost(of: old.image) }
-            guard cost <= byteLimit else { return }
+        return state.withLock { state in
+            if adopting, let held = state.entries[key] {
+                state.clock &+= 1
+                state.entries[key] = (held.image, state.clock, held.decode)
+                return held.image
+            }
+            if let old = state.entries.removeValue(forKey: key) { state.bytes -= Self.cost(of: old.image) }
+            guard cost <= byteLimit else { return image }
             while state.bytes + cost > byteLimit,
                 let oldest = state.entries.min(by: { $0.value.lastUse < $1.value.lastUse })
             {
@@ -726,14 +738,64 @@ public final class URLImageCache: Sendable {
                 state.bytes -= Self.cost(of: oldest.value.image)
             }
             state.clock &+= 1
-            state.entries[urlString] = (image, state.clock, ImageDecodeID())
+            state.entries[key] = (image, state.clock, ImageDecodeID())
             state.bytes += cost
+            return image
         }
     }
 
     /// What an image costs the cache: four bytes a pixel.
     private static func cost(of image: RGBAImage) -> Int {
         image.width * image.height * 4
+    }
+
+    // MARK: Joined Loads
+
+    /// A load of one key under one pixel limit: loads of a key under
+    /// different limits are not joined, as a load past one limit is refused
+    /// where it is within another.
+    struct LoadKey: Hashable, Sendable {
+        let key: String
+        let maxPixelCount: Int?
+    }
+
+    /// The loads under way, which a caller asking for the same key joins.
+    private let loads = JoinedLoads<LoadKey, RGBAImage>()
+
+    /// The picture for `key`: the one this cache holds, or the one `load`
+    /// comes back with, filed here — `load` run once for every caller that
+    /// asks for `key` under `maxPixelCount` while it runs (``JoinedLoads``).
+    ///
+    /// A caller cancelled while it waits throws `CancellationError` at once,
+    /// and the load goes on for the others; it is cancelled itself only when
+    /// every caller waiting on it has gone.
+    ///
+    /// What it hands back is not checked against `maxPixelCount`: a held
+    /// picture another caller loaded under another limit is the caller's to
+    /// check.
+    package func joinedLoad(
+        _ key: String, maxPixelCount: Int?, load: @escaping @Sendable () async throws -> RGBAImage
+    ) async throws -> RGBAImage {
+        try await loads.value(
+            for: LoadKey(key: key, maxPixelCount: maxPixelCount), held: { get(key) },
+            land: { [self] image in keep(key, image: image) }, load: load)
+    }
+
+    /// How many callers wait on a load of `key` under way, under any limit.
+    package func loadersWaiting(on key: String) -> Int {
+        loads.waiting { $0.key == key }
+    }
+
+    /// Files `image` under `key`, unless the cache holds a picture there
+    /// already, and returns the picture it holds: `image`, the one already
+    /// there, or — where it is too large to keep — `image` again.
+    ///
+    /// A load that lands where another's has landed first takes that one's
+    /// decode, so every view of the picture draws one buffer, and the terminal
+    /// is sent one picture. Filed over it, as ``set(_:image:)`` files, each
+    /// view held a decode of its own, which the cache accounted for one of.
+    package func keep(_ key: String, image: RGBAImage) -> RGBAImage {
+        file(key, image: image, adopting: true)
     }
 }
 
@@ -791,8 +853,10 @@ extension PlatformImageLoader {
             return cached
         }
         let image = try loadImage(from: path, maxPixelCount: maxPixelCount)
-        if let cache, let key = Self.cacheKey(forFile: path) { cache.set(key, image: image) }
-        return image
+        // What another load of the file filed while this one decoded, if one
+        // did, so the two views draw one picture (``URLImageCache/keep(_:image:)``).
+        guard let cache, let key = Self.cacheKey(forFile: path) else { return image }
+        return cache.keep(key, image: image)
     }
 
     /// The key a file's picture is cached under: its path, size and
@@ -837,10 +901,16 @@ extension PlatformImageLoader {
     /// calls for the same URL with the same cache return the kept copy. With
     /// no cache, every call downloads.
     ///
+    /// Calls for one URL through one cache while its download runs wait for
+    /// that download rather than starting their own, so a page of
+    /// rows showing one picture downloads and decodes it once. The download
+    /// runs with the first caller's `timeout`.
+    ///
     /// The download *suspends* — it never blocks the calling thread — and it
-    /// honours cancellation: cancelling the enclosing task cancels the
-    /// transfer and throws `CancellationError` promptly, rather than leaving
-    /// the caller waiting out `timeout`.
+    /// honours cancellation: cancelling the enclosing task throws
+    /// `CancellationError` promptly, rather than leaving the caller waiting out
+    /// `timeout`, and cancels the transfer unless another caller is waiting
+    /// on it.
     ///
     /// The label is `fromURL:` rather than `from:` because the two arguments
     /// this takes in practice — `(String, maxPixelCount:)` — are otherwise
@@ -870,7 +940,21 @@ extension PlatformImageLoader {
         if let cached = try cachedImage(fromURL: urlString, cache: cache, maxPixelCount: maxPixelCount) {
             return cached
         }
+        guard let cache else {
+            return try await Self.downloadImage(fromURL: urlString, timeout: timeout, maxPixelCount: maxPixelCount)
+        }
+        let image = try await cache.joinedLoad(urlString, maxPixelCount: maxPixelCount) {
+            try await Self.downloadImage(fromURL: urlString, timeout: timeout, maxPixelCount: maxPixelCount)
+        }
+        // Held already when this asked, where another caller loaded it under
+        // another limit.
+        return try Self.clearingLimit(image, maxPixelCount: maxPixelCount) ?? image
+    }
 
+    /// The picture at `urlString`, downloaded and decoded, with no cache.
+    private static func downloadImage(
+        fromURL urlString: String, timeout: TimeInterval, maxPixelCount: Int?
+    ) async throws -> RGBAImage {
         #if !canImport(FoundationNetworking) && !canImport(Darwin)
             // No URL loading on this platform, and this is where that has to be
             // said. `URLSession` is in Foundation on Apple platforms and in
@@ -904,9 +988,7 @@ extension PlatformImageLoader {
             throw ImageLoadError.downloadFailed(error.localizedDescription)
         }
 
-        let image = try loadImage(from: data, maxPixelCount: maxPixelCount)
-        cache?.set(urlString, image: image)
-        return image
+        return try PlatformImageLoader().loadImage(from: data, maxPixelCount: maxPixelCount)
         #endif
     }
 

@@ -156,6 +156,8 @@ Downloads give up after 30 seconds. Use `.imageURLTimeout(10)` to change that, a
 
 Your app keeps recently loaded pictures in memory, so a picture that comes back into view draws at once. An edited file is noticed and read again. You don't have to set anything up.
 
+Views that ask for one picture while it's loading share the load. A list of fifty rows showing one avatar downloads it once, decodes it once, and sends the terminal one picture. A row that scrolls away while it waits leaves the load to the others, and the download stops only when no view is waiting for it.
+
 The cache holds 64 MiB of decoded pictures, and drops the ones used least recently once it's full. For a photo browser, you may want more. The person running the app can set `TUI_IMAGE_CACHE_SIZE=256M`, or you can give your views a cache of your own:
 
 ```swift
@@ -174,7 +176,7 @@ struct Viewer: App {
 
 Make the cache somewhere that lasts, as here, and not inside a `body`, which would make a new, empty one each time.
 
-`TUI_IMAGE_CACHE_SIZE=0`, or a cache of no bytes, turns the sharing off: each view keeps the picture it shows, and a picture shown in two views, or shown again after it left the screen, is read from its file again.
+`TUI_IMAGE_CACHE_SIZE=0`, or a cache of no bytes, turns the sharing off: each view keeps the picture it shows, and a picture shown in two views, or shown again after it left the screen, is read from its file again. Views asking for it at the same moment still share that one read.
 
 A picture from a file is kept at the size it's drawn, not the size it is. A 1,000-pixel photo drawn as an icon four cells wide keeps a few kilobytes, not four megabytes, and on macOS it's read at that size, so it never takes the full size in memory even while it loads. When it's drawn larger, it's read from its file again at the new size, and the cache keeps both. The picture is still laid out at its own size, so this changes nothing about where it goes, only how much memory it takes.
 

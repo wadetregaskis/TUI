@@ -3,8 +3,9 @@
 //
 //  A load publishes a handle on a picture the image cache keeps, and the view
 //  reads the pixels when it next draws. Between the two the cache can let them
-//  go: a second load of the URL files its own decode over the first, or a load
-//  of another URL evicts it. The view then held a handle on nothing and never
+//  go: a second load of the URL filed its own decode over the first (until
+//  loads of one URL at once were joined, `JoinedImageLoadTests`), or a load of
+//  another URL evicts it. The view then held a handle on nothing and never
 //  loaded again, so its placeholder spun for ever. So a load's pixels now stay
 //  with the view until it has drawn them.
 //
@@ -57,7 +58,8 @@ struct SharedURLImageTests {
     ) async throws {
         harness.frame(view())
         await settle(until: {
-            server.requestCount == keys.count && keys.contains { cache.get($0) != nil }
+            // One request a URL: loads of one URL at once are one load.
+            server.requestCount == Set(keys).count && keys.contains { cache.get($0) != nil }
         })
         // The second landing, and both hops to the main actor to publish: the
         // load tasks' own ends.
@@ -79,7 +81,8 @@ struct SharedURLImageTests {
 
     @Test("Two AsyncImages of one URL both draw when their loads land together")
     func twoAsyncImages() async throws {
-        let server = try redPicture(holdUntil: 2)
+        // One request: the two loads are joined.
+        let server = try redPicture(holdUntil: 1)
         defer { server.stop() }
         let address = server.url()
         let cache = URLImageCache()
@@ -91,7 +94,8 @@ struct SharedURLImageTests {
 
     @Test("An Image and an AsyncImage of one URL both draw when their loads land together")
     func imageAndAsyncImage() async throws {
-        let server = try redPicture(holdUntil: 2)
+        // One request: the two loads are joined.
+        let server = try redPicture(holdUntil: 1)
         defer { server.stop() }
         let address = server.url()
         let cache = URLImageCache()
@@ -103,7 +107,8 @@ struct SharedURLImageTests {
 
     @Test("Two Images of one URL both draw when their loads land together")
     func twoImages() async throws {
-        let server = try redPicture(holdUntil: 2)
+        // One request: the two loads are joined.
+        let server = try redPicture(holdUntil: 1)
         defer { server.stop() }
         let address = server.url()
         let cache = URLImageCache()

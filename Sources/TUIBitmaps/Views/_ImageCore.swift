@@ -617,8 +617,9 @@ extension _ImageCore {
             let rawImage: RGBAImage
             switch source {
             case .file(let path):
-                // At the size its box wants (``decodeFile(path:settings:)``).
-                return try decodeFile(path: path, settings: settings)
+                // At the size its box wants (``decodeFile(path:settings:)``),
+                // joined with any other view's load of it.
+                return try await decodeFileJoined(path: path, settings: settings)
             case .url(let urlString):
                 rawImage = try await loader.loadImage(
                     fromURL: urlString,

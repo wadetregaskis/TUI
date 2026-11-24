@@ -39,6 +39,12 @@ the folder shown first, the other columns and open branches a moment later. And 
 thousands of folders no longer slows every frame: the row of the folder on the way, far down it, was looked for
 afresh some 600 times a frame.
 
+**Views that load one picture at once share the load.** Thirty rows of a list showing one avatar each downloaded
+it, decoded it and sent it to the terminal, since none found it in the image cache before any had landed: thirty
+downloads, thirty decodes and thirty copies in memory. Loads of one URL, or of one file at one size, through one
+cache now wait on the first, so it is one download, one decode and one picture. A view that goes while it waits
+leaves the load to the others; the load is abandoned only once every view waiting on it has gone.
+
 **A `NavigationSplitView` that collapses keeps the state of the columns ahead of the one on top.** Narrowed into
 its stack with the sidebar on top, for a moment or under a compact size class, a split forgot its content and detail
 columns' `@State`, so they started over when it widened again. They are kept, not drawn, as a tab view keeps its

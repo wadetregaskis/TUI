@@ -199,14 +199,47 @@ extension _ImageCore {
         }
         let picture = try PlatformImageLoader().loadImage(
             from: path, maxPixelCount: settings.maxPixelCount, reducedBy: settings.reduction)
+        var image = picture.image
         if let cache = settings.urlCache, let key = CachedPicture.key(of: source, reducedBy: settings.reduction) {
-            cache.set(key, image: picture.image)
+            // Another load's, if one filed it while this one decoded.
+            image = cache.keep(key, image: image)
         }
         let size = (width: picture.width, height: picture.height)
         return FinishedLoad(
-            phase: .loaded(
-                picture.image, from: source, cache: settings.urlCache, size: size, reduction: settings.reduction),
-            pixels: picture.image)
+            phase: .loaded(image, from: source, cache: settings.urlCache, size: size, reduction: settings.reduction),
+            pixels: image)
+    }
+
+    /// ``decodeFile(path:settings:)`` in a task: joined with any other load of
+    /// the file at this size through the same cache under way, so views
+    /// showing one large file decode it once
+    /// (``URLImageCache/joinedLoad(_:maxPixelCount:load:)``).
+    ///
+    /// A picture decoded small is joined only where its size was read from
+    /// its header, which every caller then has; one decoded whole is checked
+    /// against this caller's limit, as a cache hit is.
+    ///
+    /// - Throws: `ImageLoadError` if the file cannot be read, decoded, or is
+    ///   past the pixel limit; `CancellationError` if the task was cancelled
+    ///   while it waited on another's load.
+    nonisolated static func decodeFileJoined(path: String, settings: LoadSettings) async throws -> FinishedLoad {
+        let source = ImageSource.file(path)
+        let size = settings.reduction > 1 ? settings.pictureSize : nil
+        guard let cache = settings.urlCache, settings.reduction == 1 || size != nil,
+            let key = CachedPicture.key(of: source, reducedBy: settings.reduction)
+        else { return try decodeFile(path: path, settings: settings) }
+        let maxPixelCount = settings.maxPixelCount
+        let reduction = settings.reduction
+        let image = try await cache.joinedLoad(key, maxPixelCount: maxPixelCount) {
+            let loader = PlatformImageLoader()
+            guard reduction > 1 else { return try loader.loadImage(from: path, maxPixelCount: maxPixelCount) }
+            return try loader.loadImage(from: path, maxPixelCount: maxPixelCount, reducedBy: reduction).image
+        }
+        if size == nil, let limit = maxPixelCount, image.width * image.height > limit {
+            throw ImageLoadError.imageTooLarge(pixelCount: image.width * image.height, limit: limit)
+        }
+        return FinishedLoad(
+            phase: .loaded(image, from: source, cache: cache, size: size, reduction: reduction), pixels: image)
     }
 
     /// Loads the picture again at `settings.reduction`, its box needing
