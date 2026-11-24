@@ -370,6 +370,7 @@ enum Sessions {
             BigTextFindQuerySession.descriptor,
             BigTextRichFindSession.descriptor,
             BigTextReplaceAllSession.descriptor,
+            BigTextUndoSession.descriptor,
         ]
         // Last: every perf case, `case:<id>`, its script looped.
         return apps + inboxes + logs + pages + CaseSession.descriptors
