@@ -90,13 +90,24 @@ enum DialogDrag {
         return (handler.offsetX, handler.offsetY)
     }
 
-    /// Resets a dialog's drag offset. Called on the dismissed render path so a
-    /// re-presented dialog opens centred rather than where it was last dragged.
+    /// Resets a dialog's drag offset, if it has one. Called on the dismissed
+    /// render path so a re-presented dialog opens centred rather than where it
+    /// was last dragged.
+    ///
+    /// Looks the handler up rather than making it: only a dialog that was
+    /// presented has an offset to reset. Made here, a dismissed dialog's
+    /// handler was made on every frame and dropped at the end of each, since
+    /// nothing marks a dismissed presenter's identity, so the state storage
+    /// never saw a pass that stored nothing and its prune walked every value
+    /// on every frame (`PruneWitness`). The handler a dismissal leaves is
+    /// reset on the frame after it and dropped at that frame's end; under a
+    /// retained subtree (a `List` row) it is kept, and reset again on each
+    /// dismissed frame, to no further effect.
     static func reset(context: RenderContext, propertyIndex: Int) {
-        guard !context.isMeasuring, let stateStorage = context.stateStorage else { return }
-        let box: StateBox<_DialogDragHandler> = stateStorage.storage(
-            for: StateStorage.StateKey(identity: context.identity, propertyIndex: propertyIndex),
-            default: _DialogDragHandler())
+        guard !context.isMeasuring,
+            let box: StateBox<_DialogDragHandler> = context.stateStorage?.existingStorage(
+                for: StateStorage.StateKey(identity: context.identity, propertyIndex: propertyIndex))
+        else { return }
         box.value.reset()
     }
 
