@@ -59,6 +59,28 @@ struct FileBrowserArrangementTests {
         #expect(browser.folderRows[fixture.root.path]?.contains { $0.name == "Alpha" } == true)
     }
 
+    @Test("Going back to a folder kept on the way shows it as it was arranged, with no sort")
+    func goingBackArrangesNothing() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        await browser.refresh()
+        let shown = browser.rows.map(\.name)
+        let hidden = browser.hiddenCount
+        browser.open(fixture.url("Alpha"))
+        await browser.refresh()
+        let arranged = ArrangedFolders()
+        await FileArrangementWatch.$current.withValue(arranged.watch) {
+            browser.goUp()
+            await browser.refresh()
+        }
+        #expect(arranged.heard.isEmpty)
+        #expect(browser.state == .loaded)
+        #expect(browser.rows.map(\.name) == shown)
+        #expect(browser.hiddenCount == hidden && hidden == 1)
+        #expect(browser.entry(for: fixture.url("notes.md"))?.name == "notes.md")
+    }
+
     @Test("A new order, and the hidden items shown, arrange the folders kept on the way again")
     func newOrderArrangesTheKeptFolders() async throws {
         let fixture = try FilePanelFixture()

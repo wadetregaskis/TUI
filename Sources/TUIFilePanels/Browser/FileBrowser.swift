@@ -293,12 +293,17 @@ final class FileBrowser {
 
     /// Reads the folder, unless the last read was of this folder and this
     /// generation, then sorts it, both off the main actor, and publishes the
-    /// rows — unless the task was cancelled meanwhile, its result stale.
+    /// rows — unless the task was cancelled meanwhile, its result stale. A
+    /// folder shown from those kept (``open(_:)``), its rows arranged as `key`
+    /// says, is not sorted again: going back up to a parent of 50,000 items
+    /// sorted it again, a second (release), for rows equal to those shown.
     func refresh() async {
         let key = refreshKey
         let entries: [FileEntry]
+        var arrangedAlready = false
         if let listed, listed.directory == key.directory, listed.generation == key.generation {
             entries = listed.entries
+            arrangedAlready = state == .loaded && rowsArrangement == key.arrangement
         } else {
             let result = await DirectoryListing.load(key.directory, rule: rule)
             guard !Task.isCancelled, refreshKey.directory == key.directory, generation == key.generation else {
@@ -319,8 +324,13 @@ final class FileBrowser {
                 return
             }
         }
-        let arranged = await Self.arrange(
-            entries, showsHiddenFiles: key.showsHiddenFiles, sortOrder: key.sortOrder)
+        let arranged: (rows: [FileEntry], rowIndex: [URL: Int], hiddenCount: Int)
+        if arrangedAlready {
+            arranged = (rows, rowIndex, entries.count { $0.isHidden })
+        } else {
+            arranged = await Self.arrange(
+                entries, showsHiddenFiles: key.showsHiddenFiles, sortOrder: key.sortOrder)
+        }
         // Published only while nothing has moved on: a refresh started for a
         // later folder or order owns the rows, whether or not this one was
         // cancelled in time.
