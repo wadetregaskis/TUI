@@ -184,8 +184,19 @@ final class TextEditorHandler: PersistedFocusable {
             return
         }
         // The column is the one drawn: a hidden text's glyphs, not its tabs
-        // and wide characters.
-        let lines = isSecure ? EditedLines(displayLines()) : lines ?? EditedLines(readLines())
+        // and wide characters. From the layout's sampled cells where the lines
+        // are its own, not a walk of the line to the caret (H-88).
+        guard !isSecure, let lines else {
+            let drawn = isSecure ? displayLayout() : layout()
+            guard cursorLine < drawn.lines.count else {
+                desiredColumn = cursorColumn
+                return
+            }
+            let line = drawn.lines[cursorLine]
+            desiredColumn = drawn.cells(ofLine: cursorLine, tabWidth: tabWidth).column(of: cursorColumn, in: line)
+                + alignmentCells(ofLine: cursorLine, characters: line)
+            return
+        }
         guard cursorLine < lines.count else {
             // Out-of-bounds cursor (stale state, normalised elsewhere): fall
             // back to the raw index rather than reading a missing line.
@@ -930,7 +941,7 @@ final class TextEditorHandler: PersistedFocusable {
         let target = cursorLine + delta
         guard target >= 0, target < lines.count else { return }
         cursorLine = target
-        cursorColumn = characterIndex(atColumn: desiredColumn, inLine: target, of: lines)
+        cursorColumn = characterIndex(atColumn: desiredColumn, inLine: target)
     }
 
     /// Moves the cursor up/down a screenful (Page Up / Page Down, Ctrl-V).
@@ -940,12 +951,11 @@ final class TextEditorHandler: PersistedFocusable {
             moveByRows(pages * step, in: rows, pastTheEnds: false)
             return
         }
-        let lines = displayLines()
         // A screenful of rows, a paragraph's blank rows among them.
         let rows = sidewaysRows()
         let target = rows.placement(ofRow: rows.row(ofLine: cursorLine) + pages * step).line
         cursorLine = target
-        cursorColumn = characterIndex(atColumn: desiredColumn, inLine: target, of: lines)
+        cursorColumn = characterIndex(atColumn: desiredColumn, inLine: target)
     }
 
     // MARK: - Line / document motion

@@ -107,13 +107,14 @@ extension _TextEditorCore {
     /// whole width (it draws no bar), the caret followed across but not down
     /// — the scroll view follows it down.
     func pulledWindow(
-        _ handler: TextEditorHandler, top: Int, lines: [TextCharacters], width: Int, height: Int, tabWidth: TabWidth,
+        _ handler: TextEditorHandler, top: Int, layout: EditorLayout, width: Int, height: Int, tabWidth: TabWidth,
         wraps: Bool, follows: Bool
     ) -> Window {
         guard wraps else {
-            let lineIndex = min(handler.cursorLine, max(0, lines.count - 1))
-            let line = lines.isEmpty ? [] : lines[lineIndex]
-            let caretColumn = TabLayout.displayColumn(ofCharIndex: handler.cursorColumn, in: line, tabWidth: tabWidth)
+            // A layout has a line at least.
+            let lineIndex = min(handler.cursorLine, layout.lines.count - 1)
+            let line = layout.lines[lineIndex]
+            let caretColumn = layout.cells(ofLine: lineIndex, tabWidth: tabWidth).column(of: handler.cursorColumn, in: line)
             if follows {
                 handler.wrapWidth = nil
                 handler.sidewaysWidth = width

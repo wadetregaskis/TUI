@@ -229,9 +229,11 @@ extension EditorLayout {
     ///
     /// Called by the editor at the end of its render — after this frame's
     /// measures and its own wraps, which are what the next frame will ask for
-    /// again.
+    /// again. The lines' cells are kept a frame longer: a sideways editor's
+    /// rows ask for theirs after this, stamped with the next frame.
     func endFrame() {
         wrappings.removeAll { $0.frame != frame }
+        if !lineCells.isEmpty { lineCells = lineCells.filter { frame &- $0.value.frame <= 1 } }
         frame &+= 1
     }
 }

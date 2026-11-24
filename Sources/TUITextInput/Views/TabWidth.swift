@@ -108,6 +108,14 @@ enum TabLayout {
         byte == 0x09 ? tabWidth.advance(from: column) : column + 1
     }
 
+    /// `advance(from:over:tabWidth:)` over the character at `index` of
+    /// `line`: told from its byte where it is one ASCII byte, as a row's
+    /// drawing tells it (`_TextEditorCore.glyph(at:of:column:tabWidth:)`).
+    static func advance(from column: Int, at index: Int, of line: TextCharacters, tabWidth: TabWidth) -> Int {
+        if let byte = line.asciiByte(at: index) { return advance(from: column, overASCII: byte, tabWidth: tabWidth) }
+        return advance(from: column, over: line[index], tabWidth: tabWidth)
+    }
+
     /// The display column at which the character at `charIndex` begins
     /// (`charIndex == chars.count` gives the line's total display width).
     static func displayColumn(

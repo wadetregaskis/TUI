@@ -71,12 +71,15 @@ extension TextEditorHandler {
         return alignment.leadingPad(lineWidth: cells, blockWidth: width - 1)
     }
 
-    /// The character of `line` of `lines` (as drawn) whose cells hold
-    /// `column` across an editor that scrolls sideways, unscrolled: after the
-    /// line's alignment, the column the vertical keys keep.
-    func characterIndex(atColumn column: Int, inLine line: Int, of lines: [TextCharacters]) -> Int {
-        let aligned = alignmentCells(ofLine: line, characters: lines[line])
-        return TabLayout.charIndex(forDisplayColumn: max(0, column - aligned), in: lines[line], tabWidth: tabWidth)
+    /// The character of `line` (as drawn) whose cells hold `column` across
+    /// an editor that scrolls sideways, unscrolled: after the line's
+    /// alignment, the column the vertical keys keep. Found from the line's
+    /// sampled cells (H-88), not a walk of the line to it.
+    func characterIndex(atColumn column: Int, inLine line: Int) -> Int {
+        let drawn = displayLayout()
+        let characters = drawn.lines[line]
+        let aligned = alignmentCells(ofLine: line, characters: characters)
+        return drawn.cells(ofLine: line, tabWidth: tabWidth).index(atColumn: max(0, column - aligned), in: characters)
     }
 
     /// ``alignmentCells(ofLine:characters:)`` of `line` as drawn.

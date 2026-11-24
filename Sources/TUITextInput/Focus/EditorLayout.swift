@@ -55,6 +55,13 @@ final class EditorLayout {
     /// served from the wrappings it kept rather than wrapping again.
     var wrapsMade = 0
 
+    /// The cells of the lines an editor that scrolls sideways drew or put the
+    /// caret on (``cells(ofLine:tabWidth:)``), by line, each with the frame
+    /// that last asked: carried through an edit but for the lines it replaced
+    /// (``laidOut(_:reusingStorage:)``), and let go a frame after the last
+    /// that asked (``endFrame()``), so only the lines on screen keep any.
+    var lineCells: [Int: (cells: LineCells, frame: UInt)] = [:]
+
     /// Told of every text split into lines whole (``init(text:)``), while a
     /// task binds it: the test seam that counts how often a frame lays a
     /// document out, as `DroppedMember.reporter` is one for its reports.
@@ -366,6 +373,11 @@ extension EditorLayout {
         Self.splice(&characters, edit.replaced, with: edit.characterStarts, shiftingRestBy: edit.characterShift)
         let layout = EditorLayout(
             text: edit.text, lines: newLines, lineEnding: lineEnding, lineStarts: starts, characterStarts: characters)
+        if !lineCells.isEmpty {
+            layout.lineCells = cellsKept(through: edit)
+            lineCells = [:]
+            layout.frame = frame
+        }
         if !wrappings.isEmpty {
             var taken = wrappings
             wrappings = []

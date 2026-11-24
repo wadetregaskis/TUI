@@ -539,7 +539,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             context: context, handler: handler, focusID: persistedFocusID)
         let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
 
-        let displayLines = handler.displayLines()
+        // The lines as drawn, and the layout that keeps their cells.
+        let drawnLayout = handler.displayLayout()
+        let displayLines = drawnLayout.lines
         // Whether a bar is drawn over the text, for the pointer, rather than
         // beside it (`TextEditor+OverlaidIndicators.swift`): it takes no room.
         // Never while the editor holds the focus (`placingScrollIndicators`).
@@ -548,7 +550,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         handler.noteMarks(
             app: context.environment.textEditorMarks, find: handler.findMatches(for: find), environment: context.environment)
         let window = window(
-            handler, lines: displayLines, width: width, height: height, tabWidth: tabWidth,
+            handler, layout: drawnLayout, width: width, height: height, tabWidth: tabWidth,
             wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring,
             barWidth: barOverText ? 0 : context.environment.scrollbarWidth)
         let contentWidth = window.contentWidth
@@ -587,7 +589,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                     caret: caret, styling: styling)
             }
             ?? renderRows(
-                displayLines, handler: handler, width: contentWidth, height: height,
+                drawnLayout, handler: handler, width: contentWidth, height: height,
                 tabWidth: tabWidth, caret: caret, styling: styling)
         // Under a bold legibility weight the text is a tier heavier, as a
         // field's is (`TextFieldContentRenderer.weighted(_:)`): the rows and
@@ -723,14 +725,15 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// more lines than the view has rows; what it wraps at stays in the
     /// layout, so it is not laid out again the next frame.
     private func window(
-        _ handler: TextEditorHandler, lines: [TextCharacters], width: Int, height: Int, tabWidth: TabWidth,
+        _ handler: TextEditorHandler, layout: EditorLayout, width: Int, height: Int, tabWidth: TabWidth,
         wraps: Bool, follows: Bool, barWidth: Int
     ) -> Window {
         if let pulledTop {
             return pulledWindow(
-                handler, top: pulledTop, lines: lines, width: width, height: height, tabWidth: tabWidth, wraps: wraps,
-                follows: follows)
+                handler, top: pulledTop, layout: layout, width: width, height: height, tabWidth: tabWidth,
+                wraps: wraps, follows: follows)
         }
+        let lines = layout.lines
         guard wraps else {
             if follows { handler.wrapWidth = nil }
             // Each line a row, a paragraph's line height's blank rows after it.
@@ -739,10 +742,11 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             let contentWidth = overflows ? max(1, width - barWidth) : width
             if follows { handler.sidewaysWidth = contentWidth }
             // In DISPLAY columns, the space the scroll window and the caret cell
-            // live in (a tab makes the display column run ahead of the index).
-            let caretColumn = TabLayout.displayColumn(
-                ofCharIndex: handler.cursorColumn, in: lines[min(handler.cursorLine, lines.count - 1)],
-                tabWidth: tabWidth)
+            // live in (a tab makes the display column run ahead of the index),
+            // from the line's sampled cells (H-88).
+            let caretLine = min(handler.cursorLine, lines.count - 1)
+            let caretColumn = layout.cells(ofLine: caretLine, tabWidth: tabWidth)
+                .column(of: handler.cursorColumn, in: lines[caretLine])
             let currentLine = lines.isEmpty ? [] : lines[min(handler.cursorLine, lines.count - 1)]
             let caretCells: Int
             if handler.cursorColumn >= 0 && handler.cursorColumn < currentLine.count {

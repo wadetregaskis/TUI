@@ -106,9 +106,10 @@ extension _TextEditorCore {
     }
 
     func renderRows(
-        _ displayLines: [TextCharacters], handler: TextEditorHandler, width: Int, height: Int,
+        _ layout: EditorLayout, handler: TextEditorHandler, width: Int, height: Int,
         tabWidth: TabWidth, caret: RowCaret?, styling: RowStyling
     ) -> (lines: [String], claims: [OpacityRegion], caret: AnimatedCellRun?) {
+        let displayLines = layout.lines
         var lines: [String] = []
         var claims: [OpacityRegion] = []
         var caretRun: AnimatedCellRun?
@@ -124,8 +125,12 @@ extension _TextEditorCore {
                 rendered = emptyRow(width: width, background: styling.background)
             } else if top + row < spaced.rowCount, lineIndex < displayLines.count {
                 let lineChars = displayLines[lineIndex]
+                // Where its characters start in cells, sampled, kept with the
+                // layout while the line is on screen (H-88).
+                let cells = layout.cells(ofLine: lineIndex, tabWidth: tabWidth)
                 // The blank cells its paragraph's alignment puts in front.
                 let aligned = handler.alignmentCells(ofLine: lineIndex, characters: lineChars)
+                let windowStart = handler.scrollColumn - aligned
                 // The handler's selection is character-indexed; the row is painted
                 // in display cells, so convert the bounds (a char range maps to a
                 // contiguous display range — expansion is monotonic — and a
@@ -136,16 +141,21 @@ extension _TextEditorCore {
                     ? nil
                     : handler.blockCells(onRow: top + row).map { ($0.lowerBound - aligned)..<($0.upperBound - aligned) }
                         ?? handler.selectedColumns(inLine: lineIndex, lineLength: lineChars.count).map {
-                            TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
-                                ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
+                            cells.column(of: $0.lowerBound, in: lineChars) ..< cells.column(of: $0.upperBound, in: lineChars)
                         }
-                let matches = handler.findColumns(ofLine: lineIndex).map {
-                    TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
-                        ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
+                // The find bar's matches in the window's characters, as cells:
+                // the line's characters, ascending, from the window's first to
+                // the one its last cell is in.
+                let shown = cells.start(atOrBefore: windowStart).index...cells.index(
+                    atColumn: windowStart + width, in: lineChars)
+                let matches = handler.findColumns(ofLine: lineIndex).compactMap { matched -> Range<Int>? in
+                    guard matched.upperBound > shown.lowerBound, matched.lowerBound <= shown.upperBound else { return nil }
+                    return cells.column(of: matched.lowerBound, in: lineChars)
+                        ..< cells.column(of: matched.upperBound, in: lineChars)
                 }
                 rendered = styledRow(
                     lineChars[...], tabWidth: tabWidth, scrollColumn: handler.scrollColumn, leadingCells: aligned,
-                    width: width,
+                    width: width, from: cells.start(atOrBefore: windowStart),
                     // No caret while text is selected, as on a Mac: the
                     // selection is what typing replaces (see the field's
                     // `buildTextWithCursor`).
@@ -371,10 +381,19 @@ extension _TextEditorCore {
     /// paragraph's alignment (A-ATTRED-3): scrolled with it, in the well's
     /// field. The caret's, the selection's and the matches' columns stay the
     /// line's own, and so do its tab stops.
+    ///
+    /// `start` is the character of `chars` (from 0) the walk starts at and the
+    /// cell it starts in, at or before the window's first: a sideways row's is
+    /// found from its line's sampled cells (``LineCells/start(atOrBefore:)``),
+    /// so the characters scrolled past are not stepped over, and the walk
+    /// stops at the window's end, so neither are those after it (H-88). What
+    /// is drawn is what a walk from the first character to the last drew: a
+    /// character's cells depend only on the cell it starts in, and nothing
+    /// outside the window is drawn.
     func styledRow(
         _ chars: Slice<TextCharacters>, tabWidth: TabWidth, scrollColumn: Int, leadingCells: Int = 0, width: Int,
-        caret: RowCaret?, selection: Range<Int>?, matches: [Range<Int>] = [], styles: [EditorStyledRun] = [],
-        styling: RowStyling
+        from start: (index: Int, column: Int) = (0, 0), caret: RowCaret?, selection: Range<Int>?,
+        matches: [Range<Int>] = [], styles: [EditorStyledRun] = [], styling: RowStyling
     ) -> RenderedRow {
         // Disabled, the runs fade with the rest (``RowStyling/RunFade``).
         let styles = styling.runFade.map { fade in styles.map { fade($0) } } ?? styles
@@ -386,7 +405,7 @@ extension _TextEditorCore {
         // Walks the line in cell space, clipping each element against the
         // window: fully inside → emitted whole; straddling an edge → spaces
         // for its visible cells; outside → skipped.
-        var cellX = 0
+        var cellX = start.column
         var outputCells = 0
         // A run's bytes and its claim, written together — the accumulator a focused
         // TextField's content uses, for §30.1's reason: a row's cells genuinely
@@ -467,15 +486,17 @@ extension _TextEditorCore {
         for _ in 0..<padding { emit(" ", foreground: textForeground, background: background) }
         outputCells += padding
 
-        // The style run of the character being drawn, found in one pass.
-        var styleCursor = 0
-        let line = chars.base
+        // The style run of the character being drawn, found in one pass from
+        // the first that ends after the walk's first character.
+        var styleCursor = Self.firstRun(endingAfter: start.index, in: styles)
         // The characters stepped over, told to the walk's test seam.
-        var walked = 0
-        defer { TabLayout.reportWalk(walked) }
-        for (index, position) in chars.indices.enumerated() {
-            walked += 1
-            let (cells, shown, isTab) = Self.glyph(at: position, of: line, column: cellX, tabWidth: tabWidth)
+        var index = start.index
+        defer { TabLayout.reportWalk(index - start.index) }
+        // Nothing from the window's end on is drawn: a caret there either.
+        while index < chars.count, cellX < windowEnd {
+            defer { index += 1 }
+            let (cells, shown, isTab) = Self.glyph(
+                at: chars.startIndex + index, of: chars.base, column: cellX, tabWidth: tabWidth)
             let isSelected = selection.map { $0.contains(cellX) } ?? false
             let styled = styles.isEmpty ? nil : EditorStyledRun.run(at: index, in: styles, cursor: &styleCursor)
             decoration = styled?.decoration
@@ -529,7 +550,8 @@ extension _TextEditorCore {
             }
         }
         decoration = nil
-        // The caret past the last character sits on its own cell.
+        // The caret past the last character sits on its own cell (where the
+        // walk stopped at the window's end instead, it is not drawn).
         if let caret, caret.column == cellX {
             emitCaret(" ", cells: 1, cycle: caret.cycle, isSelected: false)
         }
@@ -540,5 +562,17 @@ extension _TextEditorCore {
         }
         runs.flush(atColumn: outputCells)
         return RenderedRow(line: runs.line, caret: caretRun, claims: runs.claims)
+    }
+
+    /// The index of the first of `runs`, ascending and apart, that ends after
+    /// character `index`: where a walk starting there looks for its style
+    /// (``EditorStyledRun/run(at:in:cursor:)``), found by halving.
+    static func firstRun(endingAfter index: Int, in runs: [EditorStyledRun]) -> Int {
+        var (low, high) = (0, runs.count)
+        while low < high {
+            let middle = (low + high) / 2
+            if runs[middle].columns.upperBound <= index { low = middle + 1 } else { high = middle }
+        }
+        return low
     }
 }
