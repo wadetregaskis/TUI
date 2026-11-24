@@ -62,11 +62,29 @@ public enum TabWidth: Sendable, Equatable, Hashable {
 /// every character one cell) take an O(1) fast path, so ASCII editing pays
 /// nothing.
 enum TabLayout {
+    /// Told how many characters a walk stepped over to find their cells,
+    /// once a walk, while a task binds it: the test seam that counts what a
+    /// sideways editor's frame costs against the length of its lines (H-88),
+    /// as `EditorLayout.buildReporter` counts layouts. Told by the walk, not
+    /// by each step, so a walk asks the task for it once.
+    @TaskLocal static var walkReporter: TaskLocalReporter<Int>?
+
+    /// Tells ``walkReporter`` that a walk stepped over `steps` characters.
+    static func reportWalk(_ steps: Int) {
+        walkReporter?(steps)
+    }
+
     /// Whether every character in `chars` occupies exactly one display cell
     /// (no tabs, no wide characters) — the fast-path predicate under which
     /// character index and display column coincide.
     private static func isPlain(_ chars: TextCharacters) -> Bool {
-        chars.isPrintableASCII || !chars.contains { $0 == "\t" || $0.terminalWidth != 1 }
+        if chars.isPrintableASCII { return true }
+        var scanned = 0
+        defer { reportWalk(scanned) }
+        return !chars.contains {
+            scanned += 1
+            return $0 == "\t" || $0.terminalWidth != 1
+        }
     }
 
     /// The display column after `character` when it begins at `column`: the
@@ -100,6 +118,7 @@ enum TabLayout {
         for index in 0..<min(charIndex, chars.count) {
             column = advance(from: column, over: chars[index], tabWidth: tabWidth)
         }
+        reportWalk(min(charIndex, chars.count))
         return column
     }
 
@@ -115,9 +134,13 @@ enum TabLayout {
         var column = 0
         for (index, character) in chars.enumerated() {
             let next = advance(from: column, over: character, tabWidth: tabWidth)
-            if displayColumn < next { return index }
+            if displayColumn < next {
+                reportWalk(index + 1)
+                return index
+            }
             column = next
         }
+        reportWalk(chars.count)
         return chars.count
     }
 }

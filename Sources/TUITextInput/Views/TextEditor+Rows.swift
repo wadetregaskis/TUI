@@ -470,7 +470,11 @@ extension _TextEditorCore {
         // The style run of the character being drawn, found in one pass.
         var styleCursor = 0
         let line = chars.base
+        // The characters stepped over, told to the walk's test seam.
+        var walked = 0
+        defer { TabLayout.reportWalk(walked) }
         for (index, position) in chars.indices.enumerated() {
+            walked += 1
             let (cells, shown, isTab) = Self.glyph(at: position, of: line, column: cellX, tabWidth: tabWidth)
             let isSelected = selection.map { $0.contains(cellX) } ?? false
             let styled = styles.isEmpty ? nil : EditorStyledRun.run(at: index, in: styles, cursor: &styleCursor)
