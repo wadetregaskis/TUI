@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Content blended over its own background blends with the background.** `Text("Hi").foregroundStyle(.cyan)
+.blendMode(.multiply).background(.yellow)` drew cyan letters on yellow, and over another view multiplied the
+yellow into that view; it now draws green letters on an unblended yellow, as SwiftUI does. The same holds inside
+a list row's fill, a menu row's bar and a sheet's surface.
+
 **A blend mode over a translucent view blends with it as it shows.** `Color.yellow.blendMode(.multiply)` over
 `Color.blue.opacity(0.5)` multiplied into the blue at full strength, drawing black, where SwiftUI multiplies into
 the blue as it shows over the page, an olive.

@@ -213,6 +213,7 @@ extension FrameBuffer {
         bar.lines = lines.map(painted)
         if buildingRuns { bar.paintRunGrounds { _, ground in painted(ground) } }
         guard colour.isOpaque else { return bar }
-        return bar.resolvingOpacity(onOpaqueFill: { nil }, surface: colour, palette: palette, buildingRuns: buildingRuns)
+        return bar.resolvingOpacity(
+            onOpaqueFill: { nil }, unpainted: lines, surface: colour, palette: palette, buildingRuns: buildingRuns)
     }
 }

@@ -203,10 +203,16 @@ struct BlendModeTests {
 
     // MARK: - What a mode blends against
 
-    /// SwiftUI's yellow and blue as macOS 15.8 draws them in the light scheme
+    /// SwiftUI's yellow, blue and cyan as macOS 15.8 draws them in the light scheme
     /// (`Tools/SwiftUIProbes/Blend modes/blendbackdrops.out`).
     private static let yellow = Color.rgb(255, 204, 0)
     private static let blue = Color.rgb(0, 122, 255)
+    private static let cyan = Color.rgb(85, 190, 240)
+
+    /// Whether `line`'s cell at `column` is drawn in `color`'s ink.
+    private func inks(_ line: String, at column: Int, _ color: Color) -> Bool {
+        line.ansiSGRStateAt(visibleColumn: column).rendered.contains(color.foregroundCodes().joined(separator: ";"))
+    }
 
     /// The red, green and blue of a 24-bit field spelled `ESC[48;2;r;g;bm`.
     private func components(ofField field: String) -> [Int] {
@@ -242,6 +248,35 @@ struct BlendModeTests {
             })
         let read = components(ofField: field(line, at: 1))
         #expect(close(read, [128, 151, 0]), "\(read): \(line.debugDescription)")
+    }
+
+    @Test("Blended letters over their own background multiply into its fill, which stays as it is")
+    func blendedTextOverItsBackground() {
+        let text = Text("ab").foregroundStyle(Self.cyan).blendMode(.multiply).background(Self.yellow)
+        let product = Self.cyan.blending(.multiply, at: 1, over: Self.yellow)
+        for (name, line) in [("over the page", drawn(text)), ("over blue", drawn(ZStack { Self.blue; text }))] {
+            // At the left over the page, centred over the blue.
+            let first = line.stripped.firstIndex(of: "a").map { line.stripped.distance(from: line.stripped.startIndex, to: $0) }
+            guard let first, line.stripped.contains("ab") else {
+                Issue.record("\(name): the letters went: \(line.debugDescription)")
+                continue
+            }
+            #expect(inks(line, at: first, product), "\(name), the ink: \(line.debugDescription)")
+            #expect(inks(line, at: first + 1, product), "\(name), the ink: \(line.debugDescription)")
+            #expect(field(line, at: first) == expectedField(Self.yellow), "\(name), the fill: \(line.debugDescription)")
+        }
+    }
+
+    @Test("A blended fill over its own background multiplies into it; the background beside it is unblended")
+    func blendedFillOverItsBackground() {
+        let view = Self.cyan.frame(width: 2, height: 1).blendMode(.multiply).padding(.horizontal, 1).background(Self.yellow)
+        let product = expectedField(Self.cyan.blending(.multiply, at: 1, over: Self.yellow))
+        for (name, line) in [("over the page", drawn(view)), ("over blue", drawn(ZStack { Self.blue; view }))] {
+            #expect(field(line, at: 1) == product, "\(name): \(line.debugDescription)")
+            #expect(field(line, at: 2) == product, "\(name): \(line.debugDescription)")
+            #expect(field(line, at: 0) == expectedField(Self.yellow), "\(name), beside: \(line.debugDescription)")
+            #expect(field(line, at: 3) == expectedField(Self.yellow), "\(name), beside: \(line.debugDescription)")
+        }
     }
 
     @Test("A fade inside a blend keeps its alpha and takes the mode")

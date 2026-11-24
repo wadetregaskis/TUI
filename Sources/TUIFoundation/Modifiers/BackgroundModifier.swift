@@ -155,7 +155,7 @@ nonisolated package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
             // with no RGB, the heavier side winning — all the way.
             guard claim == nil else { return filledBuffer }
             var spent = filledBuffer.resolvingOpacity(
-                onOpaqueFill: { nil }, surface: resolved, palette: context.environment.palette)
+                onOpaqueFill: { nil }, unpainted: buffer.lines, surface: resolved, palette: context.environment.palette)
             // An opaque fill's mode is claimed after the fades inside it are spent
             // against it, so it is the fill, not the fades, that is blended.
             spent.opacityRegions += said
@@ -323,7 +323,7 @@ nonisolated package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         let blank = String.spaces(width)
         var spent = ramped.resolvingOpacity(
             onOpaqueFill: { FrameBuffer(lines: buffer.lines.indices.map { paintedRow(blank, row: $0) }) },
-            surface: palette.background, palette: palette)
+            unpainted: buffer.lines, surface: palette.background, palette: palette)
         // As the flat arm's: an opaque ramp's mode, after the fades inside it are spent.
         spent.opacityRegions += said
         return spent

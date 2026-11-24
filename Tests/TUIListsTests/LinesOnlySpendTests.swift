@@ -45,9 +45,10 @@ struct LinesOnlySpendTests {
         let buffer = content()
         let fill = Color.rgb(40, 40, 200)
         ColorDepth.withCurrent(.truecolor) {
-            let whole = buffer.resolvingOpacity(onOpaqueFill: { nil }, surface: fill, palette: palette)
+            let whole = buffer.resolvingOpacity(
+                onOpaqueFill: { nil }, unpainted: buffer.lines, surface: fill, palette: palette)
             let lines = buffer.resolvingOpacity(
-                onOpaqueFill: { nil }, surface: fill, palette: palette, buildingRuns: false)
+                onOpaqueFill: { nil }, unpainted: buffer.lines, surface: fill, palette: palette, buildingRuns: false)
             // Not vacuous: the whole spend built runs — the spinner faded, the breath's own.
             #expect(whole.animatedCells.count >= 3, "the whole spend built \(whole.animatedCells.count) runs")
             #expect(lines.animatedCells.isEmpty, "the lines-only spend built \(lines.animatedCells.count) runs")
@@ -74,7 +75,8 @@ struct LinesOnlySpendTests {
             let other = try #require(colours.first { $0 != drawn }, "the breath has one colour")
             let painted = content().replacingLines(
                 content().lines.map { $0.withPersistentBackground(other) + ANSIRenderer.reset })
-            let whole = painted.resolvingOpacity(onOpaqueFill: { nil }, surface: other, palette: palette)
+            let whole = painted.resolvingOpacity(
+                onOpaqueFill: { nil }, unpainted: content().lines, surface: other, palette: palette)
             #expect(row.lines(over: other) == whole.lines)
             #expect(row.lines(over: drawn) == row.drawn.lines)
             // Not vacuous: the drawn colour's spend kept its runs.

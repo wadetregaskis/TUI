@@ -489,7 +489,8 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
     @MainActor private static func card(_ preview: FrameBuffer, palette: any Palette) -> FrameBuffer {
         guard preview.hasFadeOnWhatIsBehind else { return preview }
         return preview.paintedOver(background: ANSIRenderer.backgroundCode(for: palette.background.resolve(with: palette)))
-            .resolvingOpacity(onOpaqueFill: { nil }, surface: palette.background, palette: palette)
+            .resolvingOpacity(
+                onOpaqueFill: { nil }, unpainted: preview.lines, surface: palette.background, palette: palette)
     }
 
     /// Centers a buffer within the target dimensions, vertically in `centringHeight` rows (`centredRow`).

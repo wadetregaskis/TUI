@@ -188,7 +188,8 @@ extension FrameBuffer {
                 // content still claims here is at full strength (ink alone).
                 if layer.isOpaque {
                     content = content.resolvingOpacity(
-                        onOpaqueFill: { nil }, surface: palette.background, palette: palette)
+                        onOpaqueFill: { nil }, unpainted: placed.content.lines, surface: palette.background,
+                        palette: palette)
                     content.opacityRegions = layer.claimsFromOutside + content.opacityRegions
                 }
                 // Painted, a surface states every cell's field, so it is composited

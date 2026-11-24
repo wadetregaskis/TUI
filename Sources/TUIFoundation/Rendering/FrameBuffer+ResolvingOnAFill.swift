@@ -21,7 +21,9 @@ extension FrameBuffer {
 
     /// Whether anything on this buffer fades in a way whose answer depends on what
     /// is behind the faded cells: a layer's opacity below 1, or a cycle of one; a
-    /// field's own alpha below 1; a run whose frames owe a translucent field.
+    /// field's own alpha below 1; a blend mode, at any strength, which combines the
+    /// cells with what is behind them (`Opacity as composition.md` §122); a run whose
+    /// frames owe a translucent field.
     ///
     /// An ink's own alpha is not one. It is paint on the cell's own field, and the
     /// blend reads that field off the cell wherever it resolves, so it comes out the
@@ -37,7 +39,7 @@ extension FrameBuffer {
     package static func fadesOnWhatIsBehind(
         _ regions: [OpacityRegion], runAlphas: some Sequence<AnimatedRunAlpha?>
     ) -> Bool {
-        regions.contains { $0.opacity < 1 || $0.fieldOpacity < 1 || $0.cycle != nil }
+        regions.contains { $0.opacity < 1 || $0.fieldOpacity < 1 || $0.cycle != nil || $0.blendMode != .normal }
             || runAlphas.contains { alpha in
                 alpha?.perFrame.contains { $0.contains { $0.field < 1 } } == true
             }
@@ -58,10 +60,21 @@ extension FrameBuffer {
     /// Only for an opaque fill. A translucent one is not a backdrop yet (§22): the
     /// content's fades travel up with the fill's own claim and resolve with it.
     ///
+    /// A blend mode is spent here too, against the fill (§122): the fill is the
+    /// destination, and where its field shows under a blended cell — a cell whose
+    /// field the painting changed from `unpainted` — that field is the painter's, said
+    /// with a claim on it (``FieldUnderContent/shown``), so the resolution takes it off
+    /// the content's cell and lays it underneath. The content's glyph is blended into
+    /// the fill, a field the content states is blended into it, and the fill itself is
+    /// not blended. Read as the content's own, the fill was blended with the fill, or,
+    /// over an empty destination, with nothing.
+    ///
     /// - Parameters:
     ///   - fill: The painter's field alone — spaces painted exactly as the content
     ///     was — where it differs from cell to cell (a ramp), or `nil` where it is
     ///     `surface` under every cell. Asked for only when there is a fade to spend.
+    ///   - unpainted: The content's lines before the painter painted them, read only
+    ///     where a blend mode is to be spent.
     ///   - surface: The fill's colour, or for a ramp the ambient background.
     ///   - palette: Resolves the surface and SGR 39.
     ///   - buildingRuns: `false` for a caller that keeps only the LINES — a breathing
@@ -70,7 +83,8 @@ extension FrameBuffer {
     ///     thrown away (``resolvingOpacity(over:at:surface:palette:statingTheSurface:buildingRuns:)``).
     /// - Returns: The buffer, spent, or as it was.
     package func resolvingOpacity(
-        onOpaqueFill fill: () -> FrameBuffer?, surface: Color, palette: any Palette, buildingRuns: Bool = true
+        onOpaqueFill fill: () -> FrameBuffer?, unpainted: [String], surface: Color, palette: any Palette,
+        buildingRuns: Bool = true
     ) -> Self {
         // Nothing asking what is behind it — nearly every painter, nearly every
         // frame, and every label of a palette with a translucent ink — and nothing
@@ -86,9 +100,55 @@ extension FrameBuffer {
         // never measures, and the page, once reported, does (§80).
         var backdrop = surface
         if case .terminalDefault = surface.value { backdrop = .terminalBackground }
+        var destination = fill() ?? Self()
+        // A mode combines with what is behind it, which is the fill; a painter's own
+        // mode claim (a blended fill further in) already says which field is whose.
+        let modes = content.opacityRegions.filter { $0.blendMode != .normal && $0.fieldUnderContent == nil }
+        if !modes.isEmpty {
+            if destination.isEmpty {
+                // A flat fill: built only here, where something blends with it.
+                let blank = String.spaces(width).withPersistentBackground(backdrop) + ANSIRenderer.reset
+                destination = Self(lines: lines.map { _ in blank })
+            }
+            // Last: the painters' claims are read from the innermost out, and this
+            // painter is the outermost.
+            content.opacityRegions += claimingFieldShown(under: modes, unpainted: unpainted)
+        }
         return content.resolvingOpacity(
-            over: fill() ?? Self(), at: (x: 0, y: 0), surface: backdrop, palette: palette, statingTheSurface: true,
+            over: destination, at: (x: 0, y: 0), surface: backdrop, palette: palette, statingTheSurface: true,
             fillingStatedTerminalField: false, buildingRuns: buildingRuns)
+    }
+
+    /// A full-strength claim on the painter's field (``FieldUnderContent/shown``) over
+    /// each cell of `modes` where that field shows: where the painting changed the
+    /// field the content's line had, in `unpainted`, which a field the content states
+    /// itself — a stated 49 the painter let through included — keeps.
+    private func claimingFieldShown(under modes: [OpacityRegion], unpainted: [String]) -> [OpacityRegion] {
+        var painted: [Int: [Bool]] = [:]
+        func paintersField(_ row: Int, _ column: Int) -> Bool {
+            let read: [Bool]
+            if let known = painted[row] {
+                read = known
+            } else {
+                let after = lines.indices.contains(row) ? lines[row].columnsBackgroundEscapes(width: width) : []
+                let before =
+                    unpainted.indices.contains(row) ? unpainted[row].columnsBackgroundEscapes(width: width) : []
+                read = after.indices.map { !before.indices.contains($0) || after[$0] != before[$0] }
+                painted[row] = read
+            }
+            return read.indices.contains(column) && read[column]
+        }
+        var claims: [OpacityRegion] = []
+        for mode in modes {
+            for (piece, shown) in Self.cutting(mode, by: paintersField) where shown {
+                var claim = OpacityRegion(
+                    offsetX: piece.offsetX, offsetY: piece.offsetY, width: piece.width, height: piece.height,
+                    opacity: 1)
+                claim.fieldUnderContent = .shown
+                claims.append(claim)
+            }
+        }
+        return claims
     }
 
     /// This buffer — content a painter has just drawn in REVERSE VIDEO, its lines

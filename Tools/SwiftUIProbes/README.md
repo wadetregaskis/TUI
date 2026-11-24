@@ -933,7 +933,9 @@ messages cite that path), and what cites it.
   beside and around the content, and the content still draws (85, 152, 0) against it.
 - **Ran:** macOS 15.8.3, the macOS 26.2 SDK, Xcode's Swift 6.2.4, 2026-11-23.
 - **Cited by:** `Sources/TUICore/Rendering/BlendMode.swift`,
-  `Sources/TUIFoundation/Styling/Color+BlendMode.swift`; `Tests/TUIFoundationTests/BlendModeTests.swift`;
+  `Sources/TUIFoundation/Styling/Color+BlendMode.swift`,
+  `Sources/TUIFoundation/Rendering/FrameBuffer+ClaimsUnderALayer.swift`; `Tests/TUIFoundationTests/BlendModeTests.swift`,
+  `Tests/TUIIntegrationTests/BlendInsideAPainterTests.swift`;
   `Documentation/Colour and styling/Opacity as composition.md`,
   `Documentation/Historical/Shapes, effects and animation/Pixel effects - transforms, masks, drawingGroup, blend modes and meshes.md`.
 

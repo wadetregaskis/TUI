@@ -8024,20 +8024,44 @@ layer (§25) and a canvas filter keeps the pixel's.
 A mode's claim (§110) is at opacity 1, and the two places that ask whether a claim fades on what is behind it
 asked only for a layer or field alpha below 1 or a cycle: `layerFades` under a layer (§108.1) and
 `fadesOnWhatIsBehind` at a painter (§96). Neither was extended when modes came, though `isTranslucent` was, so a
-mode was taken for no fade at either (hunt 11-20, BLEND-3, H-67). Under a layer, it multiplied into the base's
-opaque spelling: in `ZStack { Color.blue.opacity(0.5); Color.yellow.blendMode(.multiply) }` the yellow's cells
-state their own field, so the blue's claim under them was punched unspent, and the yellow multiplied into the
-blue at full strength, `0;98;0` where the blue at one half over the page is behind it.
+mode was taken for no fade at either (hunt 11-20, BLEND-3, H-67):
+
+- **Under a layer, it multiplied into the base's opaque spelling.** In `ZStack { Color.blue.opacity(0.5);
+  Color.yellow.blendMode(.multiply) }` the yellow's cells state their own field, so the blue's claim under them
+  was punched unspent, and the yellow multiplied into the blue at full strength, `0;98;0` where the blue at one
+  half over the page is behind it.
+- **Inside a painter, it blended with nothing.** `Text("Hi").foregroundStyle(.cyan).blendMode(.multiply)
+  .background(.yellow)`: the opaque fill spent nothing, the mode's claim travelled to the root, met the fill as
+  the text's own field, and found nothing behind it there, so the letters stayed cyan. Over another view the
+  claim multiplied the yellow fill into that view instead.
 
 SwiftUI, measured (`Tools/SwiftUIProbes/Blend modes/blendbackdrops.out`, macOS 15.8.3): a mode blends with
 everything composited behind it. The yellow over the blue at one half over a white page is (128, 151, 0),
-multiply(yellow, the blue as it shows), not multiply(yellow, opaque blue), (0, 98, 0).
+multiply(yellow, the blue as it shows), not multiply(yellow, opaque blue), (0, 98, 0). Cyan letters, or a cyan
+fill, over their own `.background(.yellow)` are (85, 152, 0), multiply(cyan, yellow), and the fill stays
+yellow, over an opaque blue as over the page.
 
 **The rule.** A mode other than `.normal` is a fade on what is behind it, at any strength. Under a layer, the
 base's claims under a blended cell are spent first (`ClaimsUnderALayer.layerFades`), so the mode meets the base
 as it shows, by §108.1's approximation (the base over the palette's page, then the layer). A claim with a mode
 never scales only its ink (`scalesOnlyInk`), so it never goes up past a kept claim.
 
-`BlendModeTests` pins SwiftUI's answer, the yellow over the half blue over the page and over a white one. Before,
-the first failed; the second passed, since there the blue lands on the white and is resolved before the yellow
-comes.
+At an opaque painter (`FrameBuffer.resolvingOpacity(onOpaqueFill:unpainted:surface:palette:buildingRuns:)`,
+`fadesOnWhatIsBehind`) the mode is spent against the fill. The fill is the destination, as a ramp's already was,
+a flat fill's built only where a mode needs it. And where the painter's field shows under the blended cells,
+which it tells from the content's lines before it painted them (a cell whose field the painting changed), it
+says so with a full-strength claim on its field (`FieldUnderContent.shown`, §105): the resolution takes that
+field off the content's cell and composites it underneath, so the glyph is blended into the fill and the fill is
+not blended. A field the content states is its own, and is blended into the fill. Every opaque painter goes
+through this one function: a `.background`, a list row's fill, a menu row's bar, a floating surface and a drag
+preview's card. A fill's own mode (`.background(Color.yellow.blendMode(.multiply))`) is unchanged: it is
+claimed after the fades inside are spent, so the fill, not the content, is blended with what is behind the
+painter. A reversed row (§86.1) now spends a mode too, but over nothing, so a mode inside one is drawn unblended
+(read from the code, not measured): its field is its ink, and it builds no destination to blend with.
+
+`BlendModeTests` pins SwiftUI's answers: the yellow over the half blue over the page and over a white one, and
+the letters and a fill over their own background, over the page and over an opaque blue. Before, all but the
+white page failed (there the blue lands on the white and is resolved before the yellow comes).
+`BlendInsideAPainterTests` walks every painter of `TestHelpers/FieldPainter.swift`: multiplied letters keep the
+field the unblended ones are on, and take its colour. Before, the four `.background` painters failed (the flat
+fill, around padding, nested and the ramp); the others passed already.

@@ -124,6 +124,6 @@ struct ListRowContent {
             content.lines.map { $0.withPersistentBackground(fill) + ANSIRenderer.reset })
         if buildingRuns { painted.paintRunGrounds { _, ground in ground.withPersistentBackground(fill) } }
         return painted.resolvingOpacity(
-            onOpaqueFill: { nil }, surface: fill, palette: palette, buildingRuns: buildingRuns)
+            onOpaqueFill: { nil }, unpainted: content.lines, surface: fill, palette: palette, buildingRuns: buildingRuns)
     }
 }
