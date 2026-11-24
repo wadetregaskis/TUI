@@ -239,7 +239,7 @@ struct FileBrowserTests {
         await browser.refresh()
         await browser.loadFolder(many)
         browser.sortOrder = [KeyPathComparator(\FileEntry.name, order: .reverse)]
-        let arranging = Task { await browser.arrangeFolders(as: browser.refreshKey) }
+        let arranging = Task { _ = await browser.arrangeFolders(as: browser.refreshKey) }
         // Begun: it took the listings and went off the main actor to sort.
         await Task.yield()
         await browser.loadFolder(fixture.url("Alpha"))

@@ -30,6 +30,11 @@ private final class ArrangedFolders: Sendable {
     }
 }
 
+/// The rows a watch saw the folder shown show.
+private final class SeenRows: Sendable {
+    let rows = Mutex<[String]?>(nil)
+}
+
 @MainActor
 @Suite("File browser arrangement")
 struct FileBrowserArrangementTests {
@@ -99,5 +104,31 @@ struct FileBrowserArrangementTests {
         #expect(browser.folderRows[fixture.root.path]?.last?.name == ".hidden")
         // Found by the selection's lookups, as the kept folder's other rows are.
         #expect(browser.entry(for: fixture.url(".hidden"))?.name == ".hidden")
+    }
+
+    @Test("A new order shows in the folder shown before the folders kept on the way are arranged in it")
+    func folderShownIsPublishedFirst() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let alpha = fixture.url("Alpha")
+        try Data("zeta".utf8).write(to: alpha.appendingPathComponent("zeta.txt"))
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        await browser.refresh()
+        browser.open(alpha)
+        await browser.refresh()
+        #expect(browser.rows.map(\.name) == ["inner.txt", "zeta.txt"])
+        // What the folder shown showed as the root's arrangement began.
+        let seen = SeenRows()
+        let watch = FileArrangementWatch { entries in
+            guard entries.contains(where: { $0.name == "Alpha" }) else { return }
+            let rows = await MainActor.run { browser.state == .loaded ? browser.rows.map(\.name) : [] }
+            seen.rows.withLock { $0 = rows }
+        }
+        browser.sortOrder = reversedNames
+        await FileArrangementWatch.$current.withValue(watch) {
+            await browser.refresh()
+        }
+        #expect(seen.rows.withLock { $0 } == ["zeta.txt", "inner.txt"])
+        #expect(browser.folderRows[fixture.root.path]?.first?.name == "linked")
     }
 }

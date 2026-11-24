@@ -89,7 +89,8 @@ extension FileBrowser {
     }
 
     /// The folders read, arranged again as `key` says: after the folder shown
-    /// is, for a new order or the hidden-files switch. Only those arranged
+    /// is, for a new order or the hidden-files switch, and whether any was, to
+    /// be attached again as branches. Only those arranged
     /// otherwise (``folderArrangements``): opening a folder changes no other
     /// folder's order, and sorted again, a kept parent of 50,000 items held
     /// the folder opened blank for a second (release).
@@ -98,16 +99,17 @@ extension FileBrowser {
     /// are. The rows were replaced by those of the folders there were when
     /// this began, which dropped such a folder's rows while its listing
     /// stayed — so nothing read it again, and its column drew "Loading…".
-    func arrangeFolders(as key: RefreshKey) async {
+    func arrangeFolders(as key: RefreshKey) async -> Bool {
         let arrangement = key.arrangement
         var pending = folderListings.filter { folderArrangements[$0.key] != arrangement }
+        let any = !pending.isEmpty
         while !pending.isEmpty {
             var arranged: [String: (rows: [FileEntry], rowIndex: [URL: Int], hiddenCount: Int)] = [:]
             for (path, read) in pending {
                 arranged[path] =
                     await Self.arrange(read, showsHiddenFiles: key.showsHiddenFiles, sortOrder: key.sortOrder)
             }
-            guard !Task.isCancelled, refreshKey == key else { return }
+            guard !Task.isCancelled, refreshKey == key else { return false }
             for (path, result) in arranged {
                 folderRows[path] = result.rows
                 folderIndex[path] = result.rowIndex
@@ -115,6 +117,7 @@ extension FileBrowser {
             }
             pending = folderListings.filter { folderArrangements[$0.key] != arrangement }
         }
+        return any
     }
 
     /// Attaches the read folders to `rows` all the way down, as the

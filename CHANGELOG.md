@@ -34,7 +34,8 @@ shows, still as wide as its widest option.
 opened sorted again every folder the panel keeps on the way to it, the column view's columns and the list view's open
 branches, though nothing had changed their order, before the folder opened showed its items: inside a folder of
 50,000 items, about a second of an empty table for each folder opened. Only a folder arranged for another order or
-hidden-files switch is sorted again.
+hidden-files switch is sorted again, and then after the folder shown: a new order or the hidden items shown appear in
+the folder shown first, the other columns and open branches a moment later.
 
 **A `NavigationSplitView` that collapses keeps the state of the columns ahead of the one on top.** Narrowed into
 its stack with the sidebar on top, for a moment or under a compact size class, a split forgot its content and detail

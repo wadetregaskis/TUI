@@ -293,7 +293,9 @@ final class FileBrowser {
 
     /// Reads the folder, unless the last read was of this folder and this
     /// generation, then sorts it, both off the main actor, and publishes the
-    /// rows — unless the task was cancelled meanwhile, its result stale. A
+    /// rows — unless the task was cancelled meanwhile, its result stale —
+    /// before it arranges the other folders read for a new order, so that
+    /// the folder shown waits for none of theirs. A
     /// folder shown from those kept (``open(_:)``), its rows arranged as `key`
     /// says, is not sorted again: going back up to a parent of 50,000 items
     /// sorted it again, a second (release), for rows equal to those shown.
@@ -336,13 +338,16 @@ final class FileBrowser {
         // cancelled in time.
         guard !Task.isCancelled, refreshKey == key else { return }
         cancelLoadingPlaceholderTimer()
-        await arrangeFolders(as: key)
-        guard !Task.isCancelled, refreshKey == key else { return }
+        // The folder shown first: arranged after the others, it waited for
+        // each of theirs, blank, a second for a parent of 50,000 items
+        // (release). Its branches follow theirs, a moment in the old order.
         rows = branches(for: arranged.rows)
         rowIndex = arranged.rowIndex
         hiddenCount = arranged.hiddenCount
         rowsArrangement = key.arrangement
         state = .loaded
+        if await arrangeFolders(as: key) { attachBranches() }
+        guard !Task.isCancelled, refreshKey == key else { return }
         let toLoad = openBranches.filter { folderListings[$0.panelStandardized.path] == nil }
         if !toLoad.isEmpty {
             let tasks = toLoad.map { branch in
