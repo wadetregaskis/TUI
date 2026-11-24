@@ -314,15 +314,9 @@ private enum PulledPlace {
         reply.sliceHoldsLastRow = last.ordinal == children.count - 1 && last.endLine != nil
         reply.pulledPosition = window.offset
         reply.reportResolvedOffset(resolvedSeek ?? held?.offset, isHold: resolvedSeek == nil && held?.isTopRow == true)
-        reportPulledTargets(
-            drawn, anchored: anchored, request: spanRequest, asksChildren: frame.asksTargetLayout, frame: frame,
-            into: reply, context: context)
-        if let at = window.reportsIDAt {
-            let sampleY = window.sampleY(at: at, contentBelow: !reply.sliceHoldsLastRow)
-            let sampled = drawn.last { $0.top <= sampleY } ?? first
-            reply.anchorID = children.reportedID(
-                at: sampled.ordinal, content: content, sectionsWhole: context.keepsSectionsWhole)
-        }
+        reportPulledRows(
+            drawn, anchored: anchored, request: spanRequest, frame: frame, window: window, into: reply,
+            context: context)
         ScrollContentReply.journal(from: context)
         return result
     }
@@ -607,6 +601,23 @@ private enum PulledPlace {
             width: width, height: max(context.availableHeight, window.viewportHeight * 4), context: rowContext)
     }
 
+    /// What the column reports of its rows (``reportPulledTargets(_:anchored:request:asksChildren:frame:into:context:)``)
+    /// and the id of the row at `window`'s report anchor, for `.scrollPosition`
+    /// to read back.
+    private func reportPulledRows(
+        _ drawn: [PulledPiece], anchored: Int, request: TargetSpanRequest?, frame: PulledColumnFrame,
+        window: ScrollContentWindow, into reply: ScrollContentReply, context: RenderContext
+    ) {
+        reportPulledTargets(
+            drawn, anchored: anchored, request: request, asksChildren: frame.asksTargetLayout, frame: frame,
+            into: reply, context: context)
+        guard let at = window.reportsIDAt, let first = drawn.first else { return }
+        let sampleY = window.sampleY(at: at, contentBelow: !reply.sliceHoldsLastRow)
+        let sampled = drawn.last { $0.top <= sampleY } ?? first
+        reply.anchorID = frame.children.reportedID(
+            at: sampled.ordinal, content: content, sectionsWhole: context.keepsSectionsWhole)
+    }
+
     /// What the column reports of the rows a scroll view settles on and
     /// observes (`StackTargetLayout.swift`): its own children as the fill
     /// placed them, for the visibility observers and, marked, for a behaviour
@@ -626,10 +637,20 @@ private enum PulledPlace {
         guard let request else { return }
         let spans: [TargetLayoutSpans.Span] = drawn.compactMap { piece in
             guard !frame.child(at: piece.ordinal).isSpacer else { return nil }
-            let origin = piece.firstLine ?? piece.zero ?? piece.top
-            let end = piece.endLine ?? piece.zero.flatMap { zero in piece.end.map { zero + $0 } } ?? piece.top + piece.buffer.height
+            let (origin, end) = piece.lines
             return end > origin ? .init(origin: origin, length: end - origin, ordinal: piece.ordinal) : nil
         }
         reply.deliverTargetRows(TargetLayoutSpans(placed: spans), for: request) { targetRowIDs(context: context) }
+    }
+}
+
+extension PulledPiece {
+    /// The child's first line and the line past its last, in the column's
+    /// lines: where its buffer puts them, or, for a pulled child whose band
+    /// holds neither, where its line 0 and its end fall.
+    fileprivate var lines: (origin: Int, end: Int) {
+        let origin = firstLine ?? zero ?? top
+        let end = endLine ?? zero.flatMap { zero in self.end.map { zero + $0 } } ?? top + buffer.height
+        return (origin, end)
     }
 }
