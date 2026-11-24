@@ -177,9 +177,18 @@ protocol SectionLoopRowsCounting {
     /// any other view as one — stopping once past `limit` — or `nil` when no
     /// section with a loop is among them.
     func sectionLoopRows(upTo limit: Int, in context: RenderContext) -> Int?
+
+    /// Whether ``sectionLoopRows(upTo:in:)`` may pass the lazy stack's
+    /// threshold for some data: a section whose content is a loop, a loop of
+    /// sections, or views holding one. A fact about the type, so what it
+    /// decides does not come and go with the data
+    /// (``TupleView/columnOfSeveral(alignment:spacing:pinning:sectionLoops:in:)``).
+    var mayCountSectionLoops: Bool { get }
 }
 
 @MainActor extension Section: SectionLoopRowsCounting where Parent: View, Content: View, Footer: View {
+    var mayCountSectionLoops: Bool { viewMayBeLoop(Content.self) }
+
     func sectionLoopRows(upTo limit: Int, in context: RenderContext) -> Int? {
         guard showsContent, let loop = content as? any CountedLoop else { return nil }
         return 1 + loop.liveElementCount(in: context)
@@ -187,6 +196,8 @@ protocol SectionLoopRowsCounting {
 }
 
 @MainActor extension ForEach: SectionLoopRowsCounting where Content: View {
+    var mayCountSectionLoops: Bool { Content.self is any SectionLoopRowsCounting.Type }
+
     /// A loop of sections: each element's section built, its rows counted —
     /// a section value, not one of its rows. Of anything else, `nil`, with
     /// nothing built; and of more sections than `limit`, which a lazy stack
@@ -214,6 +225,14 @@ protocol SectionLoopRowsCounting {
 }
 
 @MainActor extension TupleView: SectionLoopRowsCounting {
+    var mayCountSectionLoops: Bool {
+        var may = false
+        for child in repeat each children {
+            may = may || (child as? any SectionLoopRowsCounting)?.mayCountSectionLoops == true
+        }
+        return may
+    }
+
     func sectionLoopRows(upTo limit: Int, in context: RenderContext) -> Int? {
         var total = 0
         var sawSection = false
@@ -256,13 +275,14 @@ protocol SectionLoopRowsCounting {
     }
 
     /// These views as a column laid out at `alignment` and `spacing`, when
-    /// one is a loop: of any count where nothing is pinned and none of these
-    /// views may be a section; else one past the lazy stack's threshold, or,
-    /// `sectionLoops` (the stack's sections' loops together pass it,
-    /// ``PinnedSectionScope/windowsSectionLoops``), a loop of sections however
-    /// few. `nil` otherwise, and, `pinning` (the loop's lazy stack pins its
-    /// sections) or `sectionLoops`, `nil` too when a view beside the loop may
-    /// be a section, which the column would neither pin nor keep whole.
+    /// one is a loop, whatever its count. `nil` otherwise; and, `pinning` (the
+    /// loop's lazy stack pins its sections) or `sectionLoops` (the stack's
+    /// sections' loops together pass the lazy stack's threshold,
+    /// ``PinnedSectionScope/windowsSectionLoops``), `nil` too when a view
+    /// beside the loop may be a section, which the column would neither pin
+    /// nor keep whole; and, where such a section's own loop may pass the
+    /// threshold (``SectionLoopRowsCounting/mayCountSectionLoops``), which the
+    /// stack decides by the count, `nil` while the loop is within it.
     ///
     /// The column is a step of identity (``_ImplicitColumnOfSeveral``): its
     /// views, and the loop's rows, are addressed under it, not where the
@@ -276,31 +296,42 @@ protocol SectionLoopRowsCounting {
     /// stack's as a lazy stack of its own
     /// (``_VStackCore/implicitColumn(of:context:rowCount:isContainersColumn:)``),
     /// a windowing container's stacked whole (`ForEach.staysWhole(in:)`).
-    /// Content that pins, or may hold a section, keeps the threshold: below
-    /// it the loop's rows are the stack's own, where a section pins and is
-    /// read as one. A stack marked with `scrollTargetLayout()`, and content
-    /// whose scroll view reads its rows back, take the step: the column
-    /// reports its loop's rows one by one, as the flat stack does
-    /// (`StackPulledColumn+LoopRows.swift`).
+    ///
+    /// So also where the stack pins — the loop's lazy stack pins the
+    /// sections the loop makes, in the same lines — and where a section
+    /// beside the loop is taken apart, as the column takes it apart as the
+    /// stack does; and where the scroll view reads its rows back or the stack
+    /// is marked `scrollTargetLayout()`: the column reports its loop's rows
+    /// one by one, as the flat stack does (`StackPulledColumn+LoopRows.swift`).
+    /// Kept at the threshold, and so still reset crossing it: a section
+    /// beside the loop that may hold a long loop of its own, unpinned (pinned,
+    /// the column is not taken at any count).
     package func columnOfSeveral(
         alignment: HorizontalAlignment, spacing: Int, pinning: Bool, sectionLoops: Bool, in context: RenderContext
     ) -> (any View)? {
-        let threshold = _VStackCore<EmptyView>.anchoredWindowThreshold
-        let stepsWhateverTheCount = !pinning && !TUIFoundation.mayHandOver(.section, in: self)
-        var foundLoop = false
+        var loop: (any CountedLoop)?
+        var sectionBeside = false
         for child in repeat each children {
-            if !foundLoop, let loop = child as? any CountedLoop,
-                (stepsWhateverTheCount && type(of: loop).mayBeLoop)
-                    || loop.liveElementCount(in: context) > threshold
-                    || (sectionLoops && (child as? any SectionLoopRowsCounting)?.sectionLoopRows(
-                        upTo: threshold, in: context) != nil)
+            if loop == nil, let counted = child as? any CountedLoop, type(of: counted).mayBeLoop {
+                loop = counted
+            } else if TUIFoundation.mayHandOver(.section, type(of: child)) {
+                sectionBeside = true
+            }
+        }
+        guard let loop else { return nil }
+        if sectionBeside {
+            guard !pinning, !sectionLoops else { return nil }
+            // Unpinned, a section beside the loop is taken apart by the
+            // column as by the stack, unless its own loop is long enough for
+            // the stack to keep it whole, which the stack decides by the
+            // count: where it may be, the column keeps the threshold.
+            if mayCountSectionLoops,
+                loop.liveElementCount(in: context) <= _VStackCore<EmptyView>.anchoredWindowThreshold
             {
-                foundLoop = true
-            } else if pinning || sectionLoops, TUIFoundation.mayHandOver(.section, type(of: child)) {
                 return nil
             }
         }
-        return foundLoop ? _VStackCore(alignment: alignment, spacing: spacing, overflow: .clip, content: self) : nil
+        return _VStackCore(alignment: alignment, spacing: spacing, overflow: .clip, content: self)
     }
 }
 
@@ -414,11 +445,12 @@ extension _VStackCore {
     /// stack of a title and a loop now builds a screenful).
     ///
     /// The rows' identities are the column's, not those the rows had taken
-    /// apart. Where nothing pins and no view may be a section the column is
-    /// taken whatever the loop's count, so they keep them as it crosses the
-    /// threshold (O-14 (c)); a stack that pins, or whose views may be
-    /// sections, takes it only past the threshold, and its rows start afresh
-    /// at each crossing.
+    /// apart. The column is taken whatever the loop's count, so they keep
+    /// them as it crosses the threshold (O-14 (c)) — pinned or not, marked
+    /// `scrollTargetLayout()` or not, its rows read back or not — except
+    /// where a section beside the loop may hold a long loop of its own
+    /// (``TupleView/columnOfSeveral(alignment:spacing:pinning:sectionLoops:in:)``),
+    /// whose rows start afresh at each crossing.
     @MainActor func lazyColumnOfSeveral(context: RenderContext) -> (column: any View, context: RenderContext)? {
         let pins = pinsSectionHeaders || pinsSectionFooters
         guard overflow == .window, context.scrollContentOriginDepth != 0,

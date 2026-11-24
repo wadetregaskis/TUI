@@ -50,6 +50,10 @@ struct ColumnOfSeveralCrossingTests {
         case visibilityObserved
         /// A lazy stack marked `scrollTargetLayout()`, under `.viewAligned`.
         case targetLayout
+        /// A lazy stack that pins its sections' headers.
+        case pinned
+        /// A lazy stack with a section beside the loop.
+        case sectionBeside
     }
 
     /// The filter field above a loop of `wide` rows while the field is empty
@@ -98,6 +102,17 @@ struct ColumnOfSeveralCrossingTests {
                         rows
                     }
                     .scrollTargetLayout()
+                case .pinned:
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: .sectionHeaders) {
+                        TextField("Filter", text: $query)
+                        rows
+                    }
+                case .sectionBeside:
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        TextField("Filter", text: $query)
+                        Section("Notes") { Text("a note") }
+                        rows
+                    }
                 }
             }
         }
@@ -169,6 +184,12 @@ struct ColumnOfSeveralCrossingTests {
         /// A lazy stack marked `scrollTargetLayout()` under `.viewAligned`:
         /// its header and every row are where a scroll settles.
         case viewAligned
+        /// A lazy stack that pins its sections' headers and footers.
+        case pinned
+        /// A title over a loop of three sections, their headers pinned.
+        case pinnedSections
+        /// A section beside the loop.
+        case sectionBeside
     }
 
     /// Rows of uneven width, some two lines, one with a filling frame, a
@@ -192,6 +213,28 @@ struct ColumnOfSeveralCrossingTests {
                 case .viewAligned:
                     LazyVStack(alignment: .leading, spacing: 0) { smallContent(rows) }
                         .scrollTargetLayout()
+                case .pinned:
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders, .sectionFooters]) {
+                        smallContent(rows)
+                    }
+                case .pinnedSections:
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: .sectionHeaders) {
+                        Text("a title")
+                        ForEach(0..<3, id: \.self) { group in
+                            Section {
+                                ForEach(0..<rows, id: \.self) { Text(verbatim: "g\(group) r\($0)") }
+                            } header: {
+                                Text(verbatim: "group \(group)")
+                            }
+                        }
+                    }
+                case .sectionBeside:
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        Text("a title")
+                        Section("Notes") { Text("a note") }
+                        smallLoop(rows)
+                        Text("footer")
+                    }
                 }
             }
             .scrollTargetBehavior(.viewAligned)

@@ -2309,6 +2309,13 @@ against the twin); past 256 it read the heading and the loop's stack before. Pas
 in its band only, as for any windowed lazy stack, where the flat twin drew every row: a jump of three screens settles
 differently. So the read-back and the mark no longer keep the threshold (`contentRowsAreReadBack` is gone).
 
+Nor does a stack that pins: the loop's lazy stack pins the sections the loop makes, in the same lines. A section beside
+the loop is taken apart by the column as by the stack, so it takes the step too, unpinned, unless such a section may hold
+a loop of its own that the stack keeps whole by its count (`SectionLoopRowsCounting.mayCountSectionLoops`): there the
+column keeps the threshold and still resets at it. Pinned, a section beside the loop never takes the column, at any
+count, so it never reset. `TupleView.columnOfSeveral` finds the loop by its type alone and decides on what stands
+beside it.
+
 H-71's A/B of `app-shapes/headed-lazy-short` and `headed-box-short` measured the flat stack on both sides: their
 scroll views are bound to a `ScrollPosition`, which kept them at the threshold. Taking the step there, they are 10.1%
 and 54.3% faster (the commit that made it).
