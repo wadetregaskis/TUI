@@ -1793,3 +1793,36 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUICore/Rendering/FrameBuffer+ClickShields.swift`,
   `Sources/TUIFoundation/Rendering/TextFrames.swift`; `Tests/TUIAppTests/LayerAbsorbsClicksTests.swift`; H-68 in
   the maintainers' working notes (`plan/hunt-1120/HUNT-QUEUE.md`), for owner ruling O-10 (a).
+
+### Navigation identities (H-69)
+
+- **Asks:** when a `NavigationStack`'s pushed screen is a new one, which `navigationDestination(for:)` a pushed
+  value finds, and what a split does with its columns' state when its size class turns compact (`navident.swift`,
+  `navident.out`; a `@main` program built alone with `-parse-as-library`, laid out as `navpath.swift` in
+  `Navigation path and view destinations`). Each destination stamps a `@State` with a serial when SwiftUI makes it,
+  holds a counter the probe writes 4 through a closure its body leaves behind, and logs `onAppear`, `onDisappear`
+  and the start and cancellation of a `.task`. Case 1 holds `[1]`, writes the counter, and replaces 1 with 2 in one
+  action: `ints = [2]`, `ints[0] = 2`, `removeLast()` and `append(2)` together, and for a `NavigationPath`
+  `path = NavigationPath([2])` and the same pair; with controls for the same value written again, a buried value
+  replaced under an unchanged top (`[1, 2]` to `[3, 2]`) and one value at two depths. Case 2 pushes a `Circle`, a
+  subclass of a `Hashable` class `Shape`, with `navigationDestination(for: Shape.self)`: appended to a
+  `NavigationPath` as a `Shape` and as a `Circle`, held by a typed `[Shape]` path, and followed from
+  `NavigationLink(value: circle as Shape)` in a `List` row; then with `Circle` registered and a `Shape` pushed.
+  Case 3 registers `String` on the root and on the screen for `1`, and pushes a string over that screen; then on
+  that screen alone, pops it, and pushes a string from the root. Case 4 writes `.compact` and then `.regular` to a
+  three-column `NavigationSplitView`'s `horizontalSizeClass`.
+- **Answers:** a pushed screen is its place on the path, not its value. Replacing the value at a place, on top or
+  buried, by any of the writes above keeps the screen: the same stamp, the counter still 4, the body drawing the
+  new value, no `onAppear` or `onDisappear`, and the `.task` neither cancelled nor started again. Only a screen
+  taken off with a frame drawn before the next push is a new one (`navpath.out`, case F). One value at two depths
+  is two screens, each with its own state. A destination is found by the static type the value was pushed as, not
+  its dynamic type: a `Circle` pushed as a `Shape` (appended, in a `[Shape]` path, or from the link) shows the
+  `Shape` destination, and one appended as a `Circle` shows none; with only `Circle` registered, a `Circle` pushed
+  as a `Shape` shows none. Of two registrations of one type, the one closest to the root is used, and SwiftUI warns
+  ("A navigationDestination for “Swift.String” was declared earlier on the stack. Only the destination declared
+  closest to the root view of the stack will be used."). A popped screen's registration answers nothing: a string
+  pushed from the root after the screen that declared `String` went shows no destination. A split on macOS does not
+  collapse for a compact size class: its three columns stay drawn, each with its state, so the collapse is not
+  measured here.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-24.
+- **Was:** written here.
