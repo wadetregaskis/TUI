@@ -6261,6 +6261,21 @@ UTF-8 lead that a sequence cut short (`ESC 0xC3 ESC [A`, with or without an
 `ESC` in front). Each is now Escape for every `ESC` that had nothing to
 prefix, then the sequence (`ParserNestedEdgeTests`).
 
+**`ESC` and another byte in one read are one chord** (the owner's ruling
+CORE2-12 (b), 2026-11-23; the record is A-CORE2-12 in
+`Historical/Input, keys and gestures/The kitty keyboard protocol and modified keys.md`).
+Real keypresses are far apart compared with latency, so bytes that arrive
+together were sent together, and Escape then a key pressed fast enough to share
+a read is the one that suffers; pressing more slowly recovers it, where the
+other reading would never let the chord work. `ESC` and a byte that names a
+key is that key with Option: `ESC NUL` is ⌃⌥Space, NUL being ⌃Space (and ⌃@,
+which no legacy encoding tells from it). `ESC` and a byte that names nothing
+(Control-] and Control-^, 0x1D and 0x1E, which TUI does not name; a byte of
+0x80 or more that begins no character; a UTF-8 lead an `ESC` cuts short) is no
+event. Until then it was an Escape nobody pressed. `ESC TAB` is ⌥⇥ as before.
+An `ESC` in front of a reply, a report, a paste or a cut-short sequence is
+still the Escape key (above): those bytes are the terminal's, not a chord.
+
 The ESC-prefixed spelling of Option-[ is `ESC [`, the CSI introducer, so it
 is read as the start of a control sequence and never reaches an app as a
 key. (From the encoding: a terminal that sends Option as an `ESC` prefix
@@ -6757,7 +6772,8 @@ reaches the app, from the records above and NOT re-measured for this:
   character"). The panel answers both, and does not read the second as ⌃.,
   its cancel.
 - **⌃2, ⌃3 and ⌃.: NOT YET MEASURED.** By xterm's convention a legacy
-  encoding sends ⌃2 as NUL (0x00, which `KeyEvent.parse` drops), ⌃3 as ESC
+  encoding sends ⌃2 as NUL (0x00, which `KeyEvent.parse` reads as ⌃Space since
+  2026-11-23), ⌃3 as ESC
   (read as Escape: in a panel, Cancel) and ⌃. as a bare `.`, so none would
   arrive as itself; whether each host here follows the convention has not
   been checked. Measure with

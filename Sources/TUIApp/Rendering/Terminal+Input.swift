@@ -283,10 +283,15 @@ extension Terminal {
     /// arrived yet.
     ///
     /// A lead the parser drops as mis-framed (its tail cut short by an `ESC`,
-    /// or an orphan continuation byte) leaves the `ESC` nothing to prefix, as
-    /// a sequence cut short does in ``tryExtractMetaPrefixed()``: it is the
-    /// Escape key. Put back, it became the prefix of the sequence that cut
-    /// the lead short, so `ESC 0xC3 ESC [A` was Option+Up until 2026-10-18.
+    /// or an orphan continuation byte) with nothing after it to take the
+    /// prefix makes a chord that names no key: no event, the bytes consumed
+    /// (owner ruling CORE2-12 (b), 2026-11-23: `ESC` and a byte that names
+    /// nothing does nothing). Put back, the `ESC` became the prefix of the
+    /// sequence that cut the lead short, so `ESC 0xC3 ESC [A` was Option+Up
+    /// until 2026-10-18, and then an Escape nobody pressed until the ruling.
+    /// Unlike ``tryExtractMetaPrefixed()``'s sequence cut short, which is the
+    /// terminal's, an `ESC` before a byte of 0x80 or more is only ever Option
+    /// on a character.
     ///
     /// Apart from ``tryExtractRegularEvent()``, which is at its complexity
     /// limit.
@@ -296,7 +301,8 @@ extension Terminal {
         if let inner = tryExtractPlainText() {
             return [0x1B] + inner
         }
-        if input.count != held { return [0x1B] }
+        // Consumed with no event: the caller goes round for what follows.
+        if input.count != held { return nil }
         input.prepend(0x1B)
         return nil
     }

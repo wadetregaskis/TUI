@@ -3,7 +3,7 @@
 *How TUI came to ask terminals for the kitty keyboard protocol, what it does
 with ⌘, Super and Hyper chords, the legacy keys it falls back to, key-press
 phases, and the quit chord. Ids: A4, B7, B12, B-D1K-1 to 4, B-D1K-8,
-B-D1K-1's ruling of 2026-10-23, A-F2-1, B-F2-4, B-INPUT-2.*
+B-D1K-1's ruling of 2026-10-23, A-F2-1, B-F2-4, B-INPUT-2, A-CORE2-12.*
 
 ## In short
 
@@ -32,6 +32,9 @@ is the driver's byte. `TUIKIT_KEYBOARD_PROTOCOL=0` keeps TUI from asking.
    the FIRST ⌃\, about two seconds later (`UnreadQuitKeyWatch`), and at once when
    unread input had already tripped the watchdog; the second press is `.whenWarned`'s.
    The owner: "It's fine for now." Details in the compatibility survey.
+6. **2026-11-23, A-CORE2-12.** The owner: `ESC` and another byte in one read
+   are one Option chord, and an `ESC` with a byte that names no key is
+   nothing, never an Escape. Built by hunt H-60's lane the same day.
 
 ## For a future reader
 
@@ -385,3 +388,38 @@ alternate names none, in a menu only, as SwiftUI does; and keep that walk's
 lifecycle from running, since an alternate's `onAppear` must wait until it is
 drawn — a render mode no walk has yet. About half a day, and a hidden render
 of every alternate on every frame that has one.
+
+### A-CORE2-12. ESC and another byte in one read are one Option chord — DECIDED by the owner, 2026-11-23
+
+*`KeyEvent.parse` (`parseEscapeSequence`, `parseSingleByte`),
+`Terminal.tryExtractMetaOnText()`*
+
+A legacy encoding spells Option-x as `ESC x`, and Escape and then `x` as the
+same two bytes; only time tells them apart. The parser read `ESC` and a byte
+that named a key as that key with Option, and `ESC` and a byte that named
+nothing (NUL, Control-] and Control-^, a byte of 0x80 or more that is no
+character) as the Escape key, with the byte dropped: an Escape nobody had
+pressed, which closes a sheet or leaves a field.
+
+**The owner's ruling** (CORE2-12, option (b)): bytes that arrive together are
+meant together. `ESC` and another byte in one read are one chord, Option and
+that byte's key: `ESC NUL` is Control-Option-Space, since NUL is
+Control-Space. `ESC` and a byte that names nothing does nothing, and is never
+a phantom Escape. The reasons: real keypresses are far apart compared with
+the latency between a terminal and the app, so bytes that arrive together are
+one chord; and this reading is the recoverable one, since a user whom
+batching catches out can press more slowly, whereas reading the bytes as
+separate keys would never let the chord work.
+
+**Shipped:** NUL alone is Control-Space (it was dropped, though the Windows
+console layer already sent it for ⌃Space and ⌃@ as a POSIX terminal does),
+so `ESC NUL` is Control-Option-Space; `ESC` and a byte that names no key is
+no event, from `KeyEvent.parse` (nil) and from the live parser, where Option
+on a UTF-8 lead that comes to nothing (an orphan byte, a lead an `ESC` cuts
+short) is now nothing rather than Escape. `ESC TAB` stays Option-Tab
+(`escTabIsAltTab`). Unchanged as well: an `ESC` in front of a terminal reply,
+a focus or mouse report, a paste or a sequence cut short is still the Escape
+key, pressed before the terminal sent that (2026-10-11): what follows is the
+terminal's, not the keyboard's, so it is not the `ESC`'s chord. Control-] and
+Control-^ (0x1D, 0x1E) are still named by nothing, so they and their Option
+chords do nothing.

@@ -882,7 +882,7 @@ public struct KeyEvent {
 The terminal encodes modifiers differently from GUI frameworks:
 
 - **⌃-letter**: Detected from ASCII control codes (0x01–0x1A). For example, `⌃C` produces byte `0x03`.
-- **⌥-key**: Detected from ESC prefix sequences (`ESC` followed by the key byte).
+- **⌥-key**: Detected from ESC prefix sequences (`ESC` followed by the key byte). An `ESC` and another byte that arrive together are one chord: Escape and then a key pressed so fast they share one read arrive as the Option chord, and an `ESC` with a byte that names no key (⌃], a broken character) is no event, not Escape. NUL is ⌃Space, so `ESC NUL` is ⌃⌥Space.
 - **Shift**: Only auto-detected for uppercase letters. The terminal does not send distinct shift codes for most keys.
 - **⌘**: Never sent in the legacy encodings. Under the kitty keyboard protocol a ⌘ chord the terminal does not keep for itself arrives as the protocol's Super modifier, and reaches only `onKeyPress` handlers and the shortcuts that ask for a real ⌘ (``View/keyboardShortcutsMatchCommand(_:)``), never anything that matches a bare key: ⌘K types nothing into a field.
 

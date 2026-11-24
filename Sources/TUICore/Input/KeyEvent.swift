@@ -258,6 +258,7 @@ public enum Key: Hashable, Sendable {
 /// making the key parsing logic self-documenting.
 private enum ASCIIByte {
     // Control characters
+    static let null: UInt8 = 0x00
     static let backspace: UInt8 = 0x08
     static let tab: UInt8 = 0x09
     static let lineFeed: UInt8 = 0x0A
@@ -369,7 +370,7 @@ extension KeyEvent {
     }
 
     /// - Parameter bytes: The raw input bytes.
-    /// - Returns: The parsed key event, or nil if incomplete.
+    /// - Returns: The parsed key event, or nil if incomplete or naming no key.
     public static func parse(_ bytes: [UInt8]) -> KeyEvent? {
         guard !bytes.isEmpty else { return nil }
 
@@ -398,6 +399,12 @@ extension KeyEvent {
         switch byte {
         case ASCIIByte.escape:
             return KeyEvent(key: .escape)
+        case ASCIIByte.null:
+            // ⌃Space, and ⌃@ (and ⌃2), which a legacy encoding sends the same
+            // NUL for; ⌃Space is the chord a person presses, and the one the
+            // kitty protocol reports. So `ESC NUL` is ⌃⌥Space (owner ruling
+            // CORE2-12 (b), 2026-11-23).
+            return KeyEvent(key: .space, ctrl: true)
         case ASCIIByte.carriageReturn:
             return KeyEvent(key: .enter)
         case ASCIIByte.lineFeed:
@@ -474,11 +481,16 @@ extension KeyEvent {
             return parseSS3Sequence(bytes[2...])
         }
 
-        // Alt+key: ESC followed by key
+        // Alt+key: ESC followed by key. Bytes that arrive together are one
+        // chord, so this is Option and the byte's key, and a byte that names
+        // no key makes a chord that names none: no event, never an Escape
+        // nobody pressed (owner ruling CORE2-12 (b), 2026-11-23). Real keys
+        // are far apart next to the latency, and an Escape-then-key pressed
+        // fast enough to share a read is recovered by pressing more slowly,
+        // where reading two keys would never let the chord work.
         if bytes.count == 2 {
-            if let keyEvent = parseSingleByte(bytes[1]) {
-                return KeyEvent(key: keyEvent.key, ctrl: keyEvent.ctrl, alt: true, shift: keyEvent.shift)
-            }
+            guard let keyEvent = parseSingleByte(bytes[1]) else { return nil }
+            return KeyEvent(key: keyEvent.key, ctrl: keyEvent.ctrl, alt: true, shift: keyEvent.shift)
         }
 
         // Alt + a multi-byte UTF-8 character: a meta-sending terminal
@@ -491,7 +503,8 @@ extension KeyEvent {
             return KeyEvent(key: .character(character), alt: true)
         }
 
-        return KeyEvent(key: .escape)
+        // An escape-prefixed run that names no key: no event (CORE2-12 (b)).
+        return nil
     }
 
     /// Parses an SS3 (Single Shift 3) key: what follows `ESC O`.

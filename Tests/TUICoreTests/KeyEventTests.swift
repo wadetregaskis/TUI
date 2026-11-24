@@ -373,18 +373,37 @@ struct KeyEventParseTests {
         #expect(event == nil)
     }
 
-    /// NOT a second copy of `parseEscape` above: a lone ESC never reaches
-    /// `parseEscapeSequence` at all — `parse` routes a one-byte input to
-    /// `parseSingleByte` — so the escape-PREFIXED fallback is a different
-    /// path with no other test on it. NUL is the probe because it is outside
-    /// every range `parseSingleByte` recognises, so the Alt-chord branch
-    /// declines it and the sequence falls out the bottom as a plain escape
-    /// rather than as nil.
-    @Test("An escape-prefixed byte that names no key decodes as a bare escape")
-    func parseEscapePrefixedNonKey() {
-        let event = KeyEvent.parse([0x1B, 0x00])
-        #expect(event?.key == .escape)
-        #expect(event?.alt == false)
+    // MARK: ESC and a byte in one read (owner ruling CORE2-12 (b), 2026-11-23)
+
+    /// Bytes that arrive together are one chord: `ESC` and a byte that names
+    /// a key is that key with Option. NUL is what a terminal sends for
+    /// Control-Space, so `ESC NUL` is Control-Option-Space.
+    @Test("ESC NUL is Control-Option-Space")
+    func escapeNullIsControlOptionSpace() {
+        #expect(KeyEvent.parse([0x1B, 0x00]) == KeyEvent(key: .space, ctrl: true, alt: true))
+    }
+
+    /// NUL alone is Control-Space (and Control-@, which no legacy encoding
+    /// tells from it). It was dropped.
+    @Test("A lone NUL is Control-Space")
+    func nullIsControlSpace() {
+        #expect(KeyEvent.parse([0x00]) == KeyEvent(key: .space, ctrl: true))
+    }
+
+    /// `ESC` and a byte that names nothing is nothing, never a phantom Escape:
+    /// the pair is one chord, and the chord names no key. Until the ruling it
+    /// fell out the bottom of the escape parser as a plain Escape. 0xFF is
+    /// never a key nor the start of one; 0x1D (Control-]) is a byte TUI does
+    /// not name yet.
+    @Test("ESC and a byte that names nothing is no event", arguments: [UInt8(0xFF), 0x80, 0x1D, 0x1E])
+    func escapePrefixedNonKeyIsNoEvent(byte: UInt8) {
+        #expect(KeyEvent.parse([0x1B, byte]) == nil)
+    }
+
+    @Test("The ruling leaves ESC x as Option-x and a lone ESC as Escape")
+    func escapeLetterAndLoneEscapeUnchanged() {
+        #expect(KeyEvent.parse([0x1B, 0x78]) == KeyEvent(key: .character("x"), alt: true))
+        #expect(KeyEvent.parse([0x1B]) == KeyEvent(key: .escape))
     }
 
     // MARK: - Modifier Keys (CSI with modifiers)

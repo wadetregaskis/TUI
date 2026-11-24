@@ -94,18 +94,48 @@ struct ParserNestedEdgeTests {
     }
 
     /// Option and a UTF-8 lead whose continuation a sequence cuts short: the
-    /// lead is mis-framed and dropped, so the `ESC` has nothing to prefix and
-    /// is the Escape key. It was put back in front of the sequence instead,
-    /// and Up arrived as Option+Up.
-    @Test("Option and a UTF-8 lead cut short by a sequence is Escape, then the sequence")
+    /// lead is mis-framed and dropped, so the chord names nothing and is no
+    /// event (owner ruling CORE2-12 (b), 2026-11-23: `ESC` and a byte that
+    /// names nothing does nothing). It was put back in front of the sequence,
+    /// and Up arrived as Option+Up, until 2026-10-18; then it was an Escape
+    /// nobody pressed, until the ruling.
+    @Test("Option and a UTF-8 lead cut short by a sequence is nothing, then the sequence")
     func metaOnCutShortUTF8Lead() {
-        #expect(decode(Self.esc + [0xC3] + Self.up) == [Self.escape, Self.upKey])
+        #expect(decode(Self.esc + [0xC3] + Self.up) == [Self.upKey])
     }
 
-    /// The same one level in: `ESC ESC 0xC3 ESC [A`.
+    /// The same one level in: `ESC ESC 0xC3 ESC [A`. The inner chord is
+    /// nothing; the outer `ESC` then had nothing to prefix, and is the Escape
+    /// key, as in front of a sequence cut short (`EscapeBeforeNonKeyTests`).
     @Test("An ESC before Option and a cut-short UTF-8 lead leaves the arrow alone")
     func escapeBeforeMetaOnCutShortUTF8Lead() {
-        #expect(decode(Self.esc + Self.esc + [0xC3] + Self.up) == [Self.escape, Self.escape, Self.upKey])
+        #expect(decode(Self.esc + Self.esc + [0xC3] + Self.up) == [Self.escape, Self.upKey])
+    }
+
+    /// `ESC` and a byte that names nothing, in one read or split, is no event:
+    /// never a phantom Escape (owner ruling CORE2-12 (b), 2026-11-23). 0xFF
+    /// and an orphan continuation byte are never text; 0x1D (Control-]) is a
+    /// byte TUI does not name.
+    @Test("ESC and a byte that names nothing is no event", arguments: [UInt8(0xFF), 0x80, 0x1D])
+    func escapeAndNonKeyIsNothing(byte: UInt8) {
+        #expect(decode(Self.esc + [byte]).isEmpty)
+    }
+
+    /// A key after such a pair is its own: Control-] names nothing, so `b` is
+    /// not its Option chord. (A byte of 0x80 or more is dropped as garbage
+    /// INSIDE the chord instead, and `ESC 0xFF b` is Option-b, as
+    /// ``metaOnMisframedLeadThenLetter()`` pins.)
+    @Test("A key after ESC and a byte that names nothing is untouched")
+    func keyAfterEscapeAndNonKey() {
+        #expect(decode(Self.esc + [0x1D] + Array("b".utf8)) == [.key(KeyEvent(character: "b"))])
+    }
+
+    /// `ESC NUL` is Control-Option-Space: NUL is Control-Space, and `ESC` and
+    /// a byte that names a key is that key with Option.
+    @Test("ESC NUL is Control-Option-Space, and NUL alone Control-Space")
+    func escapeNullIsControlOptionSpace() {
+        #expect(decode(Self.esc + [0x00]) == [.key(KeyEvent(key: .space, ctrl: true, alt: true))])
+        #expect(decode([0x00]) == [.key(KeyEvent(key: .space, ctrl: true))])
     }
 
     /// A UTF-8 lead dropped as mis-framed with plain text behind it is still

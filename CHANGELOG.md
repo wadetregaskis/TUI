@@ -81,6 +81,13 @@ hands the terminal back (or, after an external stop, as it takes it back) and se
 first frame after, at the cost of one transmission a picture. On iTerm2, whose one image store serves both screens,
 the pictures no longer stay in the terminal while the shell or the other program has it.
 
+**`ESC` and a key in one read are one Option chord, and an `ESC` with a byte that names no key does nothing.** A
+terminal sending Option as Meta spells ⌥x as `ESC x`; TUI read `ESC` and a byte that names no key (NUL, ⌃], ⌃^, a
+broken UTF-8 lead) as the Escape key, which closed a sheet or left a field though nobody pressed Escape. Such a pair
+is now no event. NUL is ⌃Space (it was dropped), so `ESC NUL` is ⌃⌥Space. Escape and then a key pressed so fast that
+both share one read is an Option chord, as it always was where the key has a name: press them further apart. ⌥⇥
+(`ESC TAB`) is unchanged.
+
 **rxvt's Home, End, Shift-arrows and Control-arrows work.** Home and End (`ESC[7~`, `ESC[8~`) did nothing, the
 Shift-arrows were dropped, and a Control-arrow typed a letter. They now read as their keys.
 
