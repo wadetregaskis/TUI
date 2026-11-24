@@ -22,8 +22,9 @@ import TUIView
 /// Whether any subview but a `Spacer` is flexible on the stack's cross axis.
 ///
 /// The one rule both stacks need and neither can read off `sizes` alone:
-/// ``Spacer`` reports BOTH axes flexible because it has no axis input, so the
-/// stack it is in has to discount the axis that is not its own. Shared rather
+/// ``Spacer`` reports BOTH axes flexible (its minimum length follows the
+/// stack's axis, its flexibility does not), so the stack it is in has to
+/// discount the axis that is not its own. Shared rather
 /// than written twice — these two values have drifted apart from each other,
 /// and from `_VStackCore`/`_HStackCore`, once already.
 @MainActor
@@ -128,8 +129,8 @@ nonisolated public struct VStackLayout: Layout, Sendable, Equatable {
             height: height,
             // Spacers excluded from the CROSS axis, not from both: a Spacer
             // "expands along the major axis of its containing stack layout",
-            // and it has no axis input, so it reports both flexible and each
-            // stack has to drop the one that is not its own. `_VStackCore`
+            // and it reports both flexible (only its length follows the
+            // axis), so each stack has to drop the one that is not its own. `_VStackCore`
             // does the same at its `!child.isSpacer` guard; the value spelling
             // reported width-flexible instead and took a share of its row's
             // slack away from a sibling that genuinely wanted it.

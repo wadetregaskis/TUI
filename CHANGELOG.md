@@ -70,6 +70,12 @@ it did not know followed by a typed letter, so F1 typed a capital A. They now re
 and TUI dropped either spelling whole: those keys did nothing, and under xterm's level 2 no Control chord arrived,
 ⌃Q included. Both now read as the chord, the same key the kitty keyboard protocol reports for it.
 
+**A `Spacer(minLength:)` has no length across its stack.** Its minimum counted on both axes, so
+`HStackLayout { Text("a"); Spacer(minLength: 3); Text("b") }` (or the same through `AnyLayout`) was three rows tall,
+`VStackLayout { Text("ab"); Spacer(minLength: 10) }` ten cells wide, and a `VStack` like it measured ten wide while
+drawing two, leaving a row's trailing view short of the edge. As in SwiftUI, the minimum counts along the stack's
+axis only; a spacer outside any stack keeps it on both.
+
 **`ViewThatFits(in: .vertical)` measures its candidates at the width they are drawn at.** Each was measured as if
 it had all the width it wanted, so a paragraph came out one line tall, fit every height, and was then drawn wrapped
 and cut: `ViewThatFits(in: .vertical) { Text(paragraph); ScrollView { Text(paragraph) } }` never chose the scroll

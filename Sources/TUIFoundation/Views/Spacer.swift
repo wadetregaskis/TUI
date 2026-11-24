@@ -97,9 +97,28 @@ extension ChildView {
         // The minLength is its minimum size requirement; without one, the
         // default distance along the stack's axis (``defaultMinLength(along:)``),
         // which a stack's own spacer path reads from the child instead.
-        let axis = context.environment.containerAxis
-        let width = heldMinLength ?? (axis == .horizontal ? Self.defaultMinLength(along: .horizontal) : 0)
-        let height = heldMinLength ?? (axis == .vertical ? Self.defaultMinLength(along: .vertical) : 0)
+        //
+        // Along the stack's axis ONLY: across it a spacer has no length, so
+        // `HStackLayout { Text("a"); Spacer(minLength: 3); Text("b") }` is one
+        // row tall and `VStack { Text("ab"); Spacer(minLength: 10) }` two cells
+        // wide, as SwiftUI's are (measured: `Tools/SwiftUIProbes/ViewThatFits
+        // widths and spacers across the axis (H-62, H-64)/fits.out`). Counted on
+        // both, the Layout stacks were as thick as the minimum and a column
+        // measured wider than it drew (hunt 11-20, LAYOUT-2). Outside a stack
+        // the minimum holds on both axes, as SwiftUI's does.
+        let width: Int
+        let height: Int
+        switch context.environment.containerAxis {
+        case .horizontal:
+            width = heldMinLength ?? Self.defaultMinLength(along: .horizontal)
+            height = 0
+        case .vertical:
+            width = 0
+            height = heldMinLength ?? Self.defaultMinLength(along: .vertical)
+        case nil:
+            width = heldMinLength ?? 0
+            height = heldMinLength ?? 0
+        }
         // Natural: the answer is the minimum length and the two fill flags,
         // whatever space was offered in either direction.
         return ViewSize(

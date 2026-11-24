@@ -115,4 +115,52 @@ struct SpacerRenderTests {
                     "Interior spacer rows must be blank, got >>\(row.stripped)<<")
         }
     }
+
+    // MARK: - minLength across the stack's axis
+
+    // SwiftUI counts a spacer's `minLength` along its stack's axis only
+    // (`Tools/SwiftUIProbes/ViewThatFits widths and spacers across the axis
+    // (H-62, H-64)/fits.out`): a row of one-line texts with a long spacer is one
+    // line tall, a column of "ab" with one is two wide. Hunt 11-20, LAYOUT-2.
+
+    @Test("An HStackLayout row with Spacer(minLength: 3) is one row tall")
+    func layoutRowIgnoresMinLengthAcross() {
+        let row = HStackLayout { Text("a"); Spacer(minLength: 3); Text("b") }
+        let size = measureChild(row, proposal: .unspecified, context: context(width: 20, height: 8))
+        #expect(size.height == 1, "got \(size.width)x\(size.height)")
+        let buffer = renderToBuffer(row, context: context(width: 20, height: 8))
+        #expect(buffer.lines.count == 1, "got \(buffer.lines.map(\.stripped))")
+        let erased = AnyLayout(HStackLayout()) { Text("a"); Spacer(minLength: 5); Text("b") }
+        #expect(measureChild(erased, proposal: .unspecified, context: context(width: 20, height: 8)).height == 1)
+    }
+
+    @Test("A column with Spacer(minLength: 10) is as wide as its widest view")
+    func columnIgnoresMinLengthAcross() {
+        let column = VStack { Text("ab"); Spacer(minLength: 10) }
+        #expect(measureChild(column, proposal: .unspecified, context: context(width: 40, height: 20)).width == 2)
+        let layout = VStackLayout { Text("ab"); Spacer(minLength: 10) }
+        #expect(measureChild(layout, proposal: .unspecified, context: context(width: 40, height: 20)).width == 2)
+    }
+
+    @Test("A row's trailing view reaches its edge beside a column holding a long spacer")
+    func rowBesideColumnWithLongSpacer() throws {
+        // The column measured 10 wide and drew 2, so the row dealt its spacer
+        // 8 cells too few and "R" stopped short of the edge.
+        let buffer = renderToBuffer(
+            HStack(alignment: .top) {
+                VStack { Text("ab"); Spacer(minLength: 10) }
+                Spacer()
+                Text("R")
+            },
+            context: context(width: 40, height: 12))
+        let first = try #require(buffer.lines.first?.stripped)
+        #expect(first.hasPrefix("ab"))
+        #expect(first.hasSuffix("R") && first.count == 40, "got >>\(first)<<")
+    }
+
+    @Test("A spacer outside any stack keeps its minimum on both axes")
+    func standaloneKeepsMinLengthOnBothAxes() {
+        let size = Spacer(minLength: 3).sizeThatFits(proposal: .unspecified, context: context())
+        #expect(size.width == 3 && size.height == 3)
+    }
 }
