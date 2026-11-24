@@ -84,7 +84,9 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// release, 2026-09-22).
     ///
     /// What remains is what the width genuinely depends on: each option's label
-    /// rendered to a string, which is what `DropdownMenu.innerWidth` measures.
+    /// rendered to a string, which is what `DropdownMenu.innerWidth` measures,
+    /// once a pass (`measuredOptionLabels(context:)`), which the closed draw
+    /// reads too.
     /// The two paths call the same two helpers, so they cannot answer
     /// differently — and the rest is the button face's own chrome
     /// (``ControlFace``), round a title `fit(_:to:)`-padded to exactly the
@@ -97,30 +99,18 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         measureContext.hasExplicitWidth = false
         if let width = proposal.width { measureContext.availableWidth = width }
         if let height = proposal.height { measureContext.availableHeight = height }
-        let labels = renderedOptionLabels(context: measureContext)
+        let labels = measuredOptionLabels(context: measureContext)
         let inner = DropdownMenu.innerWidth(
             for: dropdownEntries(labels: labels), context: measureContext)
         let chrome = ControlFace.chrome(in: context.environment)
         return ViewSize.fixed(Self.titleWidth(innerWidth: inner) + chrome.width, chrome.rows)
     }
 
-    /// Every option's label, rendered once to the line the drop-down will show.
-    ///
-    /// Labels render at the SCREEN width, not the control's: the drop-down is an
-    /// overlay that may grow wider than its control, so a narrow picker must not
-    /// wrap or truncate its option labels.
-    private func renderedOptionLabels(context: RenderContext) -> [String?] {
-        var labelContext = Self.labelContext(PickerMenuConstants.optionLabelsStep, in: context)
+    /// Where the option labels and section titles render, off any scroll canvas.
+    static func optionLabelContext(in context: RenderContext) -> RenderContext {
+        var labelContext = labelContext(PickerMenuConstants.optionLabelsStep, in: context)
         labelContext.leaveScrollCanvas()
-        return entries.map { entry in
-            // A section's title draws under the section-header chrome role,
-            // as a `List`'s header and a menu's section title do.
-            if case .title(let title) = entry {
-                return title.renderToBuffer(context: sectionChromeContext(labelContext, .sectionHeader))
-                    .lines.first ?? ""
-            }
-            return entry.label.map { $0.renderToBuffer(context: labelContext).lines.first ?? "" }
-        }
+        return labelContext
     }
 
     /// The drop-down's own model: an option is a label plus "is this the current
@@ -137,7 +127,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     }
 
     /// Where labels are drawn: a step below the core's identity, at the screen's
-    /// width (see `renderedOptionLabels(context:)`).
+    /// width (see `measuredOptionLabels(context:)`).
     ///
     /// Not the core's own identity, where its slots are at indices 0–3: the
     /// `currentValueLabel` is the caller's view itself, so its first `@State`
@@ -197,17 +187,18 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             stateStorage: stateStorage, context: context)
         let isHovered = !isDisabled && hoverBox.value
 
-        // Rendered once (dividers have none) and reused for sizing and drawing;
-        // row indices match `entries` throughout — the drop-down highlight is
+        // Row indices match `entries` throughout — the drop-down highlight is
         // tracked as an option ordinal on the handler and mapped to a row via
-        // `optionRowIndices`. The same two helpers the measure above calls, so
-        // the two cannot disagree about the width.
-        let renderedLabels = renderedOptionLabels(context: context)
+        // `optionRowIndices`. Closed, the measure's lines (dividers have
+        // none), so the two cannot disagree about the width, and only the
+        // option shown drawn; open, every option drawn.
+        let renderedLabels = shownOptionLabels(context: context, isOpen: handler.isOpen)
         let menuEntries = dropdownEntries(labels: renderedLabels)
-        // What a typed prefix finds an option by, in option order.
-        handler.optionTexts = entries.indices.compactMap { index in
+        // What a typed prefix finds an option by, in option order: made from
+        // these when a character is typed, not on every frame.
+        handler.drawnOptionLabels = entries.indices.compactMap { index in
             guard case .option = entries[index] else { return nil }
-            return TypeSelectBuffer.title(ofDrawn: renderedLabels[index] ?? "")
+            return renderedLabels[index] ?? ""
         }
         // The collapsed control is drawn to the width of the menu it opens.
         let innerWidth = DropdownMenu.innerWidth(for: menuEntries, context: context)

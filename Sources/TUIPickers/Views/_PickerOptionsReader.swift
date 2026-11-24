@@ -41,7 +41,7 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if context.environment.rendersForRegistrationsOnly { return .fixed(0, 0) }
         return measureChild(
-            build(entries(in: context), context.environment.isInPopUpMenu), proposal: proposal,
+            build(resolvedEntries(in: context), context.environment.isInPopUpMenu), proposal: proposal,
             context: builtScope(context))
     }
 
@@ -58,7 +58,21 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
         // menu bar.
         if context.environment.rendersForRegistrationsOnly { return FrameBuffer() }
         return TUIView.renderToBuffer(
-            build(entries(in: context), context.environment.isInPopUpMenu), context: builtScope(context))
+            build(resolvedEntries(in: context), context.environment.isInPopUpMenu), context: builtScope(context))
+    }
+
+    /// The options, resolved once a pass at this place and width and handed to
+    /// every measure and the draw after it (`composedOncePerPass`), as a
+    /// `Form` reads its rows: each of them asks, and each resolved them again
+    /// (H-92, CTRLS-2). Keyed by the content, not by this reader: the reader
+    /// holds `build`, a closure the picker's body makes anew for the draw,
+    /// while the content is the app's and the same value from one ask to the
+    /// next. The same entries also let what `build` makes of them hash alike
+    /// from one ask to the next, so the menu core's own per-pass labels are
+    /// shared too.
+    private func resolvedEntries(in context: RenderContext) -> [_PickerEntry<SelectionValue>] {
+        let resolve = { _PickerResolvedEntries(entries(in: context)) }
+        return (context.renderCache?.composedOncePerPass(for: content, context: context, resolve) ?? resolve()).entries
     }
 
     private func builtScope(_ context: RenderContext) -> RenderContext {
@@ -118,4 +132,13 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
         default: AnyView(HStack(spacing: 1) { ForEach(header) { $0 } })
         }
     }
+}
+
+/// A picker's options as ``_PickerOptionsReader`` resolved them, kept for the
+/// pass (`RenderCache.composedOncePerPass(for:context:readsLayout:_:)` keeps an
+/// object).
+final class _PickerResolvedEntries<SelectionValue: Hashable> {
+    let entries: [_PickerEntry<SelectionValue>]
+
+    init(_ entries: [_PickerEntry<SelectionValue>]) { self.entries = entries }
 }

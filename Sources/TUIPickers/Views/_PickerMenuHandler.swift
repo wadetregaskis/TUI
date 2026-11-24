@@ -53,9 +53,23 @@ final class _PickerMenuHandler: PersistedFocusable {
     /// a plain arrow moves one. See ``View/shiftStepMultiplier(_:)``.
     var shiftStepMultiplier: Int = 5
 
-    /// Each option's text as drawn, by option ordinal, synced by the render:
-    /// what a typed prefix finds an option by (``TypeSelectBuffer/title(ofDrawn:)``).
-    var optionTexts: [String] = []
+    /// Each option's label as drawn, by option ordinal, synced by the render.
+    var drawnOptionLabels: [String] = [] {
+        didSet { titles = nil }
+    }
+
+    /// What a typed prefix finds an option by (``TypeSelectBuffer/title(ofDrawn:)``),
+    /// by option ordinal: made from ``drawnOptionLabels`` on the first typed
+    /// character after a render rather than by every render, open or closed,
+    /// which stripped every label of a closed picker each frame for nothing.
+    var optionTexts: [String] {
+        if let titles { return titles }
+        let made = drawnOptionLabels.map(TypeSelectBuffer.title(ofDrawn:))
+        titles = made
+        return made
+    }
+
+    private var titles: [String]?
 
     /// What has been typed to find an option, while the drop-down is open.
     private var typeSelected = TypeSelectBuffer()

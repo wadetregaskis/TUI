@@ -25,6 +25,11 @@ key's cost. An undo or redo of a `String` is now spliced in as the edit it is, a
 highlighting, marks and find bar's matches of the lines it did not touch. An `AttributedString`'s, and one in a
 text that mixes kinds of line break, are still written whole.
 
+**A closed menu `Picker` of many options costs about half what it did a frame.** It resolved its options and drew
+every option's label several times over each frame it was drawn, open or not: a picker of 500 options took about
+10 ms of a frame. It now resolves and measures them once a frame, and while it is closed draws only the option it
+shows, still as wide as its widest option.
+
 **A `NavigationSplitView` that collapses keeps the state of the columns ahead of the one on top.** Narrowed into
 its stack with the sidebar on top, for a moment or under a compact size class, a split forgot its content and detail
 columns' `@State`, so they started over when it widened again. They are kept, not drawn, as a tab view keeps its
