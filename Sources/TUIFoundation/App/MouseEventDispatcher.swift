@@ -133,7 +133,14 @@ package final class MouseEventDispatcher {
     /// Populated by ``RenderLoop`` from the root buffer's
     /// ``FrameBuffer/hitTestRegions`` after compositing. Cleared on
     /// `beginRenderPass`.
-    var regions: [HitTestRegion] = []
+    var regions: [HitTestRegion] = [] {
+        didSet { carriesClickShields = regions.contains(where: \.isClickShield) }
+    }
+
+    /// Whether ``regions`` holds a click shield
+    /// (`HitTestRegion.HandlerID.clickShield(over:)`), so a click's matching
+    /// asks which controls are shielded only on a frame that has one.
+    private var carriesClickShields = false
 
     /// Where handler ids come from: interned per `(identity, slot)` so a
     /// control keeps its own id while it renders, and minted fresh for a
@@ -743,7 +750,7 @@ extension MouseEventDispatcher {
         guard let position = restingPosition ?? (pointerMovedSincePress ? nil : pressOrigin),
             let button = handedOffPresses.first(where: { pressedHandlers[$0] == nil })
         else { return false }
-        let matching = matchingRegions(at: position.x, y: position.y)
+        let matching = matchingRegions(at: position.x, y: position.y, click: true)
         guard let target = heldDragTarget else {
             if pressPopup != nil, pressPopupIsOnScreen { heldDragTarget = matching.first?.handlerID }
             return false
@@ -1164,7 +1171,7 @@ extension MouseEventDispatcher {
         // gesture after one, are ranked in the gesture arena — controls under
         // the press included, which it hands the press when the gestures
         // ahead of them give up. Everything else is ordinary dispatch.
-        if let settled = routeThroughGestures(event, matching: { matchingRegions(at: event.x, y: event.y) }) {
+        if let settled = routeThroughGestures(event, matching: { matchingRegions(at: event.x, y: event.y, click: true) }) {
             return settled
         }
 
@@ -1190,7 +1197,8 @@ extension MouseEventDispatcher {
         // a Button or TextField inside it — those children don't
         // handle wheel events, so the wheel bubbles past them to
         // the surrounding scroller.
-        let matching = matchingRegions(at: event.x, y: event.y, includingWheelOnly: event.phase == .scrolled)
+        let matching = matchingRegions(
+            at: event.x, y: event.y, includingWheelOnly: event.phase == .scrolled, click: event.phase != .scrolled)
         // A left press a pane's background would take for its click is held
         // until it shows whether it is a click — see ``PressRole`` — and one
         // that nothing takes may start a selection. Any left press ends the
@@ -1406,14 +1414,28 @@ extension MouseEventDispatcher {
     ///
     /// A pointer style's region (``registerPointerStyle(_:over:in:)``) is never
     /// one: it hears nothing, and is read only for the pointer's shape.
-    func matchingRegions(at x: Int, y: Int, includingWheelOnly: Bool = false) -> [HitTestRegion] {
+    ///
+    /// For a `click` — a press, and a drag or release hit-tested live — a
+    /// control a later layer is drawn over at the point is left out too: the
+    /// layer takes the click there, as it does in SwiftUI
+    /// (`HitTestRegion.HandlerID.clickShield(over:)`; owner ruling O-10 (a),
+    /// 2026-11-21). Hover, the wheel and drop targeting still find it.
+    func matchingRegions(
+        at x: Int, y: Int, includingWheelOnly: Bool = false, click: Bool = false
+    ) -> [HitTestRegion] {
         // A geometry marker has no area, so `contains` already refuses it; the
         // explicit test says so, and keeps a marker inert if one ever grows a
         // size (`HitTestRegion.geometryMarker(_:)`). A text's frame has one,
         // and is no target either: it is read by the screen selection alone
-        // (`HitTestRegion.HandlerID.textFrame`).
-        var matching = regions.reversed().filter {
-            !$0.isGeometryMarker && !$0.isTextFrame && $0.contains(x: x, y: y)
+        // (`HitTestRegion.HandlerID.textFrame`); nor are a click shield and a
+        // click passage, which name no handler.
+        var matching = regions.reversed().filter { !$0.namesNoHandler && $0.contains(x: x, y: y) }
+        if click, carriesClickShields {
+            var shielded: Set<HitTestRegion.HandlerID> = []
+            for region in regions where region.isClickShield && region.contains(x: x, y: y) {
+                shielded.insert(region.handlerID.shieldedHandler)
+            }
+            if !shielded.isEmpty { matching.removeAll { shielded.contains($0.handlerID) } }
         }
         if !pointerStyleRegions.isEmpty { matching.removeAll { pointerStyleRegions[$0.handlerID] != nil } }
         guard !includingWheelOnly, !wheelHandlerIDs.isEmpty else { return matching }
@@ -1448,7 +1470,7 @@ extension MouseEventDispatcher {
         guard let origin = regionOffset(for: handlerID) else { return false }
         let (x, y) = (event.x + origin.x, event.y + origin.y)
         var reachedSelf = false
-        for region in matchingRegions(at: x, y: y) {
+        for region in matchingRegions(at: x, y: y, click: true) {
             guard reachedSelf else {
                 reachedSelf = region.handlerID == handlerID
                 continue

@@ -235,6 +235,32 @@ rectangle; the dispatcher routes an incoming report to the front-most region
 that contains the point. See <doc:RenderCycle> for where mouse dispatch sits in
 the frame.
 
+### Layers Drawn Over a Control
+
+A view drawn over a control, as a later layer of a `ZStack` or in an `.overlay`,
+takes the control's clicks wherever it draws, as it does in SwiftUI. A "busy"
+scrim stops the form under it being clicked again:
+
+```swift
+ZStack {
+    form
+    if isSaving {
+        Color.black.opacity(0.4)   // a click on the form now lands on the scrim
+        ProgressView()
+    }
+}
+```
+
+A layer draws where it shows a glyph, a colour of any strength, or any cell
+inside a `Text`, spaces included. Where it draws nothing (`Color.clear`, a view at
+`.opacity(0)`, the empty space a `.frame` puts round its content), or outside a
+`.contentShape(_:eoFill:)` the layer was given, the click goes through to the
+control. `.disabled(true)` on the layer does not let clicks
+through; `.allowsHitTesting(false)` does, so a watermark or a decoration laid
+over controls should carry it. Only clicks are taken: the pointer still hovers
+the control under the layer, the wheel still scrolls it, and the keyboard still
+reaches it.
+
 `event.x` / `event.y` are **local to the view**: `(0, 0)` is its own top-left
 cell, not the screen's. That holds when the view has been scrolled partly off
 the top of an enclosing `ScrollView` too — the rows above the fold are hidden,

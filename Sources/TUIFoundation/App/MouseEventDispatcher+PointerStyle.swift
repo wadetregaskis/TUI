@@ -215,7 +215,7 @@ extension MouseEventDispatcher {
         // what follows it front to back is inside its view, or behind it.
         var scope: HitTestRegion.HandlerID?
         for region in regions.reversed()
-        where !region.isGeometryMarker && !region.isTextFrame && region.contains(x: x, y: y) {
+        where !region.namesNoHandler && region.contains(x: x, y: y) {
             let id = region.handlerID
             let style = pointerStyleRegions[id]
             let seesThrough = style == nil && pointerShapeWrappers.contains(id)

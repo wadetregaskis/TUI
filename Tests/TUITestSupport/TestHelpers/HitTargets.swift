@@ -2,9 +2,11 @@
 //  HitTargets.swift
 //
 //  A buffer's hit-test TARGETS: its regions less the text frames each `Text`
-//  files for the screen selection (`HitTestRegion.HandlerID.textFrame`), which
-//  ride in the same array but take no event. What a suite asking where clicks
-//  land counts.
+//  files for the screen selection (`HitTestRegion.HandlerID.textFrame`) and the
+//  click shields and passages of layers drawn over controls
+//  (`HitTestRegion.HandlerID.clickShield(over:)`, `.clickPassage`), which ride
+//  in the same array but take no event. What a suite asking where clicks land
+//  counts.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -16,8 +18,10 @@
 
 extension FrameBuffer {
     /// The hit-test regions an event can land on: every region but the text
-    /// frames.
-    package var hitTargets: [HitTestRegion] { hitTestRegions.filter { !$0.isTextFrame } }
+    /// frames, the click shields and the click passages.
+    package var hitTargets: [HitTestRegion] {
+        hitTestRegions.filter { !$0.isTextFrame && !$0.isClickShield && !$0.isClickPassage }
+    }
 }
 
 #endif

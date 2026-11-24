@@ -33,7 +33,9 @@ extension View {
     ///
     /// Mirrors SwiftUI's `allowsHitTesting(_:)`. With `false` the view still
     /// draws and still occupies its space; clicks, drags and wheel events pass
-    /// through it to whatever is beneath.
+    /// through it to whatever is beneath. A view drawn over a control takes
+    /// the control's clicks where it draws, as in SwiftUI (owner ruling
+    /// O-10 (a), 2026-11-21), and this is how to let them through.
     ///
     /// ```swift
     /// // A decorative overlay that must not swallow clicks.
@@ -208,6 +210,14 @@ nonisolated private struct _HitTestingView<Content: View>: View, Renderable, Lay
         drawn.removeHitTargets()
         for index in drawn.overlays.indices where !drawn.overlays[index].isScreenLevel {
             drawn.overlays[index].content.removeHitTargets()
+        }
+        // Nor do its cells take a click from a control they are drawn over:
+        // a layer is hit where it draws, so a decoration over a button would
+        // take the button's clicks (`FrameBuffer.clickShielding(under:at:)`)
+        // but for this passage, which says nothing drawn here is hit.
+        if drawn.width > 0, drawn.height > 0, !context.isMeasuring {
+            drawn.hitTestRegions.removeAll(where: \.isClickPassage)
+            drawn.hitTestRegions.append(.clickPassage(x: 0, y: 0, width: drawn.width, height: drawn.height))
         }
         return drawn
     }

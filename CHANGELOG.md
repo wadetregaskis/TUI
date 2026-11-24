@@ -30,6 +30,13 @@ frame rate and the app drew sixty frames a second for as long as the animator wa
 animation's duration whether or not anything moves, and a one-phase animator rests once it appears. SwiftUI stalls
 such an animator after its first step; TUI cycles it (a deliberate deviation, A11).
 
+**A view drawn over a control takes its clicks, as in SwiftUI.** A later layer of a `ZStack`, or an `.overlay`, let
+a click through to the button under it, so a "busy" scrim (`Color.black.opacity(0.4)`) over a form left the form
+clickable, and a second click submitted it twice. A layer now takes the click wherever it draws (a glyph, a colour,
+any cell of a `Text`); where it draws nothing (`Color.clear`, `.opacity(0)`, a frame's empty space) the click goes
+through, as SwiftUI does. An app that lays a decoration over controls and wants them clickable through it adds
+`.allowsHitTesting(false)` to the decoration. Hover, the wheel and the keyboard still reach the control.
+
 **A soft hyphen in a `Text` is one cell wide.** U+00AD was measured as taking no cell, but terminals give it one
 (Ghostty and Apple's Terminal, measured), so a line holding one drew a cell wider than it was laid out, and pushed a
 border or the next column a cell to the right. It is now measured at the one cell it takes.

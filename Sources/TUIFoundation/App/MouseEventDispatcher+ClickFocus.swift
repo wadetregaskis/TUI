@@ -68,7 +68,7 @@ extension MouseEventDispatcher {
     /// through (``passClickThrough(from:event:)``) focuses it.
     func focusPressedView(_ event: MouseEvent) {
         guard !clickFocusTargets.isEmpty, event.phase == .pressed, event.button == .left else { return }
-        for region in matchingRegions(at: event.x, y: event.y) {
+        for region in matchingRegions(at: event.x, y: event.y, click: true) {
             if let target = clickFocusTargets[region.handlerID] {
                 target.manager.focus(id: target.focusID)
                 return

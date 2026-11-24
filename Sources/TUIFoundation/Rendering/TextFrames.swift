@@ -42,6 +42,24 @@ extension FrameBuffer {
     }
 }
 
+extension RenderContext {
+    /// This context, for a layer drawn over `under`: where `under` holds a
+    /// control, each `Text` in the layer files its frame, so that a click on
+    /// a space inside the text is the layer's and not the control's, as it is
+    /// in SwiftUI, which hits a text anywhere in its bounds
+    /// (`FrameBuffer.columnsTakingClicks(onRow:)`; measured,
+    /// `Tools/SwiftUIProbes/Layers over a control (H-68)/covered.out`). Only
+    /// there: a layer over no control files nothing, so a page in a `ZStack`
+    /// over its background colour pays nothing for it.
+    func filingTextFrames(over under: FrameBuffer) -> RenderContext {
+        guard !isMeasuring, !environment.filesTextFrames, under.hitTestRegions.contains(where: \.takesClicks)
+        else { return self }
+        var context = self
+        context.environment.filesTextFrames = true
+        return context
+    }
+}
+
 extension Array where Element == HitTestRegion {
     /// The rectangles of the text frames among these regions
     /// (`HitTestRegion.HandlerID.textFrame`), in the regions' coordinates.

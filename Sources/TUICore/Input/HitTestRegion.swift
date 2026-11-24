@@ -261,6 +261,34 @@ extension HitTestRegion {
         /// away from their slot (`.offset`, a transition's overshoot), where
         /// a marker stays behind.
         package static let textFrame = Self(geometryMarkerBit - 2)
+
+        /// The id of cells drawn by a view that takes no clicks
+        /// (`.allowsHitTesting(false)`), filed by the region alone: a layer
+        /// composited over a control absorbs its clicks only where it draws
+        /// something that is hit-testable, so these cells are not counted
+        /// (`FrameBuffer.clickShields(under:at:)`). Three below the geometry
+        /// bit. It names no handler and is no target.
+        package static let clickPassage = Self(geometryMarkerBit - 3)
+
+        /// The bit that makes an id a click shield's (``clickShield(over:)``):
+        /// one the handler mint, counting up from zero, never reaches, and
+        /// below the ids above, which all have the bit beneath the geometry
+        /// bit set.
+        package static let clickShieldBit: UInt64 = 1 << 61
+
+        /// The id of a click shield over the control `shielded` names: cells
+        /// where a later layer is drawn over that control, so a click there is
+        /// not the control's (owner ruling O-10 (a), 2026-11-21). Hover, the
+        /// wheel, a drop and the keyboard still reach it.
+        package static func clickShield(over shielded: Self) -> Self {
+            Self(shielded.raw | clickShieldBit)
+        }
+
+        /// Whether this id names a click shield (``clickShield(over:)``).
+        package var isClickShield: Bool { raw & ~(Self.clickShieldBit - 1) == Self.clickShieldBit }
+
+        /// The control a click shield's id shields (``clickShield(over:)``).
+        package var shieldedHandler: Self { Self(raw & ~Self.clickShieldBit) }
     }
 }
 
@@ -268,6 +296,24 @@ extension HitTestRegion {
     /// Whether this region is a `Text`'s frame (``HandlerID/textFrame``)
     /// rather than a hit-test target.
     package var isTextFrame: Bool { handlerID == .textFrame }
+
+    /// Whether this region is a click shield (``HandlerID/clickShield(over:)``)
+    /// rather than a hit-test target.
+    package var isClickShield: Bool { handlerID.isClickShield }
+
+    /// Whether this region files cells that take no clicks
+    /// (``HandlerID/clickPassage``) rather than a hit-test target.
+    package var isClickPassage: Bool { handlerID == .clickPassage }
+
+    /// Whether this region names no handler at all — a geometry marker, a
+    /// text's frame, a click shield or a click passage — so the mouse
+    /// dispatcher offers it no event.
+    package var namesNoHandler: Bool { isGeometryMarker || isTextFrame || isClickShield || isClickPassage }
+
+    /// Whether this region is a control's, one a click can land on: a region
+    /// naming a handler, other than a bordered box's interior
+    /// (``HandlerID/selectionInterior``), which declines every press.
+    package var takesClicks: Bool { !namesNoHandler && handlerID != .selectionInterior }
 }
 
 // MARK: - Geometry Markers

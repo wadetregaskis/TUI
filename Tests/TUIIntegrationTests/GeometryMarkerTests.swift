@@ -322,7 +322,8 @@ struct GeometryMarkerTests {
                 MarkerProbe()
             }
             .allowsHitTesting(false))
-        #expect(inert.hitTestRegions.allSatisfy { $0.isGeometryMarker })
+        // The markers, and the passage saying nothing drawn here takes a click.
+        #expect(inert.hitTestRegions.allSatisfy { $0.isGeometryMarker || $0.isClickPassage })
         #expect(onlyMarker(in: inert) == drawnProbe(in: inert))
 
         let hidden = frames.render(
@@ -338,8 +339,10 @@ struct GeometryMarkerTests {
     func clickPassesThroughMarker() {
         let frames = Frames()
         var taps = 0
+        // Under the button: the probe draws a glyph, and drawn over it, as an
+        // overlay, that glyph would take the click (owner ruling O-10 (a)).
         let view = Button("Go") { taps += 1 }
-            .overlay { MarkerProbe(width: 1, height: 1) }
+            .background { MarkerProbe(width: 1, height: 1) }
         let buffer = frames.render(view)
         guard let marker = onlyMarker(in: buffer) else {
             Issue.record("no marker")

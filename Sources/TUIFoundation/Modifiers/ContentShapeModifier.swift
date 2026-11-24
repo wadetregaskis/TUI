@@ -112,6 +112,13 @@ nonisolated struct _ContentShapeView<Content: View, S: Shape>: View {
         if kinds.contains(.interaction) {
             buffer.hitTestRegions = buffer.hitTestRegions.flatMap { $0.cut(to: kept) }
             markers += HitTestRegion.contentShapeMarkers(.interaction, keeping: kept, width: columns, height: rows)
+            // Outside the shape the view is not hit, though it draws there: drawn
+            // over a control, it leaves the control those clicks
+            // (`FrameBuffer.clickShielding(under:at:)`).
+            let outside = FrameBuffer.rectangles(columns: 0..<columns, rows: 0..<rows) { row, column in
+                !kept[row].contains { $0.contains(column) }
+            }
+            buffer.hitTestRegions += outside.map { .clickPassage(x: $0.x, y: $0.y, width: $0.width, height: $0.height) }
         }
         if kinds.contains(.dragPreview) {
             markers += HitTestRegion.contentShapeMarkers(.dragPreview, keeping: kept, width: columns, height: rows)

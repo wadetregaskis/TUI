@@ -265,7 +265,9 @@ func compositeLayer<Layer: View>(
     context: RenderContext, modifierType: Any.Type
 ) -> FrameBuffer {
     let (overlayBuffer, offset): (FrameBuffer, (x: Int, y: Int))
-    switch placeLayer(layer, in: baseBuffer, alignment: alignment, context: context, modifierType: modifierType) {
+    // Its texts filing their frames over a control (`filingTextFrames(over:)`).
+    let filingContext = context.filingTextFrames(over: baseBuffer)
+    switch placeLayer(layer, in: baseBuffer, alignment: alignment, context: filingContext, modifierType: modifierType) {
     case .alone(let buffer): return buffer
     case .baseOnly: return baseBuffer
     case .placed(let buffer, let at): (overlayBuffer, offset) = (buffer, at)

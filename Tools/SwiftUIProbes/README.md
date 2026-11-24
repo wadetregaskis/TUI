@@ -1766,4 +1766,6 @@ messages cite that path), and what cites it.
   a view at `.opacity(0)` is not hit itself either: a faded-out button is not clicked.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-23.
 - **Was:** written here.
-- **Cited by:** H-68 in the maintainers' working notes (`plan/hunt-1120/HUNT-QUEUE.md`), for owner ruling O-10 (a).
+- **Cited by:** `Sources/TUICore/Rendering/FrameBuffer+ClickShields.swift`,
+  `Sources/TUIFoundation/Rendering/TextFrames.swift`; `Tests/TUIAppTests/LayerAbsorbsClicksTests.swift`; H-68 in
+  the maintainers' working notes (`plan/hunt-1120/HUNT-QUEUE.md`), for owner ruling O-10 (a).

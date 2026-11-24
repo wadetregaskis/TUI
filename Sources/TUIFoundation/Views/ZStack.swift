@@ -111,10 +111,17 @@ struct _ZStackCore<Content: View>: View, Renderable {
             return FrameBuffer(footprintWidth: context.availableWidth, height: context.availableHeight)
         }
         let placed = childContexts(drawn, context: context)
-        let buffers = drawn.indices.map { index in
-            drawn[index].render(
+        // In order, each layer told whether one under it holds a control, for
+        // the frames its texts then file (`filingTextFrames(over:)`).
+        var buffers: [FrameBuffer] = []
+        buffers.reserveCapacity(drawn.count)
+        var under = FrameBuffer()
+        for index in drawn.indices {
+            let buffer = drawn[index].render(
                 width: context.availableWidth, height: context.availableHeight,
-                context: placed?[index] ?? context)
+                context: (placed?[index] ?? context).filingTextFrames(over: under))
+            if under.hitTestRegions.isEmpty, buffer.hitTestRegions.contains(where: \.takesClicks) { under = buffer }
+            buffers.append(buffer)
         }
         // Explicit guides on either axis, when any layer set one. They can grow
         // the frame past the largest layer — a layer hanging off the alignment

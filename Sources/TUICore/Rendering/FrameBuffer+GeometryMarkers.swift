@@ -69,8 +69,10 @@ extension FrameBuffer {
         carriesGeometryMarkers(includingSurfaces: false)
     }
 
-    /// Removes every hit-test TARGET, keeping the geometry markers and the
-    /// text frames (`HitTestRegion.HandlerID.textFrame`).
+    /// Removes every hit-test TARGET, keeping the geometry markers, the text
+    /// frames (`HitTestRegion.HandlerID.textFrame`) and the click passages
+    /// (`HitTestRegion.HandlerID.clickPassage`), which say where things are
+    /// drawn; a click shield goes with the targets it shields.
     ///
     /// For a view that makes what it wraps inert — `.allowsHitTesting(false)`,
     /// the page under a modal — rather than a view that removes it: an inert
@@ -79,7 +81,7 @@ extension FrameBuffer {
     /// Clearing ``hitTestRegions`` outright took the markers with the targets.
     public mutating func removeHitTargets() {
         guard !hitTestRegions.isEmpty else { return }
-        hitTestRegions.removeAll { !$0.isGeometryMarker && !$0.isTextFrame }
+        hitTestRegions.removeAll { !$0.isGeometryMarker && !$0.isTextFrame && !$0.isClickPassage }
     }
 }
 

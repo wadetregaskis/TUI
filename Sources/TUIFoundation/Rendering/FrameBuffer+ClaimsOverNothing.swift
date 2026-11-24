@@ -134,6 +134,10 @@ extension FrameBuffer {
     /// own claims under the overlay — an earlier layer's, carried up over the canvas
     /// it landed on — are settled first (``settlingClaims(under:at:in:)``).
     ///
+    /// The overlay takes the clicks of this buffer's controls where it draws, as a
+    /// later layer does in SwiftUI (``clickShielding(under:at:)``, owner ruling
+    /// O-10 (a), 2026-11-21).
+    ///
     /// - Parameters:
     ///   - overlay: The layer to draw on top.
     ///   - position: Where it lands, in this buffer's cells.
@@ -143,11 +147,13 @@ extension FrameBuffer {
     func compositedCarryingClaimsOverNothing(
         with overlay: Self, at position: (x: Int, y: Int), in composite: CompositeEnvironment
     ) -> Self {
+        let shielding = clickShielding(under: overlay, at: position)
         let (base, layer, kept) = prepared(overlay, at: position, in: composite)
         var result = base.composited(
             with: layer, at: position, overlayIsPainted: false,
             terminalForeground: { Self.reportedTerminalForegroundField })
         if !kept.isEmpty { result.opacityRegions = kept + result.opacityRegions }
+        result.fileClickShielding(shielding)
         return result
     }
 
@@ -156,11 +162,13 @@ extension FrameBuffer {
     package mutating func compositeCarryingClaimsOverNothing(
         with overlay: Self, at position: (x: Int, y: Int), in composite: CompositeEnvironment
     ) {
+        let shielding = clickShielding(under: overlay, at: position)
         let (base, layer, kept) = prepared(overlay, at: position, in: composite)
         self = base
         // `self.`: the parameter `composite` shadows this method.
         self.composite(with: layer, at: position, terminalForeground: { Self.reportedTerminalForegroundField })
         if !kept.isEmpty { opacityRegions = kept + opacityRegions }
+        fileClickShielding(shielding)
     }
 
     /// What compositing `overlay` onto this buffer composites: this buffer with its

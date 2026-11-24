@@ -48,7 +48,7 @@ struct HitTestingModifierTests {
         let live = buffer(Button("Press") {})
         let inert = buffer(Button("Press") {}.allowsHitTesting(false))
         #expect(!live.hitTestRegions.isEmpty)
-        #expect(inert.hitTestRegions.isEmpty)
+        #expect(inert.hitTargets.isEmpty)
     }
 
     /// Unlike `hidden()`, it still draws — that is the whole distinction.
