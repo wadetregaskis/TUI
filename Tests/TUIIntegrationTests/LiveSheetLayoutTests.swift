@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 import TUI
@@ -139,7 +140,10 @@ private struct RowSheetApp: App {
     }
 }
 
-/// What the row-hosted `item:` sheet is presented for.
+/// What the row-hosted `item:` sheet is presented for. Observed, as an app's
+/// state is: the list serves a row whose sheet is closed from its memo, and a
+/// write to an unobserved class would not reach it.
+@Observable
 @MainActor
 private final class RowItemModel {
     var note: LiveNote?

@@ -317,12 +317,7 @@ extension View {
     ) -> some View {
         _AdaptiveModal(
             base: self, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey,
-            postsDockWhileDismissed: !isAboutAnItem)
-            // On the app's binding, not the presenter's: a sheet that becomes a
-            // cover as the size class changes is not dismissed.
-            .onChange(of: isPresented.wrappedValue) { wasPresented, isPresentedNow in
-                if wasPresented, !isPresentedNow { onDismiss?() }
-            }
+            postsDockWhileDismissed: !isAboutAnItem, onDismiss: onDismiss)
     }
 
     /// Presents content modally when a binding to a Boolean value is true.
@@ -434,12 +429,14 @@ struct _AdaptiveModal<Base: View, Modal: View> {
     let style: ModalPresentationModifier<Base, Modal>.Style
     let itemKey: String?
     let postsDockWhileDismissed: Bool
+    /// Run on the presented → dismissed transition, or `nil` for none.
+    let onDismiss: (() -> Void)?
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @MainActor @ViewBuilder var body: some View {
-        ModalPresentationModifier(
+        let presenter = ModalPresentationModifier(
             content: base,
             isPresented: isPresented,
             modal: modal,
@@ -447,6 +444,19 @@ struct _AdaptiveModal<Base: View, Modal: View> {
             sizeClasses: PresentationSizeClasses(horizontal: horizontalSizeClass, vertical: verticalSizeClass),
             postsDockWhileDismissed: postsDockWhileDismissed,
             itemKey: itemKey)
+        if let onDismiss {
+            // On the app's binding, not the presenter's: a sheet that becomes a
+            // cover as the size class changes is not dismissed.
+            presenter.onChange(of: isPresented.wrappedValue) { wasPresented, isPresentedNow in
+                if wasPresented, !isPresentedNow { onDismiss() }
+            }
+        } else {
+            // Watched only where there is something to run: an `onChange`
+            // compares on every frame, a render side effect no memo can make
+            // again, so with one always attached no row carrying a sheet was
+            // ever stored.
+            presenter
+        }
     }
 }
 extension _AdaptiveModal: View {}
@@ -467,7 +477,7 @@ extension _AdaptiveModal: View {}
             }
         return _AdaptiveModal<V, Modal>(
             base: row, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey,
-            postsDockWhileDismissed: postsDockWhileDismissed)
+            postsDockWhileDismissed: postsDockWhileDismissed, onDismiss: onDismiss)
     }
 }
 

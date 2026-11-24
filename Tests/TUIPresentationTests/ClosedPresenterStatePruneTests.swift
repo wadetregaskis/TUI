@@ -67,7 +67,7 @@ private struct PruneApp: App {
 struct ClosedPresenterStatePruneTests {
     enum Presenter: CaseIterable, Sendable { case alert, sheet }
 
-    @Test("A frame that changed nothing skips the state prune's walk under a closed presenter", arguments: [Presenter.alert])
+    @Test("A frame that changed nothing skips the state prune's walk under a closed presenter", arguments: Presenter.allCases)
     func closedPresenterLeavesThePruneIdle(_ presenter: Presenter) {
         let app = TestApp(PruneApp(presenter), width: 40, height: 30)
         var now: Int64 = 0

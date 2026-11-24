@@ -321,7 +321,7 @@ struct PlainMemoRegistryTests {
     }
 
     @Test("Presentations that are not up, chrome declared from below") func presentation() {
-        compare("sheet") { _ in Text("x").sheet(isPresented: .constant(false)) { Text("s") } }
+        compare("sheet", holderServed: true) { _ in Text("x").sheet(isPresented: .constant(false)) { Text("s") } }
         compare("alert", holderServed: true) { _ in
             Text("x").alert("t", isPresented: .constant(false)) { Button("OK") {} }
         }

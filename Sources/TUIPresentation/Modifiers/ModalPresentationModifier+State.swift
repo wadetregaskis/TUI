@@ -37,16 +37,41 @@ enum ModalPresentationStateIndex {
 }
 
 @MainActor extension ModalPresentationModifier {
+    /// On a dismissed frame, tears down what the sheet left if it was up
+    /// until now: its focus section, where that holds the keyboard — which
+    /// reverts the focus to the page's section and restores its remembered
+    /// focus, so the page does not jump to its first element, which a
+    /// `ScrollView` would then scroll to — and what the presenter keeps for it
+    /// (``startOver(context:)``).
+    ///
+    /// Only the first frame after a dismissal has either: the section is the
+    /// one holding the keyboard, or the presenter's entry names the content it
+    /// drew (``PresentationEntry/contentIdentity``), which the start-over
+    /// clears. That frame declares a render side effect, which no memo can
+    /// make again. Every other dismissed frame does nothing here and declares
+    /// nothing, so the memos above a closed sheet can store; declared on every
+    /// frame, it kept every row carrying a sheet from being stored.
+    func tearDownIfJustDismissed(sectionID: String, context: RenderContext) {
+        let focusManager = context.environment.focusManager
+        let holdsSection = focusManager?.wouldDeactivateSection(id: sectionID) ?? false
+        guard holdsSection || existingPresentationEntry(context: context)?.contentIdentity != nil else { return }
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        focusManager?.deactivateSection(id: sectionID)
+        // Presented again, it is a new sheet.
+        startOver(context: context)
+    }
+
     /// Empties what the presenter keeps for the sheet it presents, so the
     /// next is a new sheet: it opens where an undragged one does, its sticky
     /// sizing starts again from its content, it rests at the bound detent or
     /// the smallest, and a live one takes the focus again, and may dock.
     ///
-    /// On the frames the sheet is closed, rather than left to the end of the
-    /// pass's prune: a presenter whose identity something else keeps — a row
-    /// of a list, which keeps every row's state, or the root of a test harness
-    /// — was never pruned, and a sheet presented again came back as it was
-    /// left.
+    /// On the frame the sheet closes
+    /// (``tearDownIfJustDismissed(sectionID:context:)``), rather than left to
+    /// the end of the pass's prune: a presenter whose identity something else
+    /// keeps — a row of a list, which keeps every row's state, or the root of
+    /// a test harness — was never pruned, and a sheet presented again came
+    /// back as it was left.
     ///
     /// The content's own state goes too, once, on the frame the sheet closes,
     /// as a branch an `if` leaves loses its own

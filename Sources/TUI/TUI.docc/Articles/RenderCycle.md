@@ -815,9 +815,10 @@ A key handler (`onKeyEvent`, or the <kbd>Ctrl</kbd>-<kbd>R</kbd> binding of
 place in the focus ring (`FocusRegistration.register`), a `.defaultFocus`
 declaration, the binding a `.focused(_:equals:)` makes, an inactive
 `.focusSection`, a `Button`'s `.keyboardShortcut`, a hit-test handler with
-the mouse features its control asks for, and the drag session's three
+the mouse features its control asks for, the drag session's three
 registrations (a drop destination, a drag auto-scroll zone, a row-reorder
-host), do not decline the cache. While a memoized subtree renders on a
+host), and the dock a dismissed sheet posts for the root to lay the page out
+by, do not decline the cache. While a memoized subtree renders on a
 miss, each such registration is also recorded, and the recording is stored with
 the buffer. Every hit then makes those registrations again, in the order they
 were made, at the point in the walk where the subtree would have rendered. So

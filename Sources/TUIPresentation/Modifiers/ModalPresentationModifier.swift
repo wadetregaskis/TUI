@@ -156,21 +156,9 @@ nonisolated package struct ModalPresentationModifier<Content: View, Modal: View>
             // it docks every frame, presented or not, for the root to lay the
             // page out by before the walk. Unbuilt: its content is built only
             // if it has been presented by the time the root asks
-            // (`postUnbuiltDock`).
+            // (`postUnbuiltDock`). A post a served memo makes again.
             if style == .sheet, postsDockWhileDismissed { postUnbuiltDock(sectionID: sectionID, context: context) }
-            // Tear down the modal focus section if it's still active (the modal
-            // was just dismissed). This reverts focus to the page's section AND
-            // restores its remembered focus, so the page doesn't jump to its
-            // first element — which a ScrollView would then snap-scroll to,
-            // resetting the scroll position.
-            if !context.isMeasuring {
-                // Deactivation mutates focus state — a render side effect
-                // (see the presentation branch below).
-                context.environment.volatileReadTracker?.recordRenderSideEffect()
-                context.environment.focusManager?.deactivateSection(id: sectionID)
-                // Presented again, it is a new sheet.
-                startOver(context: context)
-            }
+            if !context.isMeasuring { tearDownIfJustDismissed(sectionID: sectionID, context: context) }
             let buffer = TUIView.renderToBuffer(content, context: contentContext)
             context.noteDepartureDrawnWhole(of: Content.self, at: contentContext.identity, by: Self.self)
             return buffer

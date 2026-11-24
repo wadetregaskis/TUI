@@ -13,6 +13,7 @@
 import TUIChrome
 import TUICore
 import TUIFoundation
+import TUIView
 
 // MARK: - The rule a live sheet docks by
 
@@ -126,6 +127,10 @@ final class PresentationEntry {
 
 // MARK: - Presenting live
 
+/// The journal kind of a dismissed sheet's dock post
+/// (`ModalPresentationModifier.postUnbuiltDock(sectionID:context:)`).
+private let dismissedSheetDockKind = EffectJournal.Kind("dismissedSheetDock")
+
 @MainActor extension ModalPresentationModifier {
     /// Posts, for the root, the rows this presented sheet docks
     /// (`FocusManager.notePresentationDock(id:resolver:)`), where its content
@@ -177,25 +182,42 @@ final class PresentationEntry {
     /// root asks, which a dismissed sheet answers with one read of its
     /// binding. What the presenter keeps for a presentation — the detent the
     /// reader moved it to, the hold off the dock, the rows it drew short of
-    /// its detent — is emptied on every frame the sheet is closed, straight
-    /// after this post (`startOver(context:)`), so a sheet presented before
+    /// its detent — is emptied on the frame the sheet closes, straight after
+    /// this post (`tearDownIfJustDismissed`), so a sheet presented before
     /// the root asks rests where a new one does: the resolver makes a fresh
     /// detent record then, and keeps no entry. Looked up here, they cost every
     /// dismissed sheet two lookups in the state storage and two reads of its
     /// binding per frame, and one never presented a new detent record, for
     /// nothing.
+    ///
+    /// A post a served memo makes again, from its journal, into the frame that
+    /// serves it — the same resolver, for the same presenter — so a row holding
+    /// a dismissed sheet can be stored, and a sheet the app presents from a
+    /// served row still docks on its first frame. Neither posted nor journaled
+    /// where no root reads the frame's docks (``dockLedger(_:)``): the
+    /// focus-reach probe's scratch manager, a test host's. A journaled post
+    /// holds its resolver, and the resolver the environment it was drawn in,
+    /// for as long as the memo keeps the row: under a probe's manager, that
+    /// kept every probe's manager alive past its frame.
     func postUnbuiltDock(sectionID: String, context: RenderContext) {
-        guard let focusManager = Self.dockLedger(context) else { return }
+        guard let ledger = Self.dockLedger(context) else { return }
         let isPresented = self.isPresented
         let build = self.modal
         let (style, sizeClasses) = (self.style, self.sizeClasses)
         let environment = context.environment
-        focusManager.notePresentationDock(id: sectionID, presenter: context.identity) { contentHeight in
+        let presenter = context.identity
+        let resolver: PresentationDockResolver = { contentHeight in
             guard isPresented.wrappedValue, let live = Self.live(build(), style: style, sizeClasses: sizeClasses)
             else { return nil }
             return Self.dockedRows(
                 live, extent: contentHeight, environment: environment, state: SheetDetentState(), entry: nil)
         }
+        ledger.notePresentationDock(id: sectionID, presenter: presenter, resolver: resolver)
+        environment.volatileReadTracker?.recordReplayableEffect()
+        context.recordingEffectJournal?.append(
+            EffectJournal.Entry(kind: dismissedSheetDockKind, channelToken: environment.keyChannelToken) { replay in
+                Self.dockLedger(replay)?.notePresentationDock(id: sectionID, presenter: presenter, resolver: resolver)
+            })
     }
 
     /// The focus manager a sheet drawn in `context` posts its dock to, or

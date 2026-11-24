@@ -410,6 +410,25 @@ was closed (`ModalPresentationModifier.postsDockWhileDismissed`).
 head of the lane against both; ran 2026-10-16): the lazy content −4.5% (CI −5.6
 to −4.0), the lane's head against the commit before the lazy content −4.8%.
 
+**A post a memo replays (H-81, 2026-11-24).** The post is a per-frame
+registration, so a memo serving the subtree that holds a dismissed sheet would
+skip it, and the first frame of a sheet the app presented from a served row
+would draw it over the page. That was safe only because a dismissed sheet also
+declared a render side effect on every frame, which kept every memo above it
+from storing: no row carrying a sheet was ever served. The post is now
+journaled (`postUnbuiltDock`, `recordReplayableEffect`): a served memo makes
+it again, the same resolver for the same presenter, into the frame that
+serves it, and the side effect is declared only on the frame after a
+dismissal, which tears the sheet's section and records down. The other way
+out, keeping the decline for every sheet that posts, was priced against it
+(`Tools/Profiling/ab_bench.py`, CPU per frame, release, the decline as the old
+binary): `session/notes` +3.1% (CI −9.8 to +14.1), `session/inbox-docked`
++0.3% (−1.9 to +0.8), `session/inbox-sheet` +1.3% (−3.1 to +3.9),
+`sheetrows` −0.5% (−3.6 to +0.1), each indistinguishable. Replaying costs
+nothing measurable, and it is what lets a row holding a closed sheet be
+served: 20 such rows composed 20 a frame on an idle page, and compose none
+(`ClosedSheetRowMemoTests`).
+
 **Fuller version, if the A/B says the post costs more than the build saved:**
 key the posts by the presenter's identity, not by its section's name, which
 is rendered from the identity's path on every frame, dismissed or not. Or

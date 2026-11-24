@@ -58,6 +58,13 @@ several times a frame, and compared it with the text its matches were of: 12.4 m
 1.3 ms with the bar down. It now reads the characters the editor keeps for the value, which cost nothing while the
 value is unchanged, and a key costs 2.3 ms.
 
+**A row carrying a `.sheet` that is not up is served from the row memo.** A dismissed sheet kept every memo above it
+from storing, on every frame, as a closed alert did, and for two more reasons: the dock it posts so that a sheet the
+app opens docks on its first frame, and the `onChange` that runs `onDismiss`, attached when there was no `onDismiss`.
+A served row now posts its sheet's dock again from the memo, a sheet with no `onDismiss` watches nothing, and only
+the frame after a sheet closes declines. A sheet opened from a served row still docks on its first frame. What
+presents it must be observed state, as for an alert.
+
 **A row carrying an `.alert` that is not up is served from the row memo.** A dismissed alert declared, on every
 frame, the one thing it does then that no memo can make again, giving back the focus a just-closed alert held, so
 nothing above it was ever kept: fifty rows each carrying an `.alert` were all composed again on every frame, and an
