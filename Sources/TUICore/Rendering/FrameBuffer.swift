@@ -663,8 +663,7 @@ extension FrameBuffer {
         // Pre-compute the new width
         let newWidth = myWidth + spacingApplied + other.width
 
-        var result: [String] = []
-        result.reserveCapacity(maxHeight)
+        let priorHeight = storage.count
         // Settled before the loop — see below it — so a uniform result, the
         // common one-line row, builds no `widths` it would not keep.
         let resultUniform =
@@ -674,37 +673,40 @@ extension FrameBuffer {
         var widths: [Int] = []
         if !resultUniform { widths.reserveCapacity(maxHeight) }
 
+        // Each row grows IN PLACE: the left line padded to `myWidth`, then
+        // `spacing` spaces, then the right line, appended to the row already
+        // here. Building it afresh — reserve, copy the left line in, append —
+        // copied the accumulated row once per child, so a row of k children
+        // copied O(k²) bytes: the horizontal twin of `appendVertically`'s
+        // accumulator (hunt 11-20, CORE1-8; 799 fresh row buffers for 800
+        // one-cell children, `FrameBufferCombineScalingTests`). A row unique to
+        // this buffer grows geometrically, so a row's appends are amortised
+        // O(bytes added); a row still shared with another buffer is copied once,
+        // at its first append. No `reserveCapacity`: reserving the exact length
+        // on each append would reallocate on each, as `appendVertically` notes.
+        //
+        // Reuse a known visible width instead of re-measuring per row: a
+        // uniform buffer's lines are each exactly `myWidth`, and a ragged buffer
+        // that carries `lineWidths` already knows each row's width. Only an
+        // unmeasured ragged buffer falls back to `strippedLength`. Rows past this
+        // buffer's height are zero-wide. Asked before the rows are added, and of
+        // a line read and let go before its row is written, so the row is still
+        // unique when it grows.
+        if priorHeight < maxHeight {
+            storage.append(contentsOf: repeatElement("", count: maxHeight - priorHeight))
+        }
         for row in 0..<maxHeight {
-            var left = row < lines.count ? lines[row] : ""
             let right = row < other.lines.count ? other.lines[row] : ""
-
-            // Build each combined row in place: the left line padded to `myWidth`,
-            // then `spacing` spaces, then the right line. This is byte-identical to
-            // `left.padToVisibleWidth(myWidth) + spacer + right` but allocates the
-            // row once (capacity reserved) and appends the padding/gap as borrowed
-            // spaces — no per-row `String(repeating:)` spacer and no `+`-chain
-            // intermediates. The left pad replicates `padToVisibleWidth`: append
-            // `myWidth - leftWidth` trailing spaces only when the line is narrower.
-            // Reuse a known visible width instead of re-measuring per row: a
-            // uniform buffer's lines are each exactly `myWidth`, and a ragged
-            // buffer that carries `lineWidths` already knows each row's width.
-            // Only an unmeasured ragged buffer falls back to `strippedLength`
-            // (the dominant cost this avoids). Rows past this buffer's height
-            // are zero-wide.
-            var leftWidth = knownWidth(ofRow: row, line: left)
+            var leftWidth = row < priorHeight ? knownWidth(ofRow: row, line: storage[row]) : 0
+            // A negative gap cuts this row where `other` starts.
             if spacingApplied < 0, leftWidth > leftColumns {
-                left = left.ansiAwarePrefix(visibleCount: leftColumns)
-                leftWidth = left.strippedLength
+                storage[row] = storage[row].ansiAwarePrefix(visibleCount: leftColumns)
+                leftWidth = storage[row].strippedLength
             }
             let leftPad = max(0, leftColumns - leftWidth)
-            var combined = ""
-            combined.reserveCapacity(
-                left.utf8.count + leftPad + max(0, spacingApplied) + right.utf8.count)
-            combined += left
-            if leftPad > 0 { combined += asciiSpaces(leftPad) }
-            if spacingApplied > 0 { combined += asciiSpaces(spacingApplied) }
-            combined += right
-            result.append(combined)
+            if leftPad > 0 { storage[row] += asciiSpaces(leftPad) }
+            if spacingApplied > 0 { storage[row] += asciiSpaces(spacingApplied) }
+            storage[row] += right
             if !resultUniform {
                 widths.append(
                     max(leftWidth, leftColumns) + max(0, spacingApplied) + other.knownWidth(ofRow: row, line: right))
@@ -722,7 +724,6 @@ extension FrameBuffer {
         // be zero-wide). So the result is uniform exactly when both sides are
         // uniform and `other` is at least as tall — anything less certain stays
         // the safe `false` ("unknown", byte-identical: the consumer re-measures).
-        storage = result
         width = newWidth
         linesAreUniformWidth = resultUniform
         // Known row by row: the left padded to `myWidth` (or wider, where a

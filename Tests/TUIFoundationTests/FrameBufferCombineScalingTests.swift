@@ -233,4 +233,47 @@ struct FrameBufferCombineScalingTests {
             copying the whole accumulator per child again.
             """)
     }
+
+    // MARK: - Side by side
+
+    /// One styled cell, as a row of `Text`s or a run of coloured cells hands
+    /// the stack.
+    private static let styledCell = FrameBuffer(lines: ["\u{1B}[31mx\u{1B}[0m"])
+
+    /// `appendHorizontally` built each row afresh per child — the accumulated
+    /// row copied into a new string, then the child's line after it — so a row
+    /// of k children copied O(k²) bytes, the horizontal twin of the vertical
+    /// accumulator fixed above (hunt 11-20, CORE1-8). This counts how often the
+    /// accumulated row's string is given a new buffer, as
+    /// `carriedWidthsAreNotCopiedPerChild` counts the vertical one's: grown in
+    /// place it reallocates as its capacity doubles; built afresh, on every
+    /// child (799 of 800 before the fix, 9 after).
+    ///
+    /// Not a CPU-time ratio like the guards above: at 100 against 800 one-cell
+    /// children the copies are a few kilobytes, the per-append bookkeeping
+    /// outweighs them, and the copying append read 8.2× — linear — so a ratio
+    /// would pass the defect it is meant to catch.
+    @Test("The accumulated row grows in place rather than being copied per child")
+    func horizontalRowIsNotCopiedPerChild() {
+        let count = 800
+        var result = FrameBuffer()
+        var freshBuffers = 0
+        var lastIdentity = UInt.max
+        for _ in 0..<count {
+            result.appendHorizontally(Self.styledCell, spacing: 0)
+            // Read between appends and never held across one (see above). A row
+            // of under 16 bytes is stored inline, with no buffer to name.
+            guard result.lines[0].utf8.count > 15 else { continue }
+            let identity =
+                result.lines[0].utf8.withContiguousStorageIfAvailable { bytes in
+                    unsafe bytes.baseAddress.map { unsafe UInt(bitPattern: UnsafeRawPointer($0)) } ?? 0
+                } ?? 0
+            if identity != lastIdentity { freshBuffers += 1 }
+            lastIdentity = identity
+        }
+        #expect(result.lines == [String(repeating: "\u{1B}[31mx\u{1B}[0m", count: count)])
+        #expect(
+            freshBuffers < count / 10,
+            "the accumulated row was given a new buffer \(freshBuffers) times for \(count) appends")
+    }
 }
