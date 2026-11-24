@@ -103,9 +103,13 @@ enum DirectoryListing {
             #if os(Windows)
                 items = try windowsItems(of: directory)
             #else
+                // The keys made once a listing: `keys` is computed, and an
+                // array and a set of them were built for each item read.
+                let keys = Self.keys
+                let keySet = Set(keys)
                 items = try FileManager.default.contentsOfDirectory(
                     at: directory, includingPropertiesForKeys: keys, options: []
-                ).map { ($0.lastPathComponent, ItemFacts(try? $0.resourceValues(forKeys: Set(keys)))) }
+                ).map { ($0.lastPathComponent, ItemFacts(try? $0.resourceValues(forKeys: keySet))) }
             #endif
         } catch {
             return .failure(

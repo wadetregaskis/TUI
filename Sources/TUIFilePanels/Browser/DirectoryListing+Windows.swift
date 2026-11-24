@@ -156,8 +156,9 @@ extension DirectoryListing {
     /// The items by `FileManager`, by name, each read one by one: for a folder
     /// the enumeration could not open, so its error is Foundation's.
     private static func foundationItems(of directory: URL) throws -> [(name: String, facts: ItemFacts)] {
-        try FileManager.default.contentsOfDirectory(atPath: directory.path).map { name in
-            let values = try? directory.appendingPathComponent(name).resourceValues(forKeys: Set(keys))
+        let keySet = Set(keys)
+        return try FileManager.default.contentsOfDirectory(atPath: directory.path).map { name in
+            let values = try? directory.appendingPathComponent(name).resourceValues(forKeys: keySet)
             return (name, ItemFacts(values))
         }
     }
