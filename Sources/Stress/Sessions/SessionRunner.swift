@@ -130,6 +130,10 @@ enum SessionRunner {
         /// How the warm instance's frames settled, its opening frame included:
         /// how many its effects made walk again before they were written.
         var effectSettling = EffectStage.Settling()
+        /// How often each end-of-pass prune walked its entries over the
+        /// steps, the opening frame left out: "render cache walked W of P,
+        /// state walked W of P" (`PruneWitness`).
+        var prunes = ""
 
         /// Whether the run found nothing wrong: no divergence from the twin, no
         /// frame that failed the session's own check, and a deterministic script.
@@ -204,6 +208,7 @@ enum SessionRunner {
         if options.checks { checkFrame(of: warm, after: -1, action: "open", into: &report) }
 
         let countsAtOpen = warm.cacheCounts()
+        let prunesAtOpen = warm.pruneCounts()
         report.censusAtOpen = warm.census()
         report.leasesAtOpen = warm.leaseCounts()
         var staleSoFar = warm.staleServes().count
@@ -276,6 +281,9 @@ enum SessionRunner {
         report.cacheStats = counts.stats.delta(since: countsAtOpen.stats)
         report.rowWork = counts.rows.delta(since: countsAtOpen.rows)
         report.effectSettling = warm.effectSettling()
+        let prunes = warm.pruneCounts()
+        report.prunes = "render cache \(prunes.cache.delta(since: prunesAtOpen.cache)), "
+            + "state \(prunes.state.delta(since: prunesAtOpen.state))"
         report.memoVerified = RenderCache.verifiesRenderMemo
         report.staleServes = warm.staleServes()
         report.sizesVerified = RenderCache.verifiesMeasureMemo
@@ -539,6 +547,7 @@ enum SessionRunner {
                 + "value memos: \(stats.hits) hits, \(stats.misses) misses, \(stats.stores) stores; "
                 + "subtree clears: \(stats.subtreeClears) (\(stats.clearVisits) entries visited)")
         Swift.print("  effects: \(report.effectSettling)")
+        Swift.print("  prune walks: \(report.prunes)")
         for line in report.checkpoints { Swift.print("  " + line) }
         for line in censusLines(report) { Swift.print("  " + line) }
         if let finish = report.finish { Swift.print("  finish: " + finish) }

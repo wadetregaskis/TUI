@@ -512,6 +512,10 @@ package final class HeadlessApp {
     /// what their effects wrote before they were written (`FrameSettling`).
     package var effectSettling: EffectStage.Settling { tuiContext.stateStorage.effectStage.settling }
 
+    /// How many of the state storage's end-of-pass prunes ran, and how many
+    /// walked its values rather than skipping (``PruneCounts``).
+    package var statePruneCounts: PruneCounts { tuiContext.stateStorage.pruneCounts }
+
     /// The text of the latest copy the app made — a control's, a
     /// `.copyable`'s, a `\.copyToClipboard` call's — whatever became of it.
     package var lastCopiedText: String? { tuiContext.clipboardWriter.lastCopiedText }

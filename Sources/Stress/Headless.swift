@@ -522,6 +522,30 @@ enum Headless {
                 + "\(render.subtreeClears) subtree (\(render.clearVisits) entries visited)")
     }
 
+    /// The prune counts of a bench's context before its loop.
+    private struct PrunesBefore {
+        let cache: PruneCounts?
+        let state: PruneCounts?
+    }
+
+    /// What the last frame's render-cache prune walked and dropped, and how
+    /// often each prune — the render cache's and the state storage's —
+    /// walked its entries over the loop rather than skipping: a pass that
+    /// stored nothing and marked what the last did skips it (`PruneWitness`).
+    /// No counts for `--cold`, whose every frame has tables of its own.
+    @MainActor
+    private static func printPrunes(of warm: RenderContext, since before: PrunesBefore?) {
+        if let prune = warm.renderCache?.lastPruneSummary {
+            print("  prune (last frame): \(prune)")
+        }
+        guard let before, let cache = before.cache, let now = warm.renderCache?.pruneCounts else { return }
+        var line = "  prune walks: render cache \(now.delta(since: cache))"
+        if let state = before.state, let nowState = warm.stateStorage?.pruneCounts {
+            line += ", state \(nowState.delta(since: state))"
+        }
+        print(line)
+    }
+
     /// The scenario as `--bench` draws it: under `--stripes`, every table and
     /// list in it under one alternating-row behaviour — see
     /// `StressConfig.stripes`.
@@ -591,6 +615,7 @@ enum Headless {
             requested: countsObservation, cold: cold, cache: warm.renderCache)
         let correctionsBefore = channels.geometryCorrections
         let settlingBefore = warm.stateStorage?.effectStage.settling
+        let prunesBefore = PrunesBefore(cache: warm.renderCache?.pruneCounts, state: warm.stateStorage?.pruneCounts)
         for iteration in 0..<iterations {
             if iteration.isMultiple(of: 64) { memory.sample() }
             if cold {
@@ -682,9 +707,7 @@ enum Headless {
             print("  MEASURE MEMO MISMATCHES (\(mismatches.count)):")
             for line in mismatches { print("    \(line)") }
         }
-        if let prune = warm.renderCache?.lastPruneSummary {
-            print("  prune (last frame): \(prune)")
-        }
+        printPrunes(of: warm, since: cold ? nil : prunesBefore)
 
         // A timing is only a measurement of the scenario if the scenario was
         // actually drawn. Reporting these as a failure rather than a note is

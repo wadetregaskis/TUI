@@ -198,6 +198,9 @@ import TUICore
     /// cache's prune does). Internal for the objects' extension, which stores.
     var pruneWitness = PruneWitness()
 
+    /// How many prunes ran and how many walked the values (``PruneCounts``).
+    package var pruneCounts: PruneCounts { pruneWitness.counts }
+
     private var activeIdentities: Set<ViewIdentity> = []
 
     /// Subtree roots whose descendants' state survives this pass's prune even

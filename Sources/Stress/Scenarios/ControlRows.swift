@@ -62,6 +62,26 @@ enum ControlRowsMatrix {
         variant("tap-stable", "the same rows held still, so the row memo serves them") { config in
             rows(config, "tap-stable", stable: true) { _, h in Text(verbatim: Synth.name(h)).onTapGesture(count: 1) {} }
         },
+        variant("alert", "text rows, each carrying an .alert nobody presents") { config in
+            rows(config, "alert") { _, h in
+                Text(verbatim: Synth.name(h)).alert("Delete?", isPresented: .constant(false)) { Button("Delete") {} }
+            }
+        },
+        variant("alert-stable", "the same rows held still, so the row memo may serve them") { config in
+            rows(config, "alert-stable", stable: true) { _, h in
+                Text(verbatim: Synth.name(h)).alert("Delete?", isPresented: .constant(false)) { Button("Delete") {} }
+            }
+        },
+        variant("sheet", "text rows, each carrying a .sheet nobody presents") { config in
+            rows(config, "sheet") { _, h in
+                Text(verbatim: Synth.name(h)).sheet(isPresented: .constant(false)) { Text(verbatim: "sheet") }
+            }
+        },
+        variant("sheet-stable", "the same rows held still, so the row memo may serve them") { config in
+            rows(config, "sheet-stable", stable: true) { _, h in
+                Text(verbatim: Synth.name(h)).sheet(isPresented: .constant(false)) { Text(verbatim: "sheet") }
+            }
+        },
         variant("labels", "Label(_:systemImage:) rows in the default label style") { config in
             rows(config, "labels") { _, h in Label(Synth.name(h), systemImage: "doc") }
         },

@@ -215,6 +215,9 @@ final class DrivenSession {
     /// How the app's frames settled so far: how many its effects made walk
     /// again (`FrameSettling`).
     let effectSettling: () -> EffectStage.Settling
+    /// How many of the render cache's and the state storage's end-of-pass
+    /// prunes ran, and how many walked their entries rather than skipping.
+    let pruneCounts: () -> (cache: PruneCounts, state: PruneCounts)
     /// How many entries each of the app's caches holds (`--cache-sizes`).
     let cacheEntryCounts: () -> [(name: String, count: Int)]
 
@@ -292,6 +295,7 @@ final class DrivenSession {
         staleSizes = { app.renderCache.measureMemoMismatches }
         cacheCounts = { (app.renderCache.stats, app.renderCache.rowWork) }
         effectSettling = { app.effectSettling }
+        pruneCounts = { (app.renderCache.pruneCounts, app.statePruneCounts) }
         cacheEntryCounts = { app.cacheEntryCounts }
     }
 }

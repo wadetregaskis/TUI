@@ -53,6 +53,11 @@ struct PruneWitness {
     /// its retained index is sized for, which a prune that skipped the walk
     /// does not reset to nothing.
     private(set) var expectedChecks = 0
+    /// How many prunes ran, and how many of those walked the entries: how
+    /// often the skip held, for a harness that reports it (`Stress --bench`'s
+    /// prune lines). Kept across ``reset()``, which forgets only what the
+    /// next prune decides from.
+    private(set) var counts = PruneCounts()
 
     /// Whether a prune now would keep every entry: nothing stored or marked
     /// suspect since the last, and the same identities marked and retained.
@@ -69,6 +74,8 @@ struct PruneWitness {
     /// A prune ran, and walked the entries or not: what the pass marked and
     /// retained is what it decided from.
     mutating func notePrune(walked: Bool) {
+        counts.prunes &+= 1
+        if walked { counts.walks &+= 1 }
         changes = 0
         prunedThisPass = true
         self.walked = walked
@@ -93,7 +100,23 @@ struct PruneWitness {
 
     /// Forgets the last prune, as after the cache is reset.
     mutating func reset() {
+        let counts = counts
         self = Self()
+        self.counts = counts
+    }
+}
+
+/// How many prunes a render cache or a state storage ran, and how many of
+/// them walked every entry rather than skipping (``PruneWitness``).
+package struct PruneCounts: Equatable, Sendable {
+    /// Prunes run.
+    package var prunes = 0
+    /// Of ``prunes``, those that walked the entries.
+    package var walks = 0
+
+    /// The prunes run since `earlier`, as "walked W of P".
+    package func delta(since earlier: Self) -> String {
+        "walked \(walks &- earlier.walks) of \(prunes &- earlier.prunes)"
     }
 }
 
