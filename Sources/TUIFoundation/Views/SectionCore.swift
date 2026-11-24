@@ -78,8 +78,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
             let layout = context.environment.pinnedSectionLayout
         else { return nil }
         return OwningStack(
-            pins: (scope.pinsHeaders, scope.pinsFooters), layout: layout, windowsLoops: scope.windowsSectionLoops,
-            writtenOut: scope.writesOut(sectionAt: context.identity))
+            pins: (scope.pinsHeaders, scope.pinsFooters), layout: layout, windowsLoops: scope.windowsSectionLoops)
     }
 
     /// `context` for what the section draws, which is no section of the

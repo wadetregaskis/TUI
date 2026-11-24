@@ -3013,9 +3013,11 @@ still runs.
   `scrollTargetLayout()` or not, and with its rows read back by
   `.scrollPosition` or `onScrollTargetVisibilityChange` one by one, as the
   stack drawn whole reads them, pinned or not, and with a section beside
-  the loop; so is a lazy stack's own `Section` written out around a loop.
-  Not yet where a section beside the loop may hold a long loop of its own,
-  unpinned, or where a loop makes the sections.
+  the loop; so is a lazy stack's own `Section` written out around a loop,
+  and so are the sections a loop makes, `ForEach(groups) { Section {
+  ForEach(group.rows) } }`, as their rows together, or the sections, cross
+  256 (the owner's H71-SECTIONS (b), 2026-11-24). Not yet where a section
+  beside the loop may hold a long loop of its own, unpinned.
 - **Why:** an app has SwiftUI's remedy for an eager container, the lazy type,
   only where one exists; elsewhere TUI must not make it pay for every row. A
   `GroupBox` of 10,000 rows built every row on every frame (1.5 to 14 s a

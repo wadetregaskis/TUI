@@ -174,7 +174,15 @@ views' state starts afresh once, the first time an app runs on this version. So 
 `scrollTargetLayout()`, or in a scroll view with a `.scrollPosition` binding or an `onScrollTargetVisibilityChange`, a
 stack that pins its sections, one with a section beside the loop, and a lazy stack's own `Section` written around the
 loop — `LazyVStack { Section { ForEach(results) { … } } header: { TextField("Filter", text: $query) } }`. A section
-beside the loop that holds a loop of its own, unpinned, and sections a loop makes, still change at 256.
+beside the loop that holds a loop of its own, unpinned, still changes at 256.
+
+**A lazy stack's sections made by a loop keep their rows' state and focus across 256 rows.** In `LazyVStack {
+ForEach(groups) { group in Section(group.name) { ForEach(group.rows) { … } } } }`, pinned or not, with a title above
+it or not, each section laid its rows out one way while the sections' rows together were 256 or fewer and another way
+past that, so a row's `@State` and `.task` started again, and the focus left its row, each time the rows crossed 256,
+either way, or the sections themselves did. Each such section is now drawn the same way at any count, as SwiftUI's
+rows keep their state; the rows' state starts afresh once, the first time an app runs on this version. Below 256 rows
+the stack still measures every row and places it exactly.
 
 **A scroll view reads back each row of a lazy stack with a heading above its loop.** `.scrollPosition(id:)`,
 `onScrollTargetVisibilityChange` and `.viewAligned` over a stack marked `scrollTargetLayout()` now see each row of

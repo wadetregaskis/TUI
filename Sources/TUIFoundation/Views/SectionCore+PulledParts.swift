@@ -17,55 +17,56 @@ import TUICore
 import TUIView
 
 /// The lazy stack a section is one of the own sections of, as the section
-/// draws for it: what it pins, how it lays out its children, whether its
+/// draws for it: what it pins, how it lays out its children, and whether its
 /// sections' loops together pass its threshold
-/// (``PinnedSectionScope/windowsSectionLoops``), and whether the section is
-/// written out in its content rather than made by a loop
-/// (``PinnedSectionScope/writesOut(sectionAt:)``).
+/// (``PinnedSectionScope/windowsSectionLoops``).
 struct OwningStack {
     let pins: (headers: Bool, footers: Bool)
     let layout: PinnedSectionLayout
     let windowsLoops: Bool
-    let writtenOut: Bool
 }
 
 extension _SectionCore {
     /// The section as a column of its parts, at a step of its own
     /// (``_ImplicitColumnOfSeveral``), when it is one of a lazy stack's own
-    /// sections down a column and its content is a loop past the lazy stack's
-    /// threshold, in scroll content (``sectionContentLoopWindows(_:whateverItsCount:in:)``),
-    /// or a loop of any count, written out in the stack's content; `nil`
-    /// otherwise, and the section lays its parts out whole.
+    /// sections down a column and its content is a loop, of any count, in
+    /// scroll content (``sectionContentLoopWindows(_:whateverItsCount:in:)``);
+    /// `nil` otherwise, and the section lays its parts out whole.
     ///
-    /// Written out — `LazyVStack { Section { ForEach(results) } header: {
-    /// TextField(…) } }` — it is the column whatever its loop's count, so its
-    /// parts keep their identities as a filtered loop crosses the threshold
-    /// (the owner's O-14 (c), 2026-11-21): taken apart below it and drawn whole
-    /// above, the field lost the focus at each crossing and every row its
-    /// state. A section a loop makes keeps the threshold: whole at every
-    /// count, a stack of many small sections would place each as a pulled
-    /// column of estimated rows, where it measures each whole and places it
-    /// exactly (the SCROLL-FIT design's S7).
+    /// Whatever the loop's count, and whether the section is written out in
+    /// the stack's content — `LazyVStack { Section { ForEach(results) } header:
+    /// { TextField(…) } }` — or made there by a loop — `ForEach(groups) {
+    /// Section { ForEach(group.rows) } }` — so its parts keep their identities
+    /// as its loop, or the rows of the stack's sections together, cross the
+    /// threshold. Laid out whole at or below it and drawn as the column past
+    /// it, a filter in the header lost the focus at each crossing and every
+    /// row its state (the owner's O-14 (c), 2026-11-21, for a section written
+    /// out; H71-SECTIONS (b), 2026-11-24, for sections a loop makes, as in
+    /// SwiftUI). The column does not price its rows by a sample for it: at
+    /// or below the threshold its loop's lazy stack draws every row
+    /// (`windowsAnyCount` unset), so the section measures and places as
+    /// laid out whole, and a stack of many small sections keeps its exact
+    /// placement (the SCROLL-FIT design's S7).
     ///
     /// The column lays the parts out as the stack would, at its alignment and
     /// spacing, and its loop, one of the column's views, is drawn as a lazy
     /// stack at the same alignment and spacing (``ImplicitColumnRowLayout``),
-    /// a pulled child of the column. So only the rows on screen are built.
-    /// The parts' identities are the column's, not those the section laid
-    /// out whole gives them, so a loop growing past the threshold starts its
-    /// rows' state afresh, once, as a `GroupBox`'s does.
+    /// a pulled child of the column past the threshold. So only the rows on
+    /// screen are built. The parts' identities are the column's, not those
+    /// the section laid out whole gave them, so their state starts afresh
+    /// once, when an app first runs on this.
     ///
     /// `windowsLoop`: the stack's sections' loops together pass its
     /// threshold (``PinnedSectionScope/windowsSectionLoops``), so this one's
-    /// is drawn so however few its elements, and the lazy stack estimates its
-    /// rows from a sample as one past the threshold does.
+    /// lazy stack estimates its rows from a sample, however few its elements,
+    /// as one past the threshold does.
     func pulledPartsColumn(
         of stack: OwningStack, context: RenderContext
     ) -> (column: _VStackCore<Section<Parent, Content, Footer>>, context: RenderContext)? {
         let layout = stack.layout
         let windowsLoop = stack.windowsLoops
         guard layout.axis == .vertical, isExpanded?.wrappedValue ?? true,
-            sectionContentLoopWindows(content, whateverItsCount: windowsLoop || stack.writtenOut, in: context)
+            sectionContentLoopWindows(content, whateverItsCount: true, in: context)
         else { return nil }
         let alignment = layout.alignment.horizontal
         let column = _VStackCore(

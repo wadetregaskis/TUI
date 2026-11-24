@@ -81,11 +81,13 @@ struct PinnedSectionScope: Equatable {
     var pinsFooters: Bool
 
     /// Whether the stack's sections' loops together pass its threshold, so
-    /// the stack prices its rows by a sample and each own section draws its
-    /// loop as a lazy stack of its own, however few its elements
-    /// (`_SectionCore.pulledPartsColumn`): a few sections of a few hundred
-    /// rows are as many rows as one loop past the threshold, and measured
-    /// whole, every one was built for each measure of the stack.
+    /// the stack prices its rows by a sample and each own section's loop,
+    /// drawn as a lazy stack of its own whatever its count
+    /// (`_SectionCore.pulledPartsColumn`), prices its rows so however few
+    /// its elements: a few sections of a few hundred rows are as many rows as
+    /// one loop past the threshold, and measured whole, every one was built
+    /// for each measure of the stack. Placement only: the sections and their
+    /// rows have the same identities either side of it (H71-SECTIONS (b)).
     var windowsSectionLoops = false
 
     /// Whether this scope is the stack's at `identity` and windows its
@@ -104,9 +106,10 @@ struct PinnedSectionScope: Equatable {
 
     /// Whether the section at `identity`, one of the stack's own, is written
     /// out in its content rather than made there by a `ForEach`: no keyed
-    /// step lies between them. Such a section draws a loop it holds as a lazy
-    /// stack of its own whatever its count (`_SectionCore.pulledPartsColumn`,
-    /// the owner's O-14 (c)).
+    /// step lies between them. Unpinned, such a section stays whole around a
+    /// loop whatever its count (`Section.staysWhole(in:)`, the owner's O-14
+    /// (c)), as a loop's sections always do, so it draws as the column of its
+    /// parts (`_SectionCore.pulledPartsColumn`).
     func writesOut(sectionAt identity: ViewIdentity) -> Bool {
         var cursor = identity
         while cursor.depth > Int(stackDepth), let parent = cursor.parent {

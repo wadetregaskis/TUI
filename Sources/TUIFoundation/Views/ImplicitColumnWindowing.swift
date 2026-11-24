@@ -360,9 +360,12 @@ package struct ImplicitColumnRowLayout: Equatable, Sendable {
     let alignment: HorizontalAlignment
     let spacing: Int
     var pinnedViews: PinnedScrollableViews = []
-    /// Whether the loop is drawn as a lazy stack however few its elements:
-    /// a section's, in a lazy stack whose sections' loops together pass the
-    /// threshold (``PinnedSectionScope/windowsSectionLoops``).
+    /// Whether the loop's lazy stack prices its rows by a sample however few
+    /// its elements (`_VStackCore.estimatesWhateverItsCount`): a section's, in
+    /// a lazy stack whose sections' loops together pass the threshold
+    /// (``PinnedSectionScope/windowsSectionLoops``). Unset, a loop at or below
+    /// the threshold is still drawn as a lazy stack under the column, which
+    /// draws every row of so few.
     var windowsAnyCount = false
 }
 

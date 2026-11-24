@@ -2326,3 +2326,37 @@ beside the loop holding a loop of its own.
 H-71's A/B of `app-shapes/headed-lazy-short` and `headed-box-short` measured the flat stack on both sides: their
 scroll views are bound to a `ScrollPosition`, which kept them at the threshold. Taking the step there, they are 10.1%
 and 54.3% faster (the commit that made it).
+
+**Sections a loop makes (H71-SECTIONS (b), 2026-11-24).** `LazyVStack { ForEach(groups) { group in
+Section(group.name) { ForEach(group.rows) { … } } } }`, pinned or not, a title above or not: each of the stack's own
+sections laid its parts out whole (`renderStacked`) while the sections' rows together were 256 or fewer, and drew them
+as the column of its parts (`pulledPartsColumn`, `_ImplicitColumnOfSeveral`'s step) past that, so at each crossing,
+either way, every row's `@State` started afresh and the focus left its row (`SectionLoopCrossingTests`: all eight
+shapes, spacing 0 and 1, failed on 4cfb53cd4 growing 250 → 260 and shrinking 260 → 250). The owner chose (b), the
+step at every count, so rows keep their state as in SwiftUI. Now one of a lazy stack's own sections whose content is a
+loop is the column of its parts whatever the count, written out or made by a loop (`pulledPartsColumn`,
+`whateverItsCount: true`; `OwningStack.writtenOut` is gone).
+
+What the step does not take: the sample. The column's loop is a lazy stack at any count, but it prices its rows by
+sixteen only where the stack's sections' loops together pass the threshold (`windowsAnyCount`, from
+`windowsSectionLoops`, as before); at or below it the loop's lazy stack draws every row, so the section measures and
+places as laid out whole. So a small stack of such sections keeps its exact placement: the cost the ruling accepted —
+an absolute jump more than four screens away in a small stack landing a line off, the estimate's — is not paid, and
+no test's expectation changed. The drawing is the twin's (`drawsContainerRowsWhole`) at 0, 1, 6 and 25 sections of 0
+to 9 uneven rows with headers and footers, in all eight shapes, at the top, paged, wheeled, at the end, paged up from
+it and home (`smallSectionsDrawAsBefore`). S7 is kept: a loop of more sections than the threshold still leaves its
+sections' loops unsampled (`ForEach.sectionLoopRows` answers `nil`), so a stack of many small sections places each
+exactly. The step at every count makes S7's crossing moot for identity: the sections themselves crossing 256 (250 →
+260 sections of a row each) keep the rows' state and focus too, since the section is the column on both sides.
+
+What a small stack pays (2026-11-24, `ab_bench.py`, release, cpu per frame, 10 reps, `slot.py --exclusive`,
+f773c5d24 — 4cfb53cd4 with the four pages below — against this change, load 2.3): `app-shapes/small-sections` (20
+sections of 5) +21.0% [+19.8, +22.1], `small-sections-pinned` +23.1% [+21.0, +24.6], `many-small-sections` (50 of 4)
++13.2% [+5.2, +15.1], `many-small-sections-pinned` +14.5% [+12.6, +14.9], all slower; `section-loop`, `one-section`,
+`outline`, `megalist` and `kitchensink` indistinguishable. Past the owner's few-percent line, so optimised before
+landing (the next paragraph).
+
+*Found, not fixed* (on 4cfb53cd4 too, so not the step's): 260 sections of a row cut to 250 under a title at spacing 1,
+pinned or not, draws the sections' headers and none of their rows until the next change — the frame on which the
+sections' loops together pass the threshold again after one past it. Marked a known issue in `SectionLoopCrossingTests`
+(`changedCountDrawsAfresh`, and the sections' crossing's row check).
