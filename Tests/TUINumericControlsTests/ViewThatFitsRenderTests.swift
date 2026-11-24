@@ -196,6 +196,75 @@ struct ViewThatFitsRenderTests {
         #expect(buffer.lines.first?.stripped == "a", "First candidate chosen on horizontal fit alone")
     }
 
+    /// SwiftUI asks each candidate under `in: .vertical` at the real width and
+    /// an unspecified height (`Tools/SwiftUIProbes/ViewThatFits widths and
+    /// spacers across the axis (H-62, H-64)/fits.out`: 30 by nil in a 30-by-5
+    /// frame), so the paragraph wraps past 5 lines and "short" draws.
+    @Test("ViewThatFits(in: .vertical) measures a wrapping paragraph at the real width")
+    func verticalAxisWrapsAtTheRealWidth() throws {
+        let paragraph = Array(repeating: "word", count: 60).joined(separator: " ")
+        let buffer = renderToBuffer(
+            ViewThatFits(in: .vertical) {
+                Text(paragraph)
+                Text("short")
+            },
+            context: ctx(width: 30, height: 5)
+        )
+        try #require(buffer.lines.count == 1, "the fallback is one line, got \(buffer.lines.map(\.stripped))")
+        #expect(buffer.lines[0].stripped == "short")
+
+        // Ten words wrap to two lines at 30, which fit 5: the paragraph draws.
+        let ten = Array(repeating: "word", count: 10).joined(separator: " ")
+        let fits = renderToBuffer(
+            ViewThatFits(in: .vertical) {
+                Text(ten)
+                Text("short")
+            },
+            context: ctx(width: 30, height: 5)
+        )
+        #expect(fits.lines.count == 2)
+        #expect(fits.lines.first?.stripped.hasPrefix("word word") == true)
+    }
+
+    @Test("ViewThatFits(in: .vertical) still accepts a candidate that fills the height")
+    func verticalAxisAcceptsAFillingCandidate() {
+        // The two-probe rule on the tested axis: a column with a `Spacer`
+        // reports the height it is offered, which moves with the probe, so it
+        // fits however tall its rows would be.
+        let buffer = renderToBuffer(
+            ViewThatFits(in: .vertical) {
+                VStack(spacing: 0) { Text("top"); Spacer(); Text("bottom") }
+                Text("z")
+            },
+            context: ctx(width: 10, height: 4)
+        )
+        let lines = buffer.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        #expect(lines.first == "top" && lines.last == "bottom", "got \(lines)")
+    }
+
+    @Test("ViewThatFits(in: .horizontal) measures at the real height")
+    func horizontalAxisKeepsTheRealHeight() {
+        // Asked at an unspecified width and the real height, as SwiftUI asks
+        // (`nil×5` in the probe above): a one-line text of 49 cells fits 60.
+        let ten = Array(repeating: "word", count: 10).joined(separator: " ")
+        let buffer = renderToBuffer(
+            ViewThatFits(in: .horizontal) {
+                Text(ten)
+                Text("short")
+            },
+            context: ctx(width: 60, height: 1)
+        )
+        #expect(buffer.lines.first?.stripped == ten)
+        let narrow = renderToBuffer(
+            ViewThatFits(in: .horizontal) {
+                Text(ten)
+                Text("short")
+            },
+            context: ctx(width: 30, height: 5)
+        )
+        #expect(narrow.lines.first?.stripped == "short")
+    }
+
     @Test("A both-axes test rejects a candidate that is too tall")
     func bothAxesRejectsTall() throws {
         let buffer = renderToBuffer(

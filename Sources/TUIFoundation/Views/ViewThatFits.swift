@@ -67,7 +67,11 @@ public enum Axis: Int8, CaseIterable, Hashable, Sendable, CustomStringConvertibl
 ///
 /// By default both axes are considered. Pass `in:` to constrain the test to
 /// a single axis — for example `ViewThatFits(in: .horizontal)` only checks
-/// whether a candidate fits horizontally and ignores its height.
+/// whether a candidate fits horizontally and ignores its height. The axis that
+/// is not tested keeps the real space, as in SwiftUI: under `in: .vertical`
+/// each candidate is asked its height at the width it will be drawn at, so a
+/// paragraph that wraps past the height yields to the next candidate — a
+/// scroll view of it, say.
 ///
 /// Each candidate is asked for its ideal width as SwiftUI asks it, with an
 /// unspecified proposal: a row holding a `Spacer` answers with the width of its
@@ -224,15 +228,28 @@ private struct _ViewThatFitsCore<Content: View>: View, Renderable, Layoutable {
         // candidate is drawn, where it used to win at every width and clip. A
         // view with no ideal width at all (a `List`, a `TextEditor`) reports
         // none, and fits.
+        //
+        // Only the TESTED axes are probed unbounded. The other keeps the real
+        // extent, proposed as well as available, as SwiftUI proposes nil on the
+        // tested axes alone (measured: `Tools/SwiftUIProbes/ViewThatFits widths
+        // and spacers across the axis (H-62, H-64)/fits.out`, where a candidate
+        // under `in: .vertical` in a 30-by-5 frame is asked at 30 by nil).
+        // Probed at a million cells wide as well, a paragraph under `in:
+        // .vertical` measured one line, "fit" every height, and was drawn
+        // wrapped at the real width and cut: the paragraph-or-scroll-view idiom
+        // never reached its fallback (hunt 11-20, LAYOUT-1).
         let probeExtent = 1_000_000
-        var probeContext = axes.contains(.horizontal) ? context.askingIdealWidth() : context
-        probeContext.availableWidth = probeExtent
-        probeContext.availableHeight = probeExtent
+        let testsWidth = axes.contains(.horizontal)
+        let testsHeight = axes.contains(.vertical)
+        var probeContext = testsWidth ? context.askingIdealWidth() : context
+        probeContext.availableWidth = testsWidth ? probeExtent : context.availableWidth
+        probeContext.availableHeight = testsHeight ? probeExtent : context.availableHeight
+        let probe = ProposedViewSize(
+            width: testsWidth ? nil : context.availableWidth,
+            height: testsHeight ? nil : context.availableHeight)
 
         for (index, candidate) in candidates.enumerated() {
-            let size = candidate.measure(proposal: .unspecified, context: probeContext)
-            let testsWidth = axes.contains(.horizontal)
-            let testsHeight = axes.contains(.vertical)
+            let size = candidate.measure(proposal: probe, context: probeContext)
             // Only a candidate that is flexible on a tested axis AND over-reports
             // it can be the case above, so the second probe is never paid for by
             // the rigid candidates that are the common shape.
@@ -242,10 +259,12 @@ private struct _ViewThatFitsCore<Content: View>: View, Renderable, Layoutable {
                 testsHeight && size.isHeightFlexible && size.height > context.availableHeight
             var narrower = size
             if overReportsWidth || overReportsHeight {
+                // One cell less on the tested axes only: the untested one keeps
+                // the real extent the first probe had.
                 var narrowerProbe = probeContext
-                narrowerProbe.availableWidth = probeExtent - 1
-                narrowerProbe.availableHeight = probeExtent - 1
-                narrower = candidate.measure(proposal: .unspecified, context: narrowerProbe)
+                if testsWidth { narrowerProbe.availableWidth = probeExtent - 1 }
+                if testsHeight { narrowerProbe.availableHeight = probeExtent - 1 }
+                narrower = candidate.measure(proposal: probe, context: narrowerProbe)
             }
             let fitsWidth =
                 !testsWidth

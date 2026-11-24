@@ -70,6 +70,11 @@ it did not know followed by a typed letter, so F1 typed a capital A. They now re
 and TUI dropped either spelling whole: those keys did nothing, and under xterm's level 2 no Control chord arrived,
 ⌃Q included. Both now read as the chord, the same key the kitty keyboard protocol reports for it.
 
+**`ViewThatFits(in: .vertical)` measures its candidates at the width they are drawn at.** Each was measured as if
+it had all the width it wanted, so a paragraph came out one line tall, fit every height, and was then drawn wrapped
+and cut: `ViewThatFits(in: .vertical) { Text(paragraph); ScrollView { Text(paragraph) } }` never chose the scroll
+view. As in SwiftUI, only the axes `in:` names are measured unbounded now, and the other keeps the real space.
+
 **On Windows, closing the app's window or tab quits it in order.** Closing conhost's window or Windows Terminal's
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
