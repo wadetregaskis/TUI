@@ -993,12 +993,21 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   then a preferred default takes over from it, on whichever frame its scope
   appears (pinned by `takesTheUntouchedAutomaticFocus`, `doesNotSteal` and
   `declinedKeyEndsTheAutomaticChoice`). A focus the user, an `@FocusState`
-  write or `.defaultFocus` placed is never taken.
-- **Why:** a keyboard interface needs somewhere to start.
+  write or `.defaultFocus` placed is never taken. Nor is the focus given to a
+  section the app emptied: once an `@FocusState` is set to `nil` (or `false`)
+  while one of its controls holds the focus, nothing in that section is
+  focused until Tab, an arrow or a click puts the focus somewhere, as in
+  SwiftUI (narrowed by the owner's ruling O-12 (a), 2026-11-21; pinned by
+  `FocusStateResignTests`). A sheet presented meanwhile still focuses its
+  first control.
+- **Why:** a keyboard interface needs somewhere to start. An app that resigned
+  the focus asked for none, and Tab or an arrow from no focus enters the ring
+  at its edge.
 - **Decided:** [B35](<../Historical/Input, keys and gestures/Focus, focused values and the default focus.md#b35-what-when-no-other-view-has-focus-means-for-a-preferred-default>), [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tui-should-add-it>) (the `@FocusState` row
   states the rule). **Owner** (2026-10-12: an explicit focus overrides the
   default, and the automatic choice must not count as held; shipped
-  2026-10-13).
+  2026-10-13). **Owner** (2026-11-21, O-12 (a), hunt FOCUS-6): narrowed, an
+  app's `@FocusState = nil` is honoured.
 
 ### I6. Undo keys are Control chords, and TUI's own undo manager raises nothing
 

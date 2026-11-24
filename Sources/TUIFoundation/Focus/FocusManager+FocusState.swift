@@ -30,6 +30,9 @@ extension FocusManager {
             pendingFocusValues[store] = (value, focusRenderGeneration)
         } else if let focused = currentFocusedID, map.values.contains(where: { $0.focusID == focused }) {
             relinquishFocus()
+            // And the section stays without one until the user puts the focus
+            // somewhere (owner ruling O-12 (a), 2026-11-21).
+            resignedSectionID = activeSectionIdentifier
         }
     }
 }

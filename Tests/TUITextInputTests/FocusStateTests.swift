@@ -72,12 +72,15 @@ struct FocusStateTests {
         // The single field auto-focuses, so the bound Bool reads true.
         #expect(bindingBox.value?.wrappedValue == true, "the focused field reads true")
 
-        // Set it false → focus is relinquished.
+        // Set it false → focus is relinquished, and the next frames leave it so:
+        // the app's resignation is honoured (owner ruling O-12 (a), 2026-11-21).
         bindingBox.value?.wrappedValue = false
         render(view, tuiContext: tui, focusManager: manager)
+        render(view, tuiContext: tui, focusManager: manager)
         #expect(
-            bindingBox.value?.wrappedValue == true,
-            "a lone focusable re-auto-focuses after the frame, so it reads true again")
+            bindingBox.value?.wrappedValue == false,
+            "the field does not take the focus back by itself")
+        #expect(manager.currentFocusedID == nil)
     }
 
     // MARK: Optional binding
@@ -267,11 +270,13 @@ struct FocusStateTests {
         render(view, tuiContext: tui, focusManager: manager)
         #expect(bindingBox.value?.wrappedValue == .email, "setting the binding moved focus")
 
-        // Setting nil relinquishes focus.
+        // Setting nil relinquishes focus, and later frames do not give it back
+        // to the first field (owner ruling O-12 (a), 2026-11-21).
         bindingBox.value?.wrappedValue = nil
-        // Read the value BEFORE re-rendering (a re-render re-auto-focuses the
-        // first field); the relinquish itself must have taken hold.
         #expect(bindingBox.value?.wrappedValue == nil, "nil clears focus")
+        render(view, tuiContext: tui, focusManager: manager)
+        render(view, tuiContext: tui, focusManager: manager)
+        #expect(bindingBox.value?.wrappedValue == nil, "nothing is focused until the user moves it")
     }
 
     @Test("defaultFocus picks the initial control, overriding the first-registrant default")

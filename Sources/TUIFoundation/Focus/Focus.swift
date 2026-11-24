@@ -110,8 +110,20 @@ public final class FocusManager {
             invalidateCachedRender(of: focusedID)
             dropDrawingsAwaitingFocus()
             focusScopes.focusMoved(to: focusedID)
+            if focusedID != nil { resignedSectionID = nil }
         }
     }
+
+    /// The section whose focus the app resigned — an `@FocusState` set to
+    /// `nil` or `false` while one of its controls held the focus — and which
+    /// the manager therefore leaves without one: ``register(_:inSection:)``
+    /// and ``endRenderPass()`` make no automatic first-control choice there.
+    /// Cleared the moment the focus lands anywhere, by Tab, an arrow, a click
+    /// or the app, as in SwiftUI, where nothing is focused until then (the
+    /// owner's ruling O-12 (a), 2026-11-21, narrowing I5 in "Deliberate
+    /// deviations from SwiftUI"). A sheet presented meanwhile is another
+    /// section, and focuses its first control as ever.
+    var resignedSectionID: String?
 
     /// Where the control answering to each focus id last rendered, with the
     /// render generation it registered in. Filled by
@@ -600,6 +612,7 @@ extension FocusManager {
             && !focusScopes.holdsAutoFocus
             && !optionalFocusSectionIDs.contains(targetID)
             && !suppressesAutoFocus
+            && targetID != resignedSectionID
             && element.takesAutomaticFocus
         {
             // Chosen by the manager, not asked for: a preference may replace it.
@@ -757,6 +770,7 @@ extension FocusManager {
         sections.removeAll()
         activeSectionID = nil
         focusedID = nil
+        resignedSectionID = nil
         sectionFocusMemory.removeAll()
         sectionRevertTarget.removeAll()
         modalSectionIDs.removeAll()
@@ -1610,9 +1624,10 @@ extension FocusManager {
         // dropped control's handoff target or neighbour when it had one, the first
         // focusable that takes the focus by itself otherwise (not a search field:
         // ``AutomaticFocusDeclining``), and one that declines it only where there
-        // is nothing else to focus.
+        // is nothing else to focus. Not in a section the app resigned the focus
+        // of (``resignedSectionID``).
         if focusedID == nil, let section = activeSection,
-            !optionalFocusSectionIDs.contains(section.id),
+            !optionalFocusSectionIDs.contains(section.id), section.id != resignedSectionID,
             let target = recovery?.element
                 ?? section.focusables.first(where: { $0.canBeFocused && $0.takesAutomaticFocus })
                 ?? section.focusables.first(where: { $0.canBeFocused })

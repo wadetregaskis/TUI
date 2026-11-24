@@ -37,6 +37,11 @@ any cell of a `Text`); where it draws nothing (`Color.clear`, `.opacity(0)`, a f
 through, as SwiftUI does. An app that lays a decoration over controls and wants them clickable through it adds
 `.allowsHitTesting(false)` to the decoration. Hover, the wheel and the keyboard still reach the control.
 
+**Setting a `@FocusState` to `nil` leaves nothing focused.** The next frame gave the focus straight back to the
+first control, often the field that had just resigned it, so `.onSubmit { isEditing = false }` began editing again.
+As in SwiftUI, nothing is now focused until Tab, an arrow or a click puts the focus somewhere (the owner's ruling
+O-12 (a)). A sheet presented meanwhile still focuses its first control.
+
 **A `.keyboardShortcut` on an arrow key fires.** An arrow the focused control did not use moved the focus to
 the next control, so `Button("Next") { … }.keyboardShortcut(.rightArrow)` never ran, bare or with any modifier. An
 app's shortcut on an arrow now takes the key before the focus system moves the focus with it, whatever modifiers it

@@ -74,6 +74,10 @@ the user moved the focus elsewhere.
 
 Writing to `field` moves focus; reading it tells you where focus is. A `Bool`
 `@FocusState` binds a single control the same way, via `focused($isEditing)`.
+Setting it to `nil` (a `Bool` one to `false`) while one of its controls has the
+focus resigns it, as in SwiftUI: nothing is focused until Tab, an arrow or a
+click puts the focus somewhere, and the first control does not take it back by
+itself (the owner's ruling O-12 (a), 2026-11-21).
 
 Three more modifiers shape the order that Tab follows:
 
