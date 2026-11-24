@@ -32,6 +32,8 @@ private final class SplitModel: @unchecked Sendable {
     var visibility: NavigationSplitViewVisibility = .all
     var planet: String?
     var moon: String?
+    /// Counts one on the counting column's `@State`, set when it appears.
+    @ObservationIgnored var bump: (() -> Void)?
 }
 
 @MainActor
@@ -262,6 +264,88 @@ struct NavigationSplitViewCollapseTests {
             }
             .environment(\.horizontalSizeClass, .compact)
         }
+    }
+
+    /// A detail column with a `@State` counter the test writes through the model.
+    private struct CountingDetail: View {
+        let model: SplitModel
+        @State private var count = 0
+        var body: some View {
+            Text("count \(count)")
+                .onAppear { model.bump = { count += 1 } }
+        }
+    }
+
+    private struct CountingColumns: View {
+        let model: SplitModel
+        var body: some View {
+            NavigationSplitView {
+                Text("Planets").navigationTitle("Planets")
+            } content: {
+                CountingDetail(model: model)
+            } detail: {
+                Text("the detail")
+            }
+            .environment(\.horizontalSizeClass, model.horizontal)
+        }
+    }
+
+    @Test("A split that collapses keeps the state of the columns ahead of the one on top")
+    func columnsAheadKeepTheirState() throws {
+        // Side by side, the content column's count is 3. Collapsed, the
+        // sidebar is on top and the content column is ahead of it, not drawn;
+        // its state used to be pruned there, and the split expanded again with
+        // the count started over. Kept, as a hidden tab's is.
+        let model = SplitModel()
+        model.horizontal = .regular
+        let driver = Driver(CountingColumns(model: model), width: 80)
+        let bump = try #require(model.bump)
+        for _ in 0..<3 { bump() }
+        driver.frame()
+        #expect(driver.shows("count 3"))
+
+        model.horizontal = .compact
+        driver.frame()
+        driver.frame()
+        #expect(!driver.shows("count"), "the column ahead is drawn: \(driver.app.screen.styledLines)")
+
+        model.horizontal = .regular
+        driver.frame()
+        driver.frame()
+        #expect(driver.shows("count 3"), "the column ahead lost its state: \(driver.app.screen.styledLines)")
+    }
+
+    private struct CountingDetailColumns: View {
+        let model: SplitModel
+        var body: some View {
+            NavigationSplitView {
+                Text("Planets").navigationTitle("Planets")
+            } detail: {
+                CountingDetail(model: model)
+            }
+        }
+    }
+
+    @Test("A split narrowed into its stack keeps its detail's state for when it widens")
+    func detailKeepsItsStateAcrossANarrowing() throws {
+        // By width alone, with no size class written: under the room for two
+        // columns the split collapses with the sidebar on top.
+        let model = SplitModel()
+        let driver = Driver(CountingDetailColumns(model: model), width: 60)
+        let bump = try #require(model.bump)
+        for _ in 0..<3 { bump() }
+        driver.frame()
+        #expect(driver.shows("count 3"))
+
+        driver.app.resize(width: 15, height: 12)
+        driver.frame()
+        driver.frame()
+        #expect(!driver.shows("count"), "the detail is drawn: \(driver.app.screen.styledLines)")
+
+        driver.app.resize(width: 60, height: 12)
+        driver.frame()
+        driver.frame()
+        #expect(driver.shows("count 3"), "the detail lost its state: \(driver.app.screen.styledLines)")
     }
 
     @Test("A table's row is chosen the same way")

@@ -234,7 +234,9 @@ extension _NavigationSplitViewCore {
     /// and keys as a navigation stack's root is, so their `@State` is there to
     /// come back to and their titles name the bar's trail. The columns ahead of
     /// it do not: a detail is not drawn, nor its `task` run, until something
-    /// brings it to the top, as on iPhone. Column visibility is ignored, as
+    /// brings it to the top, as on iPhone. Their state is kept all the same
+    /// (``retainColumnsAhead(_:context:)``), so a split that collapses and
+    /// expands again finds its columns as they were. Column visibility is ignored, as
     /// SwiftUI ignores it in a collapsed split; so are the handles, the widths
     /// and the sidebar chords.
     func renderCollapsed(context: RenderContext) -> FrameBuffer {
@@ -278,6 +280,7 @@ extension _NavigationSplitViewCore {
             renderColumnsBehind(
                 position.columns.prefix(link == nil ? depth : depth + 1), coordinator: coordinator,
                 context: context.withAvailableSize(width: width, height: columnHeight))
+            retainColumnsAhead(position.columns.dropFirst(depth + 1), context: context)
         }
 
         // Each column keeps its own focus section, so going forward a column
@@ -383,6 +386,25 @@ extension _NavigationSplitViewCore {
             preferences?.push()
             _ = backdrop.withThrowawayFrameDemand { hidden in renderColumnContent(column, context: hidden) }
             coordinator.recordTitle(preferences?.pop()[NavigationTitleKey.self] ?? "", atDepth: depth, buried: true)
+        }
+    }
+
+    /// Keeps the state of the columns ahead of the one on top, as a tab view
+    /// keeps its hidden tabs': not drawn, so no `task` of theirs starts, but
+    /// their `@State` stays.
+    /// Pruned, a split that collapsed with its sidebar on top, for a terminal
+    /// narrowed for a moment or a compact size class, expanded again with its
+    /// content and detail started over. Each column is a branch of its own
+    /// (``columnIdentityContext(of:column:in:)``), where it renders whether
+    /// the split is collapsed or not.
+    private func retainColumnsAhead(_ ahead: ArraySlice<NavigationSplitViewColumn>, context: RenderContext) {
+        guard let stateStorage = context.stateStorage else { return }
+        for column in ahead {
+            // The branch itself as well as what is below it: a retained subtree
+            // is its root's strict descendants.
+            let branch = context.identity.branch(sectionName(of: column))
+            stateStorage.markActive(branch)
+            stateStorage.retainSubtree(branch)
         }
     }
 

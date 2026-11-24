@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `NavigationSplitView` that collapses keeps the state of the columns ahead of the one on top.** Narrowed into
+its stack with the sidebar on top, for a moment or under a compact size class, a split forgot its content and detail
+columns' `@State`, so they started over when it widened again. They are kept, not drawn, as a tab view keeps its
+hidden tabs.
+
 **Of two `navigationDestination(for:)`s for one type in a stack, the one closest to the root is used, and a popped
 screen's is forgotten.** A stack kept the destination registered last: of two pushed screens declaring one type,
 the upper one's showed, and a destination declared on a screen since popped still answered values pushed from the

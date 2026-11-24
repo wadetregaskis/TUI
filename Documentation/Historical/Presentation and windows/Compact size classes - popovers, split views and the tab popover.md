@@ -113,7 +113,8 @@ forward again rather than clearing it. Column visibility, the handles, the
 widths and the sidebar chords are set aside while collapsed, as SwiftUI
 ignores visibility there. The columns behind the one on top render
 off-screen, as a stack's root does, and keep their state; a column ahead of
-it is not drawn. A `Table` chooses its rows the same way since the compact
+it is not drawn (and from H-69, 2026-11-24, its state is kept as a hidden
+tab's is, as the option above says of the collapse). A `Table` chooses its rows the same way since the compact
 `Table` (B3). A `NavigationLink` in the column on top pushes its destination
 onto the collapsed stack, over that column (lane TOOLBARS, 2026-10-19); in a
 regular class a split's links still push only within a `NavigationStack`

@@ -231,7 +231,9 @@ chosen. Pass a ``NavigationSplitViewColumn`` binding, as
 `NavigationSplitView(preferredCompactColumn:sidebar:detail:)`, to read or set
 which column is on top. While the split is collapsed its visibility, handles,
 widths and sidebar chords are set aside; the columns behind the one on top keep
-their state, and one ahead of it is not drawn until it comes to the top.
+their state, and one ahead of it is not drawn until it comes to the top, but
+keeps its state too, as a tab view's hidden tab does, for when the split
+expands again.
 
 ## More
 
