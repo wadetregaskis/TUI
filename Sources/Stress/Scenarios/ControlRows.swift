@@ -100,6 +100,21 @@ enum ControlRowsMatrix {
         variant("scroll-resize", "still rows in a scroll view whose height changes every frame") { config in
             AnyView(ResizingScrollView(config: config))
         },
+        variant("buttons-50", "50 still buttons in one focus section, served by the row memo") { config in
+            AnyView(ButtonGrid(config: config, count: 50))
+        },
+        variant("buttons-100", "100 still buttons in one focus section, served by the row memo") { config in
+            AnyView(ButtonGrid(config: config, count: 100))
+        },
+        variant("buttons-200", "200 still buttons in one focus section, served by the row memo") { config in
+            AnyView(ButtonGrid(config: config, count: 200))
+        },
+        variant("buttons-200-live", "the 200 buttons redrawn every frame, nothing served") { config in
+            AnyView(ButtonGrid(config: config, count: 200, live: true))
+        },
+        variant("focused", "40 fields bound by .focused(_:equals:) in a scroll view in a scroll view") { config in
+            AnyView(FocusedFields(config: config))
+        },
     ]
 }
 
@@ -148,6 +163,88 @@ private struct ResizingScrollView: View {
                 }
             }
             .frame(height: height)
+        }
+    }
+}
+
+/// `count` still buttons, ten to a line and none in a scroll view, so every one
+/// is drawn and registers in the one focus section every frame: what focus
+/// registration costs a page of controls. Only the line above them moves with
+/// the tick, so the lines of buttons are served from the memo, their
+/// registrations replayed — unless `live`, when the page reads the tick and
+/// every button is measured and rendered again each frame.
+private struct ButtonGrid: View {
+    let config: StressConfig
+    let count: Int
+    var live = false
+    @Environment(StressClock.self) private var clock
+
+    var body: some View {
+        let tick = live ? clock.tick : 0
+        let lines = (count + 9) / 10
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(Lf("stress.scenario.controls.heading", "buttons", count)).bold()
+            TickLine(seed: config.seed)
+            Divider()
+            ForEach(0..<lines, id: \.self) { line in
+                ButtonLine(first: line * 10, end: min(count, line * 10 + 10), tick: tick)
+            }
+        }
+    }
+}
+
+/// A line that moves with the tick, so the page draws a new frame each time.
+private struct TickLine: View {
+    let seed: UInt64
+    @Environment(StressClock.self) private var clock
+
+    var body: some View { Text(verbatim: Synth.name(mix(seed, clock.tick))) }
+}
+
+/// The buttons `first..<end`, the same every frame unless `tick` moves.
+private struct ButtonLine: View {
+    let first: Int
+    let end: Int
+    let tick: Int
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(first..<end, id: \.self) { index in
+                Button {} label: { Text(verbatim: "B\(index &+ tick % 2)") }
+            }
+        }
+    }
+}
+
+/// Fields bound to the page's `@FocusState` by `.focused(_:equals:)`, in a
+/// scroll view inside a scroll view, the first focused: a form of editable
+/// rows. Their text moves with the tick, so every row is measured and rendered
+/// each frame, and the page holding the `@FocusState` evaluates its body.
+private struct FocusedFields: View {
+    let config: StressConfig
+    @FocusState private var focus: Int?
+    @Environment(StressClock.self) private var clock
+
+    var body: some View {
+        let count = 40
+        let tick = clock.tick
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(Lf("stress.scenario.controls.heading", "focused", count)).bold()
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(verbatim: Synth.name(mix(config.seed, tick)))
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(0..<count, id: \.self) { index in
+                                TextField("Name", text: .constant(Synth.name(mix(config.seed, index &+ tick))))
+                                    .focused($focus, equals: index)
+                            }
+                        }
+                    }
+                    .frame(height: count)
+                }
+            }
         }
     }
 }
