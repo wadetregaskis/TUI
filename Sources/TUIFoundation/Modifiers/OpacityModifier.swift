@@ -70,6 +70,14 @@ extension View {
     ///   win outright is the character: a blank cell *with* a background hides
     ///   what is behind it, where a translucent one would have tinted it.
     ///
+    /// Below `1/48` the view takes no clicks, as SwiftUI's takes none: a
+    /// button at `.opacity(0)`, or under an ancestor's, is not clicked, as
+    /// under ``View/allowsHitTesting(_:)`` with `false`, and one at `0.05` is.
+    /// Each `.opacity(_:)` is asked on its own, as in SwiftUI, so
+    /// `.opacity(0.1).opacity(0.1)`, `0.01` in all, still takes them. It
+    /// keeps its place in the focus ring, as SwiftUI's does: Tab still stops
+    /// on a text field at opacity 0.
+    ///
     /// - Parameter opacity: `0` (invisible) through `1` (fully opaque).
     /// - Returns: A view composited at that opacity over whatever it is drawn on.
     nonisolated public func opacity(_ opacity: Double) -> some View {
@@ -100,6 +108,16 @@ nonisolated package struct _OpacityView<Content: View>: View {
     }
 }
 
+extension _OpacityView {
+    /// The opacity below which this view's subtree takes no clicks: SwiftUI
+    /// takes none under an `.opacity(_:)` of `0.0208` or less and takes it
+    /// from `0.0209` up, each modifier asked on its own value, not on the
+    /// product of the fades it is under (measured, `Tools/SwiftUIProbes/A
+    /// control at opacity zero (H-68b)/faded.out`; hunt H-68b). `1/48` lies
+    /// between the two.
+    static var leastHitTestedOpacity: Double { 1.0 / 48 }
+}
+
 @MainActor extension _OpacityView: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Glass faded here joins no shape in a glass container: a joined shape
@@ -126,6 +144,11 @@ nonisolated package struct _OpacityView<Content: View>: View {
         // invisible everywhere now, before `fading` multiplies it into every
         // region inside (hunt 11-20, BLEND-14).
         let factor = min(1, max(0, repeating?.current ?? opacity))
+        // Too faint to be hit, so none of it takes a click, as in SwiftUI
+        // (``leastHitTestedOpacity``). Not on a repeating fade: its buffer is
+        // served for every phase of the cycle, and a fade that only passes
+        // through zero would lose its clicks at the phases it is opaque.
+        if repeating == nil, factor < Self.leastHitTestedOpacity { buffer.removeSubtreeHitTargets() }
         // Fully opaque is NOT the identity, and short-circuiting it here as
         // though it were put a discontinuity at exactly one point of the range.
         //

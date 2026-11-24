@@ -334,10 +334,11 @@ characters want the same cell, alpha becomes a decision rather than a mix.
 - **Where a character sits underneath**, at or above `0.5` the subtree's
   character draws; below `0.5` the character behind shows instead, keeping
   its own foreground while its field carries the veil. So `opacity(0)`
-  really does reveal what it covers, while still keeping its space. Laid over
-  a control it does not take the control's clicks, as in SwiftUI (see
-  <doc:MouseAndGestures>); a control of its own at `opacity(0)` still takes
-  its clicks here, where SwiftUI's takes none.
+  really does reveal what it covers, while still keeping its space and its
+  place in the focus ring, as SwiftUI's does. Laid over a control it does not
+  take the control's clicks, as in SwiftUI (see <doc:MouseAndGestures>). Nor
+  does it keep its own: a control under an `.opacity(_:)` below `1/48` is not
+  clicked, as in SwiftUI, which asks each `.opacity(_:)` on its own value.
 - **Matching characters never snap**: where both sides hold the same
   character the cell cross-fades exactly, so a colour animation on unchanged
   text is seamless.

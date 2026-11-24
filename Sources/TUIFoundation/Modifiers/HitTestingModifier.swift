@@ -193,24 +193,7 @@ nonisolated private struct _HitTestingView<Content: View>: View, Renderable, Lay
     @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var drawn = TUIView.renderToBuffer(content, context: context)
         guard !enabled else { return drawn }
-        // The regions of any ANCHORED overlay the subtree floated have to go
-        // too — a pop-up menu is carried in `overlays` rather than in the
-        // buffer's own lines, so clearing only the top level would leave a
-        // drop-down clickable underneath a view that just said it was not.
-        //
-        // A CENTRED one is exempt, for the reason `_HiddenView` above spells
-        // out: a `.sheet` presented from this subtree is not part of this
-        // subtree's hit area, it is a panel over the whole screen with its own
-        // buttons. Clearing its regions produced a dialog that drew perfectly
-        // and whose every button was dead — and the modifier the author wrote
-        // was about the page, not about the dialog it opens.
-        //
-        // Targets only: a geometry marker is not something to click, and a view
-        // that takes no clicks is still drawn where it is drawn.
-        drawn.removeHitTargets()
-        for index in drawn.overlays.indices where !drawn.overlays[index].isScreenLevel {
-            drawn.overlays[index].content.removeHitTargets()
-        }
+        drawn.removeSubtreeHitTargets()
         // Nor do its cells take a click from a control they are drawn over:
         // a layer is hit where it draws, so a decoration over a button would
         // take the button's clicks (`FrameBuffer.clickShielding(under:at:)`)
@@ -220,6 +203,33 @@ nonisolated private struct _HitTestingView<Content: View>: View, Renderable, Lay
             drawn.hitTestRegions.append(.clickPassage(x: 0, y: 0, width: drawn.width, height: drawn.height))
         }
         return drawn
+    }
+}
+
+extension FrameBuffer {
+    /// Drops the hit targets of the subtree this buffer is the drawing of:
+    /// ``View/allowsHitTesting(_:)`` with `false`, and a view faded below what
+    /// SwiftUI hit-tests (`_OpacityView`).
+    ///
+    /// The regions of any ANCHORED overlay the subtree floated have to go
+    /// too — a pop-up menu is carried in `overlays` rather than in the
+    /// buffer's own lines, so clearing only the top level would leave a
+    /// drop-down clickable underneath a view that just said it was not.
+    ///
+    /// A CENTRED one is exempt, for the reason `_HiddenView` above spells
+    /// out: a `.sheet` presented from this subtree is not part of this
+    /// subtree's hit area, it is a panel over the whole screen with its own
+    /// buttons. Clearing its regions produced a dialog that drew perfectly
+    /// and whose every button was dead — and the modifier the author wrote
+    /// was about the page, not about the dialog it opens.
+    ///
+    /// Targets only: a geometry marker is not something to click, and a view
+    /// that takes no clicks is still drawn where it is drawn.
+    mutating func removeSubtreeHitTargets() {
+        removeHitTargets()
+        for index in overlays.indices where !overlays[index].isScreenLevel {
+            overlays[index].content.removeHitTargets()
+        }
     }
 }
 

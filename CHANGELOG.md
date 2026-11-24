@@ -86,6 +86,12 @@ views' state starts afresh once, the first time an app runs on this version. A s
 `scrollTargetLayout()`, holds a section beside the loop or sits in a scroll view with a `.scrollPosition` binding or
 an `onScrollTargetVisibilityChange`, and a lazy stack's own `Section` around a loop, still change at 256.
 
+**A control faded out with `.opacity(0)` takes no clicks.** A button at `.opacity(0)`, or under an ancestor's, was
+still clicked where it was drawn, invisibly; SwiftUI's is not (measured). Below an `.opacity(_:)` of `1/48` a view now
+takes no clicks, as under `.allowsHitTesting(false)`, each `.opacity(_:)` asked on its own value as SwiftUI asks it, so
+`.opacity(0.1).opacity(0.1)` still takes them. Tab still stops on a faded control, as on SwiftUI's. A repeating fade
+keeps its clicks at every phase.
+
 **A tag, a badge, a z-index or a layout priority written inside `.overlay { }`, `.background { }`, `.contextMenu
 { }`, `.clipped()`, `.clipShape(_:)` or `.mask { }` is the view's.** Each of these stopped the container that
 reads one, so `Text(name).tag(id).contextMenu { … }` on a static `List` row or a `Picker` option lost its tag and
