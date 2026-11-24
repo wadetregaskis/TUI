@@ -400,7 +400,11 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         // SwiftUI's do: not drawn, but retained, so the prune at the end of the
         // pass leaves it. Each depth is its own identity (`NavigationScreen`),
         // so what is pushed over a screen starts afresh rather than with its
-        // state, and a popped screen, retained no longer, is forgotten.
+        // state, and a popped screen, retained no longer, is forgotten. The
+        // identity is the depth and not the value, as SwiftUI's is: a value
+        // replaced at a depth in one action, buried or on top, is the same
+        // screen showing the new value, its state kept (measured,
+        // `Tools/SwiftUIProbes/Navigation identities (H-69)/navident.out`).
         if !context.isMeasuring, elements.count > 1, let stateStorage = base.stateStorage {
             for depth in 1..<elements.count {
                 // The screen's own identity as well as what is below it: a
@@ -530,4 +534,12 @@ extension _NavigationStackCore: ScrollPlacing {}
 /// comes back with its own. Coming back must not find the screen's state filed
 /// under the destination view's type either, which a tag of the stack's own
 /// keeps it from.
+///
+/// Not the pushed value: SwiftUI keys a screen by its place on the path, so
+/// `path[0] = 2`, or `removeLast()` and `append(2)` with no frame between,
+/// keeps the screen that showed `1`, with its `@State`, its running `.task`
+/// and no `onAppear`, and its body draws `2` (measured,
+/// `Tools/SwiftUIProbes/Navigation identities (H-69)/navident.out`, case 1).
+/// A destination of another type at the depth is a different view, and starts
+/// afresh as any erased view of a new type does.
 private enum NavigationScreen {}

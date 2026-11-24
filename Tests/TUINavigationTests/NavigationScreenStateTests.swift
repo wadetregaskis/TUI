@@ -145,6 +145,81 @@ struct NavigationScreenStateTests {
         #expect(again.contains("screen 1 taps 0"), "a screen pushed anew kept the popped one's state:\n\(again)")
     }
 
+    // MARK: A value replaced in place
+
+    // SwiftUI keys a pushed screen by its place on the path, not by its value:
+    // the value at a place replaced in one action, on top or buried, keeps the
+    // screen's state, and the body draws the new value (measured,
+    // `Tools/SwiftUIProbes/Navigation identities (H-69)/navident.out`, case 1).
+    // Only a screen taken off with a frame drawn before the next push is a new
+    // one, as `poppedScreenIsForgotten` pins.
+
+    @Test(
+        "A value replaced on top in one action keeps the screen's state, as SwiftUI's does",
+        arguments: ["path = [2]", "removeLast; append(2)"])
+    func replacedTopKeepsTheScreen(write: String) throws {
+        let frames = Frames()
+        let sink = Sink()
+        var path = NavigationPath()
+        let binding = Binding(get: { path }, set: { path = $0 })
+
+        path.append(1)
+        _ = frames.draw(stack(binding, sink: sink))
+        try #require(sink.taps[1]).wrappedValue = 4
+        _ = frames.draw(stack(binding, sink: sink))
+
+        if write == "path = [2]" {
+            path = NavigationPath([2])
+        } else {
+            path.removeLast()
+            path.append(2)
+        }
+        let replaced = frames.draw(stack(binding, sink: sink))
+        #expect(replaced.contains("screen 2 taps 4"), "the screen at the place was made anew:\n\(replaced)")
+    }
+
+    @Test("An element of a typed path written in place keeps the screen's state, as SwiftUI's does")
+    func typedElementWrittenInPlace() throws {
+        let frames = Frames()
+        let sink = Sink()
+        var path: [Int] = [1]
+        let binding = Binding(get: { path }, set: { path = $0 })
+        func view() -> some View {
+            NavigationStack(path: binding) {
+                Text("root").navigationDestination(for: Int.self) { Counter(number: $0, sink: sink) }
+            }
+        }
+
+        _ = frames.draw(view())
+        try #require(sink.taps[1]).wrappedValue = 4
+        _ = frames.draw(view())
+
+        path[0] = 2
+        let replaced = frames.draw(view())
+        #expect(replaced.contains("screen 2 taps 4"), "the screen at the place was made anew:\n\(replaced)")
+    }
+
+    @Test("A buried value replaced under the same top keeps the buried screen's state, as SwiftUI's does")
+    func replacedBuriedValueKeepsTheScreen() throws {
+        let frames = Frames()
+        let sink = Sink()
+        var path = NavigationPath()
+        let binding = Binding(get: { path }, set: { path = $0 })
+
+        path.append(1)
+        _ = frames.draw(stack(binding, sink: sink))
+        try #require(sink.taps[1]).wrappedValue = 4
+        _ = frames.draw(stack(binding, sink: sink))
+        path.append(2)
+        _ = frames.draw(stack(binding, sink: sink))
+
+        path = NavigationPath([3, 2])
+        _ = frames.draw(stack(binding, sink: sink))
+        path.removeLast()
+        let back = frames.draw(stack(binding, sink: sink))
+        #expect(back.contains("screen 3 taps 4"), "the buried screen was made anew:\n\(back)")
+    }
+
     @Test("A root title that changes while screens are pushed keeps the middle of the trail")
     func rootTitleChangeKeepsTheMiddleCrumbs() {
         // The root renders every frame, buried, and records its title each

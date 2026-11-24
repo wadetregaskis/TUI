@@ -87,7 +87,7 @@ inclusion in CI." So no CI job runs them. Rerun them when:
    `Image paint`, `Blend modes`, `Trailing values and labels`, `Ragged text in a larger frame`, `Markdown attribute
    syntax`, `Localization keys` and `Undo and the pointer leaving (INPUT)`; since 2026-11-10, `Navigation path and
    view destinations` and `Grid narrower than its columns` too; since 2026-11-23, `ViewThatFits widths and spacers
-   across the axis (H-62, H-64)`.
+   across the axis (H-62, H-64)`; since 2026-11-24, `Navigation identities (H-69)`.
 
 The rest only when their subject comes up.
 
@@ -1826,3 +1826,6 @@ messages cite that path), and what cites it.
   measured here.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-24.
 - **Was:** written here.
+- **Cited by:** `Sources/TUINavigation/Views/NavigationStack.swift`;
+  `Tests/TUINavigationTests/NavigationScreenStateTests.swift`; H-69 in the maintainers' working notes
+  (`plan/hunt-1120/HUNT-QUEUE.md`).

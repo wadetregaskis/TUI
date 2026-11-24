@@ -119,7 +119,11 @@ are pushed, takes them off the path first, and Back returns to the root.
 - **A screen covered by another keeps its state.** Not drawn while it is
   covered, but held, so popping back to it finds its `@State` as it was left, as
   SwiftUI's does. Each depth is a place of its own: a screen pushed over another
-  of the same type starts afresh, and a popped screen is forgotten.
+  of the same type starts afresh, and a popped screen is forgotten. A screen is
+  its place and not its value, as in SwiftUI: replacing the value at a place in
+  one action (`path[0] = next`) keeps the screen and its state, its `.task`
+  running and no `onAppear`, and the screen draws the new value. Give such a
+  screen `.task(id:)`, or an `.id(_:)` of the value, to start it over.
 - **A destination modifier has to have rendered** for its type to be known. In
   practice this is automatic, because the root renders every frame; declaring
   destinations on the root (as above, and as SwiftUI's own documentation
