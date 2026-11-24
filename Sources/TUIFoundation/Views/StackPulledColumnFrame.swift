@@ -46,6 +46,10 @@ final class PulledColumnFrame {
     /// with `scrollTargetLayout()`: the scroll view has a behaviour to settle
     /// on them, and the column is not marked itself.
     var asksTargetLayout = false
+    /// Whether the column is a column of several whose scroll view reads its
+    /// rows back, so its loops are asked for theirs, which it reports in
+    /// their place (`StackPulledColumn+LoopRows.swift`).
+    var readsLoopRows = false
     /// The scroll view's `.anchorPosition` binding, which the column hands
     /// only to the child the viewport's top lies in, with the request to hold
     /// the row it names (``ScrollContentWindow/holdsDesignatedRow``).

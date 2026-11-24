@@ -144,7 +144,7 @@ protocol CountedLoop {
 
 /// ``CountedLoop/mayBeLoop`` of `type`: `false` for a view that is no loop.
 @MainActor
-private func viewMayBeLoop(_ type: Any.Type) -> Bool {
+func viewMayBeLoop(_ type: Any.Type) -> Bool {
     (type as? any CountedLoop.Type)?.mayBeLoop ?? false
 }
 
@@ -278,19 +278,15 @@ protocol SectionLoopRowsCounting {
     /// a windowing container's stacked whole (`ForEach.staysWhole(in:)`).
     /// Content that pins, or may hold a section, keeps the threshold: below
     /// it the loop's rows are the stack's own, where a section pins and is
-    /// read as one. So does a stack marked with `scrollTargetLayout()`, and
-    /// content whose scroll view reads its rows back
-    /// (``EnvironmentValues/contentRowsAreReadBack``): below it each row is a
-    /// view a scroll behaviour settles on and an id the scroll view reports,
-    /// where the column's views — the header and the loop's stack — would be
-    /// instead (`StackPulledColumn.swift`, which does so past it).
+    /// read as one. A stack marked with `scrollTargetLayout()`, and content
+    /// whose scroll view reads its rows back, take the step: the column
+    /// reports its loop's rows one by one, as the flat stack does
+    /// (`StackPulledColumn+LoopRows.swift`).
     package func columnOfSeveral(
         alignment: HorizontalAlignment, spacing: Int, pinning: Bool, sectionLoops: Bool, in context: RenderContext
     ) -> (any View)? {
         let threshold = _VStackCore<EmptyView>.anchoredWindowThreshold
-        let stepsWhateverTheCount =
-            !pinning && !context.environment.isScrollTargetLayout && !context.environment.contentRowsAreReadBack
-            && !TUIFoundation.mayHandOver(.section, in: self)
+        let stepsWhateverTheCount = !pinning && !TUIFoundation.mayHandOver(.section, in: self)
         var foundLoop = false
         for child in repeat each children {
             if !foundLoop, let loop = child as? any CountedLoop,
@@ -351,24 +347,6 @@ extension EnvironmentValues {
     package var implicitColumnRowLayout: ImplicitColumnRowLayout? {
         get { self[ImplicitColumnRowLayoutKey.self] }
         set { self[ImplicitColumnRowLayoutKey.self] = newValue }
-    }
-}
-
-/// EnvironmentKey for ``EnvironmentValues/contentRowsAreReadBack``.
-private struct ContentRowsAreReadBackKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
-extension EnvironmentValues {
-    /// Whether the scroll view this content is in reads its rows back — a
-    /// `.scrollPosition` binding, or an `onScrollTargetVisibilityChange` —
-    /// set on its content by the scroll view (`ScrollView+Content.swift`).
-    /// A lazy stack's column of several reports the column's views, not the
-    /// loop's rows, so such content takes the column only past the threshold
-    /// (``TupleView/columnOfSeveral(alignment:spacing:pinning:sectionLoops:in:)``).
-    package var contentRowsAreReadBack: Bool {
-        get { self[ContentRowsAreReadBackKey.self] }
-        set { self[ContentRowsAreReadBackKey.self] = newValue }
     }
 }
 

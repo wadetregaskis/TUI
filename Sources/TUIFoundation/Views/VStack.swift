@@ -556,7 +556,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             of: children, naturalHeight: naturalHeight, isFlexible: isFlexible, available: context.availableHeight,
             context: context)
         reportEagerTargetLayout(heights: finalHeights, children: children, window: window, context: context)
-        reportEagerSample(heights: finalHeights, window: window, context: context)
+        reportEagerSample(heights: finalHeights, children: children, window: window, context: context)
 
         // === PASS 2: Render each child into its allocated height ===
         //
@@ -900,10 +900,12 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         childContext.environment.scrollContentWindow = nil
         let slots = naturalRowSlots(width: context.availableWidth, context: childContext)
         let total = slots.last.map { $0.y + $0.height } ?? 0
-        if let index = slots.firstIndex(where: { $0.child.matchesSeekKey(seek.key) }) {
-            reply.seekResolvedOffset = window.offset(
-                realising: seek, targetY: slots[index].y, rowHeight: slots[index].height,
-                stackHeight: total)
+        // A child the key names, or a row of a loop among a column of
+        // several's views (`StackPulledColumn+LoopRows.swift`).
+        if let row = slots.first(where: { $0.child.matchesSeekKey(seek.key) }).map({ (y: $0.y, height: $0.height) })
+            ?? columnOfSeveralLoopRow(holding: seek.key, in: slots, context: childContext)
+        {
+            reply.seekResolvedOffset = window.offset(realising: seek, targetY: row.y, rowHeight: row.height, stackHeight: total)
         } else if seek.focusID == nil, let target = NestedSeek.target(
             holding: seek.key, count: slots.count, child: { slots[$0].child }, width: context.availableWidth,
             rowHeight: { slots[$0].height }, context: childContext)

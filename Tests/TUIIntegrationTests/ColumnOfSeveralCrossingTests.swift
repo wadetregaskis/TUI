@@ -44,6 +44,12 @@ private struct BornRow: View {
 struct ColumnOfSeveralCrossingTests {
     enum Shape: String, CaseIterable, Sendable {
         case lazyStack, groupBox, section
+        /// A lazy stack in a scroll view with a `.scrollPosition` binding.
+        case positionBound
+        /// The same, observed by `onScrollTargetVisibilityChange`.
+        case visibilityObserved
+        /// A lazy stack marked `scrollTargetLayout()`, under `.viewAligned`.
+        case targetLayout
     }
 
     /// The filter field above a loop of `wide` rows while the field is empty
@@ -54,11 +60,21 @@ struct ColumnOfSeveralCrossingTests {
         let narrow: Int
         let births: Births
         @State private var query = ""
+        @State private var position: Int?
 
-        var body: some View {
+        @ViewBuilder var body: some View {
+            switch shape {
+            case .positionBound: scroller.scrollPosition(id: $position)
+            case .visibilityObserved: scroller.onScrollTargetVisibilityChange(idType: Int.self) { _ in }
+            case .targetLayout: scroller.scrollTargetBehavior(.viewAligned)
+            default: scroller
+            }
+        }
+
+        private var scroller: some View {
             ScrollView {
                 switch shape {
-                case .lazyStack:
+                case .lazyStack, .positionBound, .visibilityObserved:
                     LazyVStack(alignment: .leading, spacing: 0) {
                         TextField("Filter", text: $query)
                         rows
@@ -76,6 +92,12 @@ struct ColumnOfSeveralCrossingTests {
                             TextField("Filter", text: $query)
                         }
                     }
+                case .targetLayout:
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        TextField("Filter", text: $query)
+                        rows
+                    }
+                    .scrollTargetLayout()
                 }
             }
         }
@@ -179,6 +201,11 @@ struct ColumnOfSeveralCrossingTests {
 
     @ViewBuilder private static func smallContent(_ rows: Int) -> some View {
         Text("a wide header line")
+        smallLoop(rows)
+        Text("footer")
+    }
+
+    private static func smallLoop(_ rows: Int) -> some View {
         ForEach(0..<rows, id: \.self) { index in
             if index == 4 {
                 Text(verbatim: "fills").frame(maxWidth: .infinity)
@@ -186,7 +213,6 @@ struct ColumnOfSeveralCrossingTests {
                 Text(verbatim: index.isMultiple(of: 3) ? "row \(index)\n  more" : "r\(index)")
             }
         }
-        Text("footer")
     }
 
     @Test("A small loop beside other views draws what it drew before the step, at the top, paged and at the end",

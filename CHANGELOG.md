@@ -82,9 +82,16 @@ views — `LazyVStack { TextField("Filter", text: $query); ForEach(results) { �
 `DisclosureGroup` of a header and a loop — was drawn under an extra step of identity only while the loop had more than
 256 rows. Each time a filter took it across 256, either way, the field beside it lost the focus mid-word and every
 row's `@State` and `.task` started again. The step is now taken whatever the count, so nothing changes at 256; the
-views' state starts afresh once, the first time an app runs on this version. A stack that pins its sections, is marked
-`scrollTargetLayout()`, holds a section beside the loop or sits in a scroll view with a `.scrollPosition` binding or
-an `onScrollTargetVisibilityChange`, and a lazy stack's own `Section` around a loop, still change at 256.
+views' state starts afresh once, the first time an app runs on this version. So does a stack marked
+`scrollTargetLayout()`, or in a scroll view with a `.scrollPosition` binding or an `onScrollTargetVisibilityChange`. A
+stack that pins its sections or holds a section beside the loop, and a lazy stack's own `Section` around a loop, still
+change at 256.
+
+**A scroll view reads back each row of a lazy stack with a heading above its loop.** `.scrollPosition(id:)`,
+`onScrollTargetVisibilityChange` and `.viewAligned` over a stack marked `scrollTargetLayout()` now see each row of
+`LazyVStack { Text("Results"); ForEach(results) { … } }` whatever the loop's count. Past 256 rows they saw the heading
+and the loop as two views: the bound id stayed `nil`, the visible ids were empty, and a scroll settled on the loop's top.
+And `ScrollViewReader.scrollTo` reaches a row of such a loop of 256 rows or fewer, which it did not find.
 
 **A control faded out with `.opacity(0)` takes no clicks.** A button at `.opacity(0)`, or under an ancestor's, was
 still clicked where it was drawn, invisibly; SwiftUI's is not (measured). Below an `.opacity(_:)` of `1/48` a view now

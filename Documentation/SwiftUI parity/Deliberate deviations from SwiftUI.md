@@ -3009,10 +3009,11 @@ still runs.
   other views in scroll content — `GroupBox { header; ForEach }`,
   `LazyVStack { TextField; ForEach }` — is drawn at the same identities
   whatever its count, so a filtered loop crossing 256 rows keeps the views'
-  focus and the rows' state (the owner's O-14 (c), 2026-11-21, H-71; not yet
-  where a view beside the loop may be a section, the stack pins or is
-  marked `scrollTargetLayout()`, or the scroll view reads its rows back with
-  `.scrollPosition` or `onScrollTargetVisibilityChange`).
+  focus and the rows' state (the owner's O-14 (c), 2026-11-21, H-71), marked
+  `scrollTargetLayout()` or not, and with its rows read back by
+  `.scrollPosition` or `onScrollTargetVisibilityChange` one by one, as the
+  stack drawn whole reads them (not yet where a view beside the loop may be
+  a section or the stack pins).
 - **Why:** an app has SwiftUI's remedy for an eager container, the lazy type,
   only where one exists; elsewhere TUI must not make it pay for every row. A
   `GroupBox` of 10,000 rows built every row on every frame (1.5 to 14 s a

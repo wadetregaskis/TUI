@@ -136,9 +136,15 @@ struct TargetLayoutSpans: Equatable, Sendable {
         var pitch: Int
         var length: Int
         var total: Int
+        /// The ordinal of the first of them: `0` for a stack's own rows; a
+        /// loop's rows among a column of several follow the ordinals of the
+        /// views and rows the column placed (`StackPulledColumn+LoopRows.swift`).
+        var firstOrdinal = 0
     }
 
-    /// The vertical spans: uniform, or as placed.
+    /// The vertical spans: uniform, as placed, or both — a column of several
+    /// reports a uniform loop's rows beside the other views it placed, which
+    /// lie outside the uniform rows' lines.
     var uniform: Uniform?
     var placed: [Span] = []
 
@@ -149,23 +155,26 @@ struct TargetLayoutSpans: Equatable, Sendable {
 
     /// Whether any span is longer than one: a row a page can cut.
     var hasSpansLongerThanOne: Bool {
-        if let uniform { return uniform.length > 1 }
+        if let uniform, uniform.length > 1 { return true }
         return placed.contains { $0.length > 1 }
     }
 
     /// The spans that overlap `range`, in order.
     func spans(overlapping range: ClosedRange<Int>) -> [Span] {
-        if let uniform, uniform.pitch > 0, uniform.total >= 1 {
-            let first = max(0, (range.lowerBound - uniform.origin) / uniform.pitch - 1)
-            let last = min(uniform.total - 1, (range.upperBound - uniform.origin) / uniform.pitch + 1)
-            guard first <= last else { return [] }
-            return (first...last).map {
-                Span(origin: uniform.origin + $0 * uniform.pitch, length: uniform.length, ordinal: $0)
-            }
-        }
-        return placed.filter {
+        let placed = placed.filter {
             $0.origin <= range.upperBound && $0.origin + max(1, $0.length) > range.lowerBound
         }
+        guard let uniform, uniform.pitch > 0, uniform.total >= 1 else { return placed }
+        let first = max(0, (range.lowerBound - uniform.origin) / uniform.pitch - 1)
+        let last = min(uniform.total - 1, (range.upperBound - uniform.origin) / uniform.pitch + 1)
+        guard first <= last else { return placed }
+        let rows = (first...last).map {
+            Span(
+                origin: uniform.origin + $0 * uniform.pitch, length: uniform.length,
+                ordinal: uniform.firstOrdinal + $0)
+        }
+        guard !placed.isEmpty else { return rows }
+        return (rows + placed).sorted { $0.origin < $1.origin }
     }
 
     /// These spans as content drawn `lines` further down sees them.

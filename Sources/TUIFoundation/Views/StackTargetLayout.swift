@@ -26,6 +26,15 @@
     ) {
         guard let window, let reply = window.reply, let request = targetSpanRequest(window: window, context: context)
         else { return }
+        // A column of several reports its loops' rows in their place.
+        if let rows = eagerColumnOfSeveralRows(heights: heights, children: children, context: context) {
+            if request.layout { reply.targetLayoutRows = rows.spans }
+            if request.visibility {
+                reply.targetVisibleRows = rows.spans
+                reply.targetIDs = rows.ids
+            }
+            return
+        }
         var spans: [TargetLayoutSpans.Span] = []
         var cursor = 0
         var placedAny = false
@@ -45,7 +54,9 @@
     /// them. Asked only by a scroll view with a position bound, so every other
     /// stack pays a test of the window it already holds. Reported whether or
     /// not the stack is marked, as a windowed stack's rows are (decisions B29).
-    func reportEagerSample(heights: [Int], window: ScrollContentWindow?, context: RenderContext) {
+    func reportEagerSample(
+        heights: [Int], children: [ChildView], window: ScrollContentWindow?, context: RenderContext
+    ) {
         guard let window, let unit = window.reportsIDAt, let reply = window.reply else { return }
         var rows: [(ordinal: Int, bottom: Int)] = []
         var cursor = 0
@@ -63,6 +74,11 @@
         var shown = window
         if let resolved = reply.seekResolvedOffset { shown.offset = resolved }
         let line = shown.sampleY(at: unit, contentBelow: shown.hasContentBelow(stackBottom: last.bottom))
+        // A column of several samples its loops' rows in their place.
+        if let several = eagerColumnOfSeveralRows(heights: heights, children: children, context: context) {
+            reply.anchorID = several.sampled(at: line, band: 0...max(0, last.bottom - 1)).flatMap { several.ids($0) }
+            return
+        }
         // The first row whose bottom lies past the sampled line (a line in an
         // inter-row gap belongs to the row below it), clamped to the last row.
         let ordinal = rows.first { line < $0.bottom }?.ordinal ?? last.ordinal

@@ -43,6 +43,9 @@ private struct PulledPiece {
     /// The rows a pulled child marked with `scrollTargetLayout()` reported,
     /// in the column's lines.
     var targetRows: TargetLayoutSpans?
+    /// The rows a loop among a column of several's views reported, in the
+    /// column's lines (`StackPulledColumn+LoopRows.swift`).
+    var loopRows: PulledLoopRows?
     /// How far the anchored pulled child moved the viewport's top down its
     /// lines to hold a row where it was, as rows changed above it: its top
     /// row (``ScrollContentWindow/topRowHold``), or the row
@@ -57,6 +60,7 @@ private struct PulledPiece {
             endLine: endLine.map { $0 + delta }, position: position, end: end, zero: zero.map { $0 + delta })
         piece.resolvedSeek = resolvedSeek
         piece.targetRows = targetRows?.shifted(by: delta)
+        piece.loopRows = loopRows?.shifted(by: delta)
         piece.heldShift = heldShift
         piece.heldRowIsTopRow = heldRowIsTopRow
         return piece
@@ -217,6 +221,8 @@ private enum PulledPlace {
             anchor: window.anchor?.claimed(byColumn: context.identity, state: state) ?? state.ownAnchor,
             proposal: ProposedViewSize(width: width, height: nil), context: childContext)
         frame.asksTargetLayout = window.reportsTargetLayout && !reportsOwnRows
+        // A column of several reads back its loops' rows, not their stacks.
+        frame.readsLoopRows = context.identity.isColumnOfSeveral && (spanRequest != nil || window.reportsIDAt != nil)
         frame.heldRow = heldRow
 
         var window = window
@@ -315,8 +321,8 @@ private enum PulledPlace {
         reply.pulledPosition = window.offset
         reply.reportResolvedOffset(resolvedSeek ?? held?.offset, isHold: resolvedSeek == nil && held?.isTopRow == true)
         reportPulledRows(
-            drawn, anchored: anchored, request: spanRequest, frame: frame, window: window, into: reply,
-            context: context)
+            drawn, anchored: anchored, request: spanRequest, frame: frame, window: window,
+            band: bandTop...max(bandTop, bandTop + result.height - 1), into: reply, context: context)
         ScrollContentReply.journal(from: context)
         return result
     }
@@ -455,6 +461,7 @@ private enum PulledPlace {
             position: position, end: end, zero: zero)
         piece.resolvedSeek = seek != nil && answer.seekResolvedOffset != nil
         piece.targetRows = answer.targetLayoutRows?.shifted(by: zero)
+        if request.reportsTargetVisibility { piece.loopRows = PulledLoopRows(answer, zero: zero) }
         if seek == nil, answer.seekResolvedOffset != nil {
             piece.heldShift = position - request.offset
             piece.heldRowIsTopRow = answer.resolvedOffsetIsHold
@@ -475,6 +482,9 @@ private enum PulledPlace {
         request.focusBeyond = frame.focusBeyond[ordinal] ?? []
         request.focusEntry = frame.focusEntry[ordinal] ?? []
         request.reportsTargetLayout = frame.asksTargetLayout
+        // A loop among a column of several's views reports its rows, which
+        // the column reports as its own (`StackPulledColumn+LoopRows.swift`).
+        request.reportsTargetVisibility = frame.readsLoopRows && frame.child(at: ordinal).isLoopAmongColumnOfSeveral
         switch place {
         case .top(let y):
             request.offset = window.offset - y
@@ -601,21 +611,27 @@ private enum PulledPlace {
             width: width, height: max(context.availableHeight, window.viewportHeight * 4), context: rowContext)
     }
 
-    /// What the column reports of its rows (``reportPulledTargets(_:anchored:request:asksChildren:frame:into:context:)``)
+    /// What the column reports of its rows (``reportPulledTargets(_:anchored:request:asksChildren:frame:loopRows:into:context:)``)
     /// and the id of the row at `window`'s report anchor, for `.scrollPosition`
-    /// to read back.
+    /// to read back: a column of several's loops' rows in their place, every
+    /// other column's own children. `band` is the lines the fill drew.
     private func reportPulledRows(
         _ drawn: [PulledPiece], anchored: Int, request: TargetSpanRequest?, frame: PulledColumnFrame,
-        window: ScrollContentWindow, into reply: ScrollContentReply, context: RenderContext
+        window: ScrollContentWindow, band: ClosedRange<Int>, into reply: ScrollContentReply, context: RenderContext
     ) {
+        let loopRows = frame.readsLoopRows ? columnOfSeveralRows(drawn, frame: frame, context: context) : nil
         reportPulledTargets(
             drawn, anchored: anchored, request: request, asksChildren: frame.asksTargetLayout, frame: frame,
-            into: reply, context: context)
+            loopRows: loopRows, into: reply, context: context)
         guard let at = window.reportsIDAt, let first = drawn.first else { return }
         let sampleY = window.sampleY(at: at, contentBelow: !reply.sliceHoldsLastRow)
-        let sampled = drawn.last { $0.top <= sampleY } ?? first
-        reply.anchorID = frame.children.reportedID(
-            at: sampled.ordinal, content: content, sectionsWhole: context.keepsSectionsWhole)
+        if let rows = loopRows {
+            reply.anchorID = rows.sampled(at: sampleY, band: band).flatMap { rows.ids($0) }
+        } else {
+            let sampled = drawn.last { $0.top <= sampleY } ?? first
+            reply.anchorID = frame.children.reportedID(
+                at: sampled.ordinal, content: content, sectionsWhole: context.keepsSectionsWhole)
+        }
     }
 
     /// What the column reports of the rows a scroll view settles on and
@@ -623,10 +639,12 @@ private enum PulledPlace {
     /// placed them, for the visibility observers and, marked, for a behaviour
     /// — the band's, which is all a windowed stack knows — and otherwise, for
     /// a behaviour, the rows of the marked stack a child is: the anchored
-    /// child's, or the first drawn that has some.
+    /// child's, or the first drawn that has some. A column of several reports
+    /// its loops' rows in their place (`loopRows`).
     private func reportPulledTargets(
         _ drawn: [PulledPiece], anchored: Int, request: TargetSpanRequest?, asksChildren: Bool,
-        frame: PulledColumnFrame, into reply: ScrollContentReply, context: RenderContext
+        frame: PulledColumnFrame, loopRows: ColumnOfSeveralRows?, into reply: ScrollContentReply,
+        context: RenderContext
     ) {
         if asksChildren,
             let rows = drawn.first(where: { $0.ordinal == anchored })?.targetRows
@@ -635,12 +653,33 @@ private enum PulledPlace {
             reply.targetLayoutRows = rows
         }
         guard let request else { return }
+        if let loopRows {
+            if request.layout { reply.targetLayoutRows = loopRows.spans }
+            if request.visibility {
+                reply.targetVisibleRows = loopRows.spans
+                reply.targetIDs = loopRows.ids
+            }
+            return
+        }
         let spans: [TargetLayoutSpans.Span] = drawn.compactMap { piece in
             guard !frame.child(at: piece.ordinal).isSpacer else { return nil }
             let (origin, end) = piece.lines
             return end > origin ? .init(origin: origin, length: end - origin, ordinal: piece.ordinal) : nil
         }
         reply.deliverTargetRows(TargetLayoutSpans(placed: spans), for: request) { targetRowIDs(context: context) }
+    }
+
+    /// The rows of this column of several the fill drew, its loops' rows in
+    /// their place (`StackPulledColumn+LoopRows.swift`).
+    private func columnOfSeveralRows(
+        _ drawn: [PulledPiece], frame: PulledColumnFrame, context: RenderContext
+    ) -> ColumnOfSeveralRows {
+        let pieces = drawn.compactMap { piece -> ColumnRowPiece? in
+            guard !frame.child(at: piece.ordinal).isSpacer else { return nil }
+            let (origin, end) = piece.loopRows == nil ? piece.lines : (piece.top, piece.top + piece.buffer.height)
+            return ColumnRowPiece(ordinal: piece.ordinal, origin: origin, end: end, loopRows: piece.loopRows)
+        }
+        return ColumnOfSeveralRows(pieces, viewIDs: targetRowIDs(context: context))
     }
 }
 

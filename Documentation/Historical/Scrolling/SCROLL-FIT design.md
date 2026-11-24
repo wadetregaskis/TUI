@@ -2295,3 +2295,20 @@ taken apart below 256: making it whole at every count changes how a stack of man
 ruling did not settle).
 
 Measured: see the commit that made it (H-71).
+
+**The exceptions, finished (H-71b, 2026-11-24).** The column now reports its loop's rows one by one
+(`StackPulledColumn+LoopRows.swift`): a pulled column of several asks each loop among its views for its rows, as a
+visibility observer asks a stack, and reports them in its own lines beside its other views — to `.scrollPosition`,
+`onScrollTargetVisibilityChange` and a behaviour over a stack marked `scrollTargetLayout()` — with the ordinals its
+report names them by (a uniform loop's rows kept as arithmetic, `TargetLayoutSpans.Uniform.firstOrdinal`). Below 256
+the loop's lazy stack draws every row and is not pulled, so the column draws as an eager stack: it lays the loop's rows
+out to report them (`ColumnLoopRowsLaying`) and finds a row a request names among them (`resolveEagerSeek`). Under H-71
+alone a request for a row of a small loop beside a heading — `ScrollViewReader.scrollTo`, a `.scrollPosition` id —
+found none. What the scroll view reads back is the flat stack's, below 256 and past it (`ColumnOfSeveralReadBackTests`,
+against the twin); past 256 it read the heading and the loop's stack before. Past 256 a behaviour knows the loop's rows
+in its band only, as for any windowed lazy stack, where the flat twin drew every row: a jump of three screens settles
+differently. So the read-back and the mark no longer keep the threshold (`contentRowsAreReadBack` is gone).
+
+H-71's A/B of `app-shapes/headed-lazy-short` and `headed-box-short` measured the flat stack on both sides: their
+scroll views are bound to a `ScrollPosition`, which kept them at the threshold. Taking the step there, they are 10.1%
+and 54.3% faster (the commit that made it).
