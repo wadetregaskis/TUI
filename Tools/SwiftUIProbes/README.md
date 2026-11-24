@@ -1488,6 +1488,29 @@ messages cite that path), and what cites it.
 - **Cited by:** `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (L7);
   `Tests/TUIIntegrationTests/LazyStackFocusSectionTests.swift`.
 
+### Default focus priority (H-70)
+
+- **Asks:** whether `.defaultFocus(_:_:priority: .userInitiated)` re-applies its default on every pass or once,
+  and whether Tab, a click or a `@FocusState` write wins afterwards (hunt FOCUS-5, owner ruling O-13). Text fields
+  in a 300 × 260 point key window: a page of three fields a, b, c with the default on b, and a field "out" above a
+  region r1, r2, r3 with the default on r2; each with no default, `.automatic` and `.userInitiated`. Tab, Shift-Tab
+  and clicks are sent through the window, `@FocusState` writes come from the app's `onChange`, and a render
+  re-evaluates the body with no focus change asked; the focused field and the `@FocusState` value are printed after
+  each step.
+- **Files:** `defaultfocus.swift` (`swiftc -parse-as-library`), `defaultfocus.out`.
+- **Answers:** `.automatic` and `.userInitiated` printed the same, step for step. Neither re-applies on a render:
+  Tab and a click move the focus and it stays where they put it. Tab into the region from "out" lands on r1, the
+  first in Tab order, not the default r2, each time. Writing `nil` leaves nothing focused, and the next Tab goes to
+  the first field; the control case does the same. One difference from the control: a `@FocusState` write to a
+  field inside the region carrying the default (a, then c) landed on the default (b), with either priority, where
+  without a default it landed where it was asked; a write to "out", outside the region, landed there. The harness's
+  window applied no default at start for either priority (nothing focused until the first Tab, which went to a), so
+  when a default lands first is not measured here.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-23.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIFoundation/Focus/FocusState.swift` (`DefaultFocusEvaluationPriority`);
+  `Tests/TUITextInputTests/FocusStateTests.swift`.
+
 ### Tables in a scroll view (1111T)
 
 - **Asks:** what height SwiftUI gives `Table`s of 2, 5 and 30 rows, each under a title, stacked in a `VStack` in a
