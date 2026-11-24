@@ -39,6 +39,11 @@ the folder shown first, the other columns and open branches a moment later. And 
 thousands of folders no longer slows every frame: the row of the folder on the way, far down it, was looked for
 afresh some 600 times a frame.
 
+**Views playing one animated file share its frames.** Twelve rows of a list showing one spinner GIF each read
+the whole file, decoded every frame and kept up to 64 MiB of them, twelve times over. The frames are now decoded
+once and shared by every view playing the file through one image cache, for as long as any of them plays it; each
+view keeps its own place in the animation.
+
 **An image paint goes on drawing its picture after the image cache lets it go.** A view filled with
 `.image(Image(.file(path)))` drew nothing from the frame after the cache evicted its picture to make room for
 others, for as long as it stayed on screen. It now keeps drawing what it converted, and loads the picture again if

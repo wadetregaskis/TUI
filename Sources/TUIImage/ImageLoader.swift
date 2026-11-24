@@ -762,6 +762,10 @@ public final class URLImageCache: Sendable {
     /// The loads under way, which a caller asking for the same key joins.
     private let loads = JoinedLoads<LoadKey, RGBAImage>()
 
+    /// The frames of the animated files views play through this cache, shared
+    /// by every view playing one file.
+    package let animations = SharedAnimations()
+
     /// The picture for `key`: the one this cache holds, or the one `load`
     /// comes back with, filed here — `load` run once for every caller that
     /// asks for `key` under `maxPixelCount` while it runs (``JoinedLoads``).

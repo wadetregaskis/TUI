@@ -22,7 +22,8 @@ import TUIImage
 /// so a frame's bookkeeping asks for no further frame.
 ///
 /// **What it can hold.** The frames, at most ``AnimatedImageDecoder/byteBudget``
-/// (``FramePlan``). Their glyph conversions, at most ``artByteBudget``. In the
+/// (``FramePlan``), shared with every other view playing the file through the
+/// same image cache (``SharedAnimations``). Their glyph conversions, at most ``artByteBudget``. In the
 /// terminal, which keeps each frame it was sent, at most ``terminalByteBudget``
 /// of pixels and here ``placedFrameBudget`` of what the store remembers of them;
 /// a frame past those is sent again each time it comes round, as one picture
@@ -52,7 +53,9 @@ final class ImageAnimationPlayback {
         case decoding
         /// One picture, or none a decoder here can play.
         case still
-        case ready(AnimatedImage)
+        /// The frames, which every view playing the file shares
+        /// (``SharedAnimations``).
+        case ready(SharedAnimation)
     }
 
     fileprivate var progress = Progress.unasked
@@ -275,8 +278,11 @@ extension _ImageCore {
             context.stateStorage?.effectStage.noteUndo { playback.undoStartingToDecode() }
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             let maxPixelCount = context.environment.imageMaxPixelCount
+            let cache = context.environment.resolvedURLImageCache
             lifecycle.startTask(token: ImageAnimationPlayback.decodeToken(token), priority: .userInitiated) {
-                let animation = await Self.decodedAnimation(path: path, maxPixelCount: maxPixelCount)
+                guard
+                    let animation = await Self.decodedAnimation(path: path, maxPixelCount: maxPixelCount, cache: cache)
+                else { return }
                 await MainActor.run {
                     // As a load's result: a source changed since, or a view
                     // gone, must not have this land on it.
@@ -363,10 +369,23 @@ extension _ImageCore {
             draw: { picture })
     }
 
-    /// Reads and decodes the frames off the main actor, as a load's pixels are.
+    /// Reads and decodes the frames off the main actor, as a load's pixels
+    /// are: through `cache`, which shares them with every view playing the
+    /// file, where there is one. `nil` if the task was cancelled, which is not
+    /// an answer: the view has gone, or its source changed; `.some(nil)` for a
+    /// file with no frames to play.
     @concurrent
-    private static func decodedAnimation(path: String, maxPixelCount: Int?) async -> AnimatedImage? {
-        AnimatedImageDecoder.decode(atPath: path, maxPixelCount: maxPixelCount)
+    private static func decodedAnimation(
+        path: String, maxPixelCount: Int?, cache: URLImageCache?
+    ) async -> SharedAnimation?? {
+        guard let cache else {
+            return .some(AnimatedImageDecoder.decode(atPath: path, maxPixelCount: maxPixelCount).map(SharedAnimation.init))
+        }
+        do {
+            return .some(try await cache.animations.animation(atPath: path, maxPixelCount: maxPixelCount))
+        } catch {
+            return nil
+        }
     }
 }
 
@@ -414,7 +433,7 @@ extension ImageAnimationPlayback {
 
     /// The frames, where they have been decoded.
     var animation: AnimatedImage? {
-        if case .ready(let animation) = progress { return animation }
+        if case .ready(let shared) = progress { return shared.animation }
         return nil
     }
 
@@ -440,7 +459,7 @@ extension ImageAnimationPlayback {
     }
 
     /// Takes in what the decode came back with.
-    func finishDecoding(_ animation: AnimatedImage?) {
+    func finishDecoding(_ animation: SharedAnimation?) {
         progress = animation.map { .ready($0) } ?? .still
     }
 }

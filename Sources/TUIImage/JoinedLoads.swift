@@ -45,6 +45,7 @@ package final class JoinedLoads<Key: Hashable & Sendable, Value: Sendable>: Send
     private struct State {
         var flights: [Key: Flight] = [:]
         var nextID: UInt64 = 0
+        var started = 0
 
         mutating func takeID() -> UInt64 {
             nextID &+= 1
@@ -95,6 +96,7 @@ package final class JoinedLoads<Key: Hashable & Sendable, Value: Sendable>: Send
                         return .waiting
                     }
                     let id = state.takeID()
+                    state.started += 1
                     let task = Task { await self.run(key, id: id, load: load, land: land) }
                     state.flights[key] = Flight(id: id, task: task, waiters: [waiter: continuation])
                     return .waiting
@@ -108,6 +110,12 @@ package final class JoinedLoads<Key: Hashable & Sendable, Value: Sendable>: Send
         } onCancel: {
             leave(key, waiter: waiter)
         }
+    }
+
+    /// How many loads have been started: one for every key asked for while
+    /// no load of it was under way and nothing was held for it.
+    package var started: Int {
+        state.withLock { $0.started }
     }
 
     /// How many callers wait on the load of a key `matching` says is wanted.
