@@ -333,9 +333,20 @@ package final class MenuPopupController {
 
     // MARK: - Type select
 
+    /// The lines last drawn, each row's first among them by ordinal, and the
+    /// titles made from them once a character is typed.
+    private var titleLines: (lines: [String], firstLines: [Int: Int]) = ([], [:])
+    private var madeTitles: [Int: String]?
+
     /// Each row's title as last drawn, by ordinal: what a typed prefix finds
-    /// it by (``TypeSelectBuffer/title(ofDrawn:)``).
-    private var titles: [Int: String] = [:]
+    /// it by (``TypeSelectBuffer/title(ofDrawn:)``). Made on the first typed
+    /// character after a frame, not by every frame, which stripped every row.
+    private var titles: [Int: String] {
+        if let madeTitles { return madeTitles }
+        let made = titleLines.firstLines.mapValues { TypeSelectBuffer.title(ofDrawn: titleLines.lines[$0]) }
+        madeTitles = made
+        return made
+    }
 
     /// What has been typed to find a row, in whichever menu open from this
     /// one the keys are in.
@@ -353,9 +364,11 @@ package final class MenuPopupController {
     /// into a submenu, or back out of one — is forgotten.
     private weak var typedIn: MenuPopupController?
 
-    /// Records the rows' titles, as drawn.
-    func noteTitles(_ titles: [Int: String]) {
-        self.titles = titles
+    /// Records the lines drawn, `firstLines` naming each row's first, by
+    /// ordinal, for the titles a typed character finds rows by.
+    func noteTitles(lines: [String], firstLines: [Int: Int]) {
+        titleLines = (lines, firstLines)
+        madeTitles = nil
     }
 
     // MARK: - Submenus

@@ -116,11 +116,7 @@ func renderMenuPopup(
     var rows: [DropdownMenu.Row] = []
     var rowByOrdinal: [Int: Int] = [:]
     var firstRowByOrdinal: [Int: Int] = [:]
-    var titleByOrdinal: [Int: String] = [:]
     for (line, content) in column.lines.enumerated() {
-        if let ordinal = ordinalByLine[line], titleByOrdinal[ordinal] == nil {
-            titleByOrdinal[ordinal] = TypeSelectBuffer.title(ofDrawn: content)
-        }
         if let ordinal = ordinalByLine[line] {
             rowByOrdinal[ordinal] = rows.count
             if firstRowByOrdinal[ordinal] == nil { firstRowByOrdinal[ordinal] = rows.count }
@@ -164,7 +160,7 @@ func renderMenuPopup(
     // Where each row was drawn, as the window just scrolled put it: where a
     // submenu opened from it hangs.
     controller.noteDrawnRows(firstRowByOrdinal, scrolledBy: controller.scroll.scrollOffset)
-    controller.noteTitles(titleByOrdinal)
+    controller.noteTitles(lines: column.lines, firstLines: firstRowByOrdinal)
     return popup
 }
 
