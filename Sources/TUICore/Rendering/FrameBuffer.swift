@@ -966,8 +966,38 @@ extension FrameBuffer {
             return result
         }
 
+        // A painted overlay is inserted as it is, between the pieces of the base
+        // either side of it; at a negative column it is cut first, below.
+        let insertsInPieces = overlayIsPainted && position.x >= 0
+
+        // Over a uniform base the in-place twin IS this composite, and touches
+        // only the rows the overlay covers: on a copy of this buffer it costs the
+        // copy of the array of rows (a retain each) and the overlay's rows. Built
+        // here, every row of the base was padded — a measure each — and measured
+        // again by `Self(lines:)`, however little the overlay covered, and the
+        // root composites every floating layer through here: a menu, a tooltip,
+        // every `.offset` view's drawing. A one-cell overlay over 800 rows of
+        // wide glyphs cost 17.1× what it did over 50 (hunt 11-20, CORE1-4). Not
+        // for a painted overlay whose rows the caller puts together itself
+        // (`composingRows`), which reads every row by design.
+        if linesAreUniformWidth, !(insertsInPieces && composingRows != nil) {
+            var copy = self
+            copy.composite(
+                with: overlay, at: position, overlayIsPainted: overlayIsPainted, terminalForeground: terminalForeground)
+            return copy
+        }
+
         let resultWidth = max(width, position.x + overlay.width)
         let resultHeight = max(height, position.y + overlay.height)
+        // Each base row's width as this buffer knows it — measured here only where
+        // it knows none, and then once — so a row is padded without measuring it
+        // and the result built without measuring it again. A row is padded to
+        // `resultWidth` and an insertion keeps its width, so each row of the
+        // result is the wider of the two.
+        let baseWidths = (0..<resultHeight).map { row in
+            knownWidth(ofRow: row, line: row < lines.count ? lines[row] : "")
+        }
+        let rowWidths = baseWidths.map { Swift.max($0, resultWidth) }
 
         // The fields each overlay row was painted over, for the overlay's runs to
         // record — kept only when it carries any, and when it was painted over them.
@@ -992,19 +1022,18 @@ extension FrameBuffer {
                 base: base.padToVisibleWidth(resultWidth), atColumn: position.x, overlayWidth: overlayWidth,
                 terminalForeground: terminalForeground)
         }
-        // A painted overlay is inserted as it is, between the pieces of the base
-        // either side of it; at a negative column it is cut first, below.
-        let insertsInPieces = overlayIsPainted && position.x >= 0
-
         // One row of the result from the base's line on it ("" past the base's
         // end, which pads to a blank row): the line padded to the result's width,
         // with the overlay's line on that row, if it has one, inserted.
         func composedRow(_ row: Int, _ base: String) -> String {
+            let baseLine = base.padToVisibleWidth(resultWidth, knownVisibleWidth: baseWidths[row])
             if insertsInPieces {
                 let line = overlayLine(onRow: row)
-                return pieces(base, overlayWidth: line?.strippedLength).joined(around: line ?? "")
+                return Self.paintedOverlayPieces(
+                    base: baseLine, atColumn: position.x, overlayWidth: line?.strippedLength,
+                    terminalForeground: terminalForeground
+                ).joined(around: line ?? "")
             }
-            let baseLine = base.padToVisibleWidth(resultWidth)
             guard let overlayLine = overlayLine(onRow: row) else { return baseLine }
             let overlayRow = row - position.y
             let inserted = Self.insertOverlay(
@@ -1027,7 +1056,16 @@ extension FrameBuffer {
             }
         }
 
-        var composited = Self(lines: result)
+        // Not `Self(lines:)`, which measured every row to learn `rowWidths`. A
+        // result of no rows is as wide as one of any rows would be, as the
+        // in-place twin's is: measured, it was none.
+        let resultUniform = rowWidths.allSatisfy { $0 == resultWidth }
+        var composited = FrameBuffer(
+            lines: result, width: rowWidths.max() ?? resultWidth, uniformWidth: resultUniform,
+            lineWidths: resultUniform ? nil : rowWidths)
+        assert(
+            Self.firstLineWidthMismatch(in: result, against: rowWidths, from: 0) == nil,
+            "a composited row is not its base row's width padded to the composite's")
         // Keep this buffer's own layers + hit-test regions (their
         // overflow cut where the overlay lands); lift the overlay's nested
         // ones, shifted to where the overlay was placed.
@@ -1072,10 +1110,12 @@ extension FrameBuffer {
     ///
     /// Identical in result to ``composited(with:at:)``, and there for the case
     /// that method is quadratic in: compositing many small children into one
-    /// canvas. `composited` rebuilds — and re-pads — *every* line of the whole
-    /// buffer per call, so folding n children through it costs n × canvas even
-    /// when each child covers two rows. A custom `Layout` placing 160 subviews
-    /// paid 160 full-canvas rebuilds, which is most of what made it slow.
+    /// canvas. `composited` returns a new buffer, so it copies the array of
+    /// rows per call — and over a ragged base rebuilds and re-pads *every* line
+    /// of it — so folding n children through it costs n × canvas even when each
+    /// child covers two rows. A custom `Layout` placing 160 subviews paid 160
+    /// full-canvas rebuilds, which is most of what made it slow. (Over a uniform
+    /// base `composited` is this, on a copy.)
     ///
     /// Only valid while the receiver's lines are uniform width, which is what
     /// lets the width bookkeeping stay incremental; otherwise it falls back to
