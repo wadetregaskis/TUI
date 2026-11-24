@@ -1,0 +1,53 @@
+macOS=Version 15.8.3 (Build 24H241)
+z-index  no z-index                         on top: green
+z-index  .zIndex(1)                         on top: red
+z-index  .zIndex(1).padding(0)              on top: red
+z-index  .zIndex(1).overlay { }             on top: red
+z-index  .zIndex(1).background { }          on top: red
+z-index  .zIndex(1).contextMenu { }         on top: red
+z-index  .zIndex(1).clipped()               on top: red
+z-index  .zIndex(1).clipShape(Rectangle())  on top: red
+z-index  .zIndex(1).mask { }                on top: red
+list tag untagged rows (control)            selection 2 shows row []; select row 0 -> selection nil
+list tag (no wrapper)                       selection 2 shows row [1]; select row 0 -> selection 1
+list tag .padding(0)                        selection 2 shows row [1]; select row 0 -> selection 1
+list tag .overlay { }                       selection 2 shows row [1]; select row 0 -> selection 1
+list tag .background { }                    selection 2 shows row [1]; select row 0 -> selection 1
+list tag .contextMenu { }                   selection 2 shows row [1]; select row 0 -> selection 1
+list tag .clipped()                         selection 2 shows row [1]; select row 0 -> selection 1
+list tag .clipShape(Rectangle())            selection 2 shows row [1]; select row 0 -> selection 1
+list tag .mask { }                          selection 2 shows row [1]; select row 0 -> selection 1
+badge    (no wrapper)                       inked badged row 1092, plain row 0: BADGE DRAWN
+badge    .padding(0)                        inked badged row 1092, plain row 0: BADGE DRAWN
+badge    .overlay { }                       inked badged row 1092, plain row 0: BADGE DRAWN
+badge    .background { }                    inked badged row 1092, plain row 0: BADGE DRAWN
+badge    .contextMenu { }                   inked badged row 1092, plain row 0: BADGE DRAWN
+badge    .clipped()                         inked badged row 1092, plain row 0: BADGE DRAWN
+badge    .clipShape(Rectangle())            inked badged row 1092, plain row 0: BADGE DRAWN
+badge    .mask { }                          inked badged row 1092, plain row 0: BADGE DRAWN
+picker   untagged options (control)         selection 2 shows item -1 '' of 2; choose item 0 -> selection 2
+picker   (no wrapper)                       selection 2 shows item 1 'Two' of 2; choose item 0 -> selection 1
+picker   .padding(0)                        selection 2 shows item 1 'Two' of 2; choose item 0 -> selection 1
+picker   .overlay { }                       selection 2 shows item 1 'Two' of 2; choose item 0 -> selection 1
+picker   .background { }                    selection 2 shows item 1 'Two' of 2; choose item 0 -> selection 1
+picker   .contextMenu { }                   selection 2 shows item 1 'Two' of 2; choose item 0 -> selection 1
+picker   .clipped()                         selection 2 shows item 1 'Two' of 2; choose item 0 -> selection 1
+picker   .clipShape(Rectangle())            selection 2 shows item 1 'Two' of 2; choose item 0 -> selection 1
+picker   .mask { }                          selection 2 shows item 1 'Two' of 2; choose item 0 -> selection 1
+spacing  Color.clear.frame(width: 0) (control)        row of two 10-pt boxes is 36.0 pt
+spacing  Spacer(minLength: 0)                         row of two 10-pt boxes is 20.0 pt
+spacing  Spacer(minLength: 0).padding(0)              row of two 10-pt boxes is 20.0 pt
+spacing  Spacer(minLength: 0).overlay { }             row of two 10-pt boxes is 20.0 pt
+spacing  Spacer(minLength: 0).background { }          row of two 10-pt boxes is 20.0 pt
+spacing  Spacer(minLength: 0).contextMenu { }         row of two 10-pt boxes is 20.0 pt
+spacing  Spacer(minLength: 0).clipped()               row of two 10-pt boxes is 20.0 pt
+spacing  Spacer(minLength: 0).clipShape(Rectangle())  row of two 10-pt boxes is 20.0 pt
+spacing  Spacer(minLength: 0).mask { }                row of two 10-pt boxes is 20.0 pt
+priority (no wrapper)                       a=20.0 b=9.0 characters
+priority .padding(0)                        a=15.0 b=14.0 characters
+priority .overlay { }                       a=20.0 b=9.0 characters
+priority .background { }                    a=20.0 b=9.0 characters
+priority .contextMenu { }                   a=20.0 b=9.0 characters
+priority .clipped()                         a=20.0 b=9.0 characters
+priority .clipShape(Rectangle())            a=20.0 b=9.0 characters
+priority .mask { }                          a=20.0 b=9.0 characters

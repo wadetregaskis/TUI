@@ -89,6 +89,8 @@ inclusion in CI." So no CI job runs them. Rerun them when:
    view destinations` and `Grid narrower than its columns` too; since 2026-11-23, `ViewThatFits widths and spacers
    across the axis (H-62, H-64)`; since 2026-11-24, `Navigation identities (H-69)`.
 
+   across the axis (H-62, H-64)`, `Traits through layers and menus (H-63)` and `A control at opacity zero (H-68b)`.
+
 The rest only when their subject comes up.
 
 **Rerunning a folder and diffing it.** Most folders keep a program's output as `<name>.out` beside `<name>.swift`;
@@ -1830,3 +1832,56 @@ messages cite that path), and what cites it.
   `Sources/TUINavigation/Views/NavigationCoordinator.swift`, `Sources/TUINavigation/Views/PushedNavigationValue.swift`; `Tests/TUINavigationTests/NavigationScreenStateTests.swift`,
   `Tests/TUINavigationTests/NavigationDestinationLookupTests.swift`; H-69 in the maintainers' working notes
   (`plan/hunt-1120/HUNT-QUEUE.md`).
+
+### Traits through layers and menus (H-63)
+
+- **Asks:** whether a trait written on a view survives a wrapper written after it, for `.overlay { }`,
+  `.background { }`, `.contextMenu { }`, `.clipped()`, `.clipShape(Rectangle())` and `.mask { }`, with no wrapper
+  and `.padding(0)` as controls (`traits.swift`, `traits.out`, built with `common.swift`). A z-index: which colour
+  of `ZStack { Color.red.zIndex(1).<wrapper>; Color.green }` is on top. A tag: which row of a `List(selection:)` of
+  `Text(…).tag(n).<wrapper>` rows the table shows selected for the selection 2, and the selection after the table
+  selects its first row, with untagged rows as the control. A row badge: the inked pixels where
+  `Text("Inbox").badge(7).<wrapper>` draws its badge in a `List`, against a plain row. A `Picker` option's tag: the
+  `.menu` pop-up's selected item for the selection 2, and the selection after choosing the first item, with
+  untagged options as the control. A spacer's spacing preference (none): how wide
+  `HStack { box; Spacer(minLength: 0).<wrapper>; box }.fixedSize()` is, against a zero-wide colour between the
+  boxes. A layout priority: the widths `.layoutPriority(1).<wrapper>` on the first of two 20-character texts in 30
+  characters gives them.
+- **Answers:** every one of the six wrappers keeps every trait, exactly as no wrapper and `.padding(0)` do: red
+  is on top, the second row shows selected and selecting the first writes 1, the badge is drawn, and the picker
+  shows "Two" and writes 1. Untagged rows and options show no selection and write none. The spacer keeps its
+  preference through each (the row is 20 points, the two boxes touching, where the control's is 36), and the
+  priority survives each (20 and 9 characters), where `.padding(0)` loses it (15 and 14), as the `Layout priority`
+  folder found.
+- **What TUI does with it:** each of the six conforms to `SingleContentWrapper`, so a z-index, a tag, a row badge,
+  a layout priority and a spacing preference written inside one are its own
+  (`Sources/TUIFoundation/Modifiers/OverlayModifier.swift` and the five beside it).
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-23.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIFoundation/Modifiers/OverlayModifier.swift`,
+  `Sources/TUIFoundation/Modifiers/BackgroundLayerModifier.swift`,
+  `Sources/TUIFoundation/Modifiers/ContextMenuModifier.swift`, `Sources/TUIFoundation/Modifiers/ClippedModifier.swift`,
+  `Sources/TUIFoundation/Modifiers/ShapeClipModifier.swift`, `Sources/TUIFoundation/Modifiers/MaskModifier.swift`;
+  `Tests/TUIIntegrationTests/TraitsThroughLayersTests.swift`.
+
+### A control at opacity zero (H-68b)
+
+- **Asks:** whether a button drawn at a low opacity takes a click, and whether Tab stops on a control at opacity
+  zero (`faded.swift`, `faded.out`; after `Layers over a control (H-68)`, whose last case found a button at
+  `.opacity(0)` takes no click). A press and a release are posted at the centre of a bordered and a plain button
+  under `.opacity(x)` for `x` from 0 to 0.5, under an ancestor's `.opacity(0)`, under `.opacity(0).opacity(1)`,
+  under two `.opacity(0.1)`s, and faded out by an animation. Tab is sent from a text field to a text field, a
+  `.focusable()` view and a bordered button at opacity 1 and 0, with `@FocusState` reporting where it went.
+- **Answers:** a button takes no click under an `.opacity(_:)` of 0.0208 or less, and takes it from 0.0209 up (the
+  cut is consistent with 1/48), with both button styles. The test is each modifier's own value, not the product:
+  `.opacity(0).opacity(1)` takes none, `.opacity(0.1).opacity(0.1)`, 0.01 in all, takes the click. An ancestor's
+  `.opacity(0)` and an animated fade to 0 take it away too. Tab is not affected: it still stops on a text field and
+  a `.focusable()` view at opacity 0, as at 1. A bordered button is no Tab stop at either opacity, with Full Keyboard
+  Access off (as on the machine it ran on).
+- **What TUI does with it:** a view under an `.opacity(_:)` below 1/48 takes no clicks, as under
+  `.allowsHitTesting(false)`, and keeps its place in the focus ring
+  (`Sources/TUIFoundation/Modifiers/OpacityModifier.swift`).
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-23.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIFoundation/Modifiers/OpacityModifier.swift`,
+  `Sources/TUI/TUI.docc/Articles/AppearanceAndColors.md`; `Tests/TUIAppTests/FadedControlClicksTests.swift`.
