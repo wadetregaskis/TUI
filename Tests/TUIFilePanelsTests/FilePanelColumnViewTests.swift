@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import Testing
 
 @testable import TUIApp
@@ -394,6 +395,39 @@ struct FilePanelColumnViewTests {
         #expect(shown.contains("zz/"), "\(shown)")
     }
 
+    /// The column of a folder of 5,000 folders, the one on the way the last
+    /// by name: its row was found by standardizing each row's URL until it
+    /// matched, for each row drawn (the selection's getter) and once more to
+    /// scroll to it, some 6 µs each (release).
+    @Test("A column finds the folder on the way without standardizing a URL per row")
+    func columnFindsTheFolderOnTheWayCheaply() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        for index in 0..<5000 {
+            try FileManager.default.createDirectory(
+                at: fixture.url("a\(index)"), withIntermediateDirectories: false)
+        }
+        let deep = fixture.url("zz")
+        try FileManager.default.createDirectory(at: deep, withIntermediateDirectories: true)
+        for name in ["leaf.txt", "other.txt"] {
+            _ = FileManager.default.createFile(atPath: deep.appendingPathComponent(name).path, contents: nil)
+        }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver {
+            panel(fixture, caller: caller, store: columnsStore(), start: deep)
+        }
+        await driver.waitFor("leaf.txt")
+        await driver.waitFor("zz/")
+        let count = StandardizationCount()
+        FolderPath.$standardizing.withValue(TaskLocalReporter { count.add() }) {
+            // A frame of the folder shown: its cursor moved one row.
+            driver.press(.down)
+        }
+        // A handful for the columns' paths; it was 5,000 for each row of
+        // ~'s column drawn, and as many again.
+        #expect(count.value < 500, "\(count.value) standardizations in one frame")
+    }
+
     @Test("The switcher changes the view, and the app's storage keeps it")
     func switcherIsKept() async throws {
         let fixture = try FilePanelFixture()
@@ -425,5 +459,18 @@ struct FilePanelColumnViewTests {
         let shown = await driver.waitFor("notes.md")
         #expect(shown.contains("Date Modified"), "\(shown)")
         #expect(FilePanelViewMode.storageKey(for: "notes") == "TUIFilePanels.notes.viewMode")
+    }
+}
+
+/// How many URLs a frame standardized (`FolderPath.standardizing`).
+private final class StandardizationCount: Sendable {
+    private let count = Atomic<Int>(0)
+
+    /// The standardizations counted.
+    var value: Int { count.load(ordering: .relaxed) }
+
+    /// Counts one.
+    func add() {
+        count.wrappingAdd(1, ordering: .relaxed)
     }
 }

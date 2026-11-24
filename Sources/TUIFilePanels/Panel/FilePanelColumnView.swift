@@ -187,12 +187,14 @@ struct FilePanelColumnView: View {
         selectedEntry.flatMap { $0.expandsInPlace ? $0.url : nil }
     }
 
-    /// The item selected in the folder shown, alone.
+    /// The item selected in the folder shown, alone: looked up by its URL
+    /// (``FileBrowser/rowIndex``), not scanned for, twice a body.
     private var selectedEntry: FileEntry? {
         let url = allowsMultipleSelection ? (selection.wrappedValue.count == 1 ? selection.wrappedValue.first : nil)
             : singleSelection.wrappedValue
-        guard let url else { return nil }
-        return browser.rows.first { $0.url == url && !$0.isPlaceholder }
+        guard let url, let place = browser.rowIndex[url], browser.rows.indices.contains(place) else { return nil }
+        let entry = browser.rows[place]
+        return entry.isPlaceholder ? nil : entry
     }
 
     /// The preview column's width in a column view `width` cells wide: a
@@ -212,22 +214,24 @@ struct FilePanelColumnView: View {
     @ViewBuilder
     private func column(_ path: String, after previous: String?, next: String?) -> some View {
         let focus = focus
+        let items = items(of: path)
+        // Found once a body, for the selection and the scroll alike: the
+        // selection's getter found it for each row drawn.
+        let way = Self.row(toward: next, in: items, of: path)
         Group {
             if allowsMultipleSelection {
-                List(items(of: path), selection: multipleSelection(of: path, next: next)) { entry in
+                List(items, selection: multipleSelection(of: path, way: way, in: items)) { entry in
                     FilePanelColumns.nameCell(entry, browser: browser)
                 }
             } else {
-                List(items(of: path), selection: singleSelection(of: path, next: next)) { entry in
+                List(items, selection: singleSelection(of: path, way: way, in: items)) { entry in
                     FilePanelColumns.nameCell(entry, browser: browser)
                 }
             }
         }
         .listStyle(.plain)
         .listEmptyPlaceholder(emptyText(of: path))
-        .modifier(RevealingFolderOnTheWay(target: next.flatMap { next in
-            items(of: path).first { $0.url.panelStandardized.path == next }?.url
-        }))
+        .modifier(RevealingFolderOnTheWay(target: way))
         .focused(focus, equals: .column(path))
         .onAppear {
             // Only the folder shown's: a column of the folder selected there
@@ -273,34 +277,54 @@ struct FilePanelColumnView: View {
         await browser.loadFolder(URL(fileURLWithPath: path, isDirectory: true))
     }
 
+    /// The row of the folder on the way, `next`, among the `rows` of the
+    /// folder at `path`: found by its name, and that row's URL standardized
+    /// to be sure of it. Each row's was standardized until one matched, some
+    /// 6 µs each (release), and for each row drawn: in a column of 5,000
+    /// folders, a frame's budget many times over. A row's URL is its folder's
+    /// and its name (`DirectoryListing`), so a row the name does not find is
+    /// not there; each row's is still looked at where `next` is spelt other
+    /// than as a path inside `path`.
+    static func row(toward next: String?, in rows: [FileEntry], of path: String) -> URL? {
+        guard let next else { return nil }
+        let base = FolderPath.withSlash(path)
+        if next.hasPrefix(base) {
+            let name = next.dropFirst(base.count)
+            guard let row = rows.first(where: { $0.name == name }) else { return nil }
+            if row.url.panelStandardized.path == next { return row.url }
+        }
+        return rows.first { $0.url.panelStandardized.path == next }?.url
+    }
+
     /// The folder shown's column's selection is the panel's; another's is the
-    /// folder on the way, `next`, or none after the last
-    /// (``onTheWay(in:next:folder:)``).
-    private func singleSelection(of path: String, next: String?) -> Binding<URL?> {
+    /// folder on the way, `way`, or none after the last
+    /// (``onTheWay(in:way:folder:)``).
+    private func singleSelection(of path: String, way: URL?, in rows: [FileEntry]) -> Binding<URL?> {
         guard path != browser.directory.path else { return singleSelection }
-        let way = onTheWay(in: items(of: path), next: next, folder: path)
+        let way = onTheWay(in: rows, way: way, folder: path)
         return Binding(get: { way.wrappedValue }, set: { way.wrappedValue = $0 })
     }
 
-    /// ``singleSelection(of:next:)``, where several may be chosen.
-    private func multipleSelection(of path: String, next: String?) -> Binding<Set<URL>> {
+    /// ``singleSelection(of:way:in:)``, where several may be chosen.
+    private func multipleSelection(of path: String, way: URL?, in rows: [FileEntry]) -> Binding<Set<URL>> {
         guard path != browser.directory.path else { return selection }
-        let way = onTheWay(in: items(of: path), next: next, folder: path)
+        let way = onTheWay(in: rows, way: way, folder: path)
         return Binding(
             get: { way.wrappedValue.map { [$0] } ?? [] },
             set: { urls in way.wrappedValue = urls.first { $0 != way.wrappedValue } ?? urls.first })
     }
 
-    /// A column's selection: the row of the folder on the way, `next`; and a
-    /// choice of another row goes there — a folder becomes the folder shown,
-    /// a file is selected in the folder it is in, `folder`.
-    private func onTheWay(in rows: [FileEntry], next: String?, folder: String) -> Binding<URL?> {
+    /// A column's selection: the row of the folder on the way, `way`
+    /// (``row(toward:in:of:)``); and a choice of another row goes there — a
+    /// folder becomes the folder shown, a file is selected in the folder it
+    /// is in, `folder`.
+    private func onTheWay(in rows: [FileEntry], way: URL?, folder: String) -> Binding<URL?> {
         let browser = browser
         let selection = selection
         let singleSelection = singleSelection
         let multiple = allowsMultipleSelection
         return Binding(
-            get: { next.flatMap { next in rows.first { $0.url.panelStandardized.path == next }?.url } },
+            get: { way },
             set: { url in
                 guard let url, let entry = rows.first(where: { $0.url == url }) else { return }
                 if entry.isFolder {

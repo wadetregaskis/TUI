@@ -35,7 +35,9 @@ opened sorted again every folder the panel keeps on the way to it, the column vi
 branches, though nothing had changed their order, before the folder opened showed its items: inside a folder of
 50,000 items, about a second of an empty table for each folder opened. Only a folder arranged for another order or
 hidden-files switch is sorted again, and then after the folder shown: a new order or the hidden items shown appear in
-the folder shown first, the other columns and open branches a moment later.
+the folder shown first, the other columns and open branches a moment later. And in the column view, a column of
+thousands of folders no longer slows every frame: the row of the folder on the way, far down it, was looked for
+afresh some 600 times a frame.
 
 **A `NavigationSplitView` that collapses keeps the state of the columns ahead of the one on top.** Narrowed into
 its stack with the sidebar on top, for a moment or under a compact size class, a split forgot its content and detail

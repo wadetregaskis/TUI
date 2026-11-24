@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUIFoundation
 
 extension URL {
     /// This location as a file panel names it: `standardizedFileURL`, its `.`
@@ -20,16 +21,24 @@ extension URL {
     /// panel takes the `.` and `..` out itself and keeps the drive
     /// (``FolderPath/standardizedOnWindows(_:)``).
     var panelStandardized: URL {
+        FolderPath.standardizing?()
         #if os(Windows)
-            FolderPath.standardizedOnWindows(self)
+            return FolderPath.standardizedOnWindows(self)
         #else
-            standardizedFileURL
+            return standardizedFileURL
         #endif
     }
 }
 
 /// How a panel walks between folders by their paths.
 enum FolderPath {
+    /// Told of each ``Foundation/URL/panelStandardized``, for a test that
+    /// counts them in a frame: a standardization costs some 6 µs (release,
+    /// macOS 26), so one per row drawn is a frame's budget gone in a folder
+    /// of thousands (`FilePanelColumnViewTests`); `nil`, and nothing told,
+    /// everywhere else.
+    @TaskLocal static var standardizing: TaskLocalReporter<Void>?
+
     /// `path` ending in a `/`, as the start of the paths inside it: `/`
     /// stays `/`, and a Windows drive's `C:/` stays `C:/`.
     static func withSlash(_ path: String) -> String {
