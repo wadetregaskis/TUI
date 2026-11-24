@@ -277,4 +277,37 @@ struct TextUndoHistoryDifferentialTests {
         }
         #expect(history.keptBytes < text.utf8.count + 50 * 64, "kept \(history.keptBytes) bytes for \(text.utf8.count)")
     }
+
+    /// The scan a byte at a time from each end that `sharedEnds` was until
+    /// H-87, the reference its blocks of `memcmp` are checked against.
+    private static func scannedEnds(_ old: [UInt8], _ new: [UInt8]) -> (start: Int, end: Int) {
+        let shorter = min(old.count, new.count)
+        var start = 0
+        while start < shorter, old[start] == new[start] { start += 1 }
+        var end = 0
+        while end < shorter - start, old[old.count - 1 - end] == new[new.count - 1 - end] { end += 1 }
+        return (start, end)
+    }
+
+    /// Texts a few bytes long and texts of several blocks, differing in one
+    /// span, in none, or one the other's start or end — where the end found
+    /// apart from the start overlaps it and must be cut short.
+    @Test("The shared ends found by blocks are the ones a scan a byte at a time finds")
+    func sharedEndsMatchTheScan() {
+        var random = SplitMix(state: 0x5EED_0087)
+        for round in 0..<300 {
+            let length = round.isMultiple(of: 3) ? Int.random(in: 0...20, using: &random)
+                : Int.random(in: 0...20_000, using: &random)
+            // Two letters, so long runs repeat and the ends overlap often.
+            let old = (0..<length).map { _ in UInt8.random(in: 97...98, using: &random) }
+            var new = old
+            let lower = Int.random(in: 0...old.count, using: &random)
+            let upper = Int.random(in: lower...old.count, using: &random)
+            let inserted = (0..<Int.random(in: 0...9_000, using: &random)).map { _ in UInt8.random(in: 97...98, using: &random) }
+            new.replaceSubrange(lower..<upper, with: round.isMultiple(of: 7) ? [] : inserted)
+            let found = old.withUnsafeBufferPointer { a in new.withUnsafeBufferPointer { b in unsafe TextEdit.sharedEnds(a, b) } }
+            let scanned = Self.scannedEnds(old, new)
+            #expect(found.start == scanned.start && found.end == scanned.end, "round \(round)")
+        }
+    }
 }

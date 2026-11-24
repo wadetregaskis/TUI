@@ -223,7 +223,9 @@ enum EditorWrittenText {
         return found.flatMap { $0 } ?? (0, 0)
     }
 
-    private static func commonEnds(
+    /// `commonEnds` of two texts' bytes where they lie: what
+    /// ``TextEdit/sharedEnds(_:_:)`` finds an undo step's edit by.
+    static func commonEnds(
         _ lhs: UnsafeBufferPointer<UInt8>, _ rhs: UnsafeBufferPointer<UInt8>
     ) -> (prefix: Int, suffix: Int) {
         let shorter = min(lhs.count, rhs.count)

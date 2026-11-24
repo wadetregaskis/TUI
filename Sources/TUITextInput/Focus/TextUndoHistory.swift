@@ -434,15 +434,14 @@ struct TextEdit: Equatable {
     }
 
     /// How many bytes `old` and `new` share at their start, and then at their
-    /// end, the end not reaching into the start: the scan, a byte at a time
-    /// from each end, that finds where two texts differ.
+    /// end, the end not reaching into the start: the scan from each end that
+    /// finds where two texts differ. By `memcmp`, a block at a time
+    /// (`EditorWrittenText.commonEnds`), not a byte at a time, as it was
+    /// until H-87; the end found apart from the start is the same end, cut
+    /// short at the start.
     static func sharedEnds(_ old: UnsafeBufferPointer<UInt8>, _ new: UnsafeBufferPointer<UInt8>) -> (start: Int, end: Int) {
-        let shorter = min(old.count, new.count)
-        var start = 0
-        while start < shorter, unsafe old[start] == new[start] { start += 1 }
-        var end = 0
-        while end < shorter - start, unsafe old[old.count - 1 - end] == new[new.count - 1 - end] { end += 1 }
-        return (start, end)
+        let (start, end) = unsafe EditorWrittenText.commonEnds(old, new)
+        return (start, min(end, min(old.count, new.count) - start))
     }
 
     /// Whether `a` and `b` are the same bytes — not `==`, which takes two
