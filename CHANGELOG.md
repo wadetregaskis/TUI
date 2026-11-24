@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A hidden `TextEditor` lays out only the lines a key changes.** Redacted, or privacy-sensitive under privacy
+redaction, an editor laid its whole hidden text out again on every key, and wrapped all of it; it now carries the
+layout it draws through the edit, as it does its text's own.
+
 **An undo or a redo in a large `TextEditor` costs what it changes, not the document.** Each wrote the text back
 whole, so the next frame split every line again and wrapped it: about 20 ms a step in 40,000 lines, sixteen times a
 key's cost. An undo or redo of a `String` is now spliced in as the edit it is, as a key's is, keeping the rows,

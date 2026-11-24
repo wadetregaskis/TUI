@@ -42,7 +42,7 @@ struct EditorUndoLayoutTests {
     /// key, laying nothing out whole: before H-87 an undo or a redo wrote the
     /// text whole, and the next frame split all ten thousand lines again and
     /// wrapped every one.
-    @Test("Typing, undo and redo in ten thousand lines lay nothing out whole", arguments: [false])
+    @Test("Typing, undo and redo in ten thousand lines lay nothing out whole", arguments: [false, true])
     func typeUndoRedoLayNothingOut(hidden: Bool) throws {
         let frames = Frames(width: 30, height: 8)
         let box = Box(Self.tenThousandLines)
@@ -117,7 +117,7 @@ struct EditorUndoLayoutTests {
     /// other's carried through each edit.
     @Test(
         "Undo and redo spliced in leave what writing them whole did",
-        arguments: startingTexts.indices, [false])
+        arguments: startingTexts.indices, [false, true])
     func splicedStepsMatchWholeWrites(textIndex: Int, hidden: Bool) {
         let start = Self.startingTexts[textIndex]
         var random = SplitMix(state: 0x4887 &+ UInt64(textIndex))

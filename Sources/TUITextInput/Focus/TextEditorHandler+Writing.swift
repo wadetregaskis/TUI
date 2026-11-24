@@ -131,8 +131,10 @@ extension TextEditorHandler {
         let marked = markEdit(edit, from: before)
         // The find bar's matches, where they are of the text before.
         let found = findCache?.carries(from: before) == true ? marked?.edit ?? EditorMarkEdit(edit, from: before) : nil
+        let previous = (text: before.text, ending: before.lineEnding)
         let after = before.laidOut(edit, reusingStorage: unshared)
         cachedLayout = after
+        carryDisplayLayout(through: edit, from: previous)
         if drawsLineStyles { lineStyleCache.replaceLines(edit.replaced, withCount: edit.replacement.count) }
         if let highlighted { sendHighlightEdit(highlighted, leaving: after) }
         if let marked { marks.carry(through: marked.edit, of: marked.text, from: before, to: after) }
@@ -144,6 +146,45 @@ extension TextEditorHandler {
         // put in to be read.
         keptLineGaps = nil
         return EditedLines(after.lines)
+    }
+
+    /// Makes a hidden editor's drawn layout (``displayLayout()``) of the text
+    /// `edit` leaves from the one of the text before it, `previous`, as the
+    /// text's own is made: the lines the edit replaced hidden and spliced in,
+    /// and wrapped again, the rest kept. Until TEXTIN-18 every key laid the
+    /// whole hidden text out afresh, and wrapped all of it.
+    ///
+    /// Only where the hidden layout joins its lines with the ending the
+    /// text's did (`previous.ending`), so its text is the edited text hidden,
+    /// break for break: a one-line text's is LF, laid out afresh, where the
+    /// text's own layout can keep a CRLF it no longer has.
+    private func carryDisplayLayout(through edit: EditorLayout.Edit, from previous: (text: String, ending: String)) {
+        guard let glyph = hidingGlyph, var shown = takeDisplayLayout(of: previous.text, hiddenBy: glyph),
+            shown.lineEnding == previous.ending, let hidden = Self.hiddenEdit(edit, of: shown, glyph: glyph)
+        else { return }
+        // Asked first, not as the call's argument, as ``writeSpliced(_:)``
+        // asks: Xcode 26's 6.2.4 aborts the -O build otherwise.
+        let unshared = isKnownUniquelyReferenced(&shown)
+        cachedDisplayLayout = (edit.text, glyph, shown.laidOut(hidden, reusingStorage: unshared))
+    }
+
+    /// The hidden layout kept, taken from the handler, where it is of
+    /// `text` hidden by `glyph`; else `nil`, and nothing kept.
+    private func takeDisplayLayout(of text: String, hiddenBy glyph: Character) -> EditorLayout? {
+        guard let kept = cachedDisplayLayout else { return nil }
+        cachedDisplayLayout = nil
+        return kept.glyph == glyph && TextEdit.sameBytes(kept.text, text) ? kept.layout : nil
+    }
+
+    /// The edit of `shown`, a hidden layout, that `edit` of the text makes:
+    /// the same lines replaced, by the same lines hidden. A function of its
+    /// own so the lines, which share `shown`'s array, are let go when it
+    /// returns.
+    private static func hiddenEdit(
+        _ edit: EditorLayout.Edit, of shown: EditorLayout, glyph: Character
+    ) -> EditorLayout.Edit? {
+        let lines = edit.lines.map { TextCharacters(hiding($0.string, with: glyph)) }
+        return shown.replacing(EditedLines(base: shown.lines, replacing: edit.replaced, with: lines))
     }
 
     /// Writes `lines` joined by `ending`: an edit of a text with more than
