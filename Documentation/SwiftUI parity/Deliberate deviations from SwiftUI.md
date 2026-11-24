@@ -3005,7 +3005,14 @@ still runs.
   those measures until the data or the width changes. At or below 256 rows,
   outside a scroll view, and for rows a stack or another container in the
   box lays out, every row is built as before (`ImplicitColumnWindowing.swift`,
-  `FlowLayoutWindowing.swift`, `WindowedContainersTests`).
+  `FlowLayoutWindowing.swift`, `WindowedContainersTests`). A loop beside
+  other views in scroll content — `GroupBox { header; ForEach }`,
+  `LazyVStack { TextField; ForEach }` — is drawn at the same identities
+  whatever its count, so a filtered loop crossing 256 rows keeps the views'
+  focus and the rows' state (the owner's O-14 (c), 2026-11-21, H-71; not yet
+  where a view beside the loop may be a section, the stack pins or is
+  marked `scrollTargetLayout()`, or the scroll view reads its rows back with
+  `.scrollPosition` or `onScrollTargetVisibilityChange`).
 - **Why:** an app has SwiftUI's remedy for an eager container, the lazy type,
   only where one exists; elsewhere TUI must not make it pay for every row. A
   `GroupBox` of 10,000 rows built every row on every frame (1.5 to 14 s a

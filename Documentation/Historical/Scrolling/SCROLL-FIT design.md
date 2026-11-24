@@ -2271,3 +2271,27 @@ parity harness, so that every later lane is additive.
 
 See 4. One bit in the measure answer. Not built unless an A/B shows more than about 10% on pages
 the pull gains nothing on.
+
+### B-SCROLLFIT-19. The column of several is taken whatever the loop's count (O-14 (c), 2026-11-21)
+
+The column of several (`_ImplicitColumnOfSeveral`, P8 and the follow-ups above) was taken only while the loop had
+more than 256 elements, and its step changed the identity of every view beside the loop and of every row. "Once" held
+for a loop that only grows; a filtered loop that crosses 256 both ways reset row state and a filter field's focus at
+each crossing (hunt H-71, SCROLL-3). The owner chose (c), always take the step in scroll content, over keeping it and
+over hysteresis. Now, in scroll content, content of several views with a loop among them (by its type:
+`CountedLoop.mayBeLoop`) is drawn as the column whatever the count, the loop always one child of it, its rows its
+own (`ForEach.staysWhole(in:)`): a lazy stack's loop drawn as a lazy stack of its own at any count, a `GroupBox`'s or
+`DisclosureGroup`'s stacked whole below 256. One reset when an app first runs on this, none after
+(`ColumnOfSeveralCrossingTests`), and the same drawing for a small loop as before (its twin against
+`drawsContainerRowsWhole`). The stack drawn at the loop's own identity notes it (`implicitColumnDrawnAt`), so its
+rows are not mistaken for the loop standing whole among the column's views.
+
+Kept at the threshold, and so still reset at it: content that pins its sections or may hold a section beside the
+loop (below 256 a section there pins and is read as one only among the stack's own rows), a stack marked
+`scrollTargetLayout()` or in a scroll view that reads its rows back (`.scrollPosition`, `onScrollTargetVisibilityChange`;
+`contentRowsAreReadBack`: below 256 each row is a target and an id, where the column would offer the header and the
+loop's stack, as it does past 256), and a lazy stack's own `Section` around a loop (`SectionCore+PulledParts.swift`,
+taken apart below 256: making it whole at every count changes how a stack of many small sections windows, which the
+ruling did not settle).
+
+Measured: see the commit that made it (H-71).

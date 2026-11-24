@@ -88,8 +88,9 @@ nonisolated package struct _WindowingImplicitColumn<Content: View>: View, Render
     /// builds every row of the loop to resolve them.
     ///
     /// The views' identities are the column's, not those the views stacked
-    /// whole take, so a loop growing past the threshold starts its rows' state
-    /// afresh, once.
+    /// whole take. Where none may be a section the column is taken whatever
+    /// the loop's count, so they keep them as it crosses the threshold
+    /// (O-14 (c), ``TupleView/columnOfSeveral(alignment:spacing:pinning:sectionLoops:in:)``).
     @MainActor private func columnOfSeveral(context: RenderContext) -> (any View)? {
         guard context.scrollContentOriginDepth != 0, !context.environment.drawsContainerRowsWhole,
             !context.environment.drawsListSectionChrome
@@ -125,11 +126,26 @@ extension Optional: IfContent where Wrapped: View {}
 /// building a row.
 @MainActor
 protocol CountedLoop {
+    /// Whether a view of this type is a loop, or an `if` with a loop in a
+    /// branch, rather than an `if` of other views: a fact about the type,
+    /// the same whatever the data, so the column's step it decides is taken
+    /// or not whatever the loop's count
+    /// (``TupleView/columnOfSeveral(alignment:spacing:pinning:sectionLoops:in:)``).
+    static var mayBeLoop: Bool { get }
+
     func liveElementCount(in context: RenderContext) -> Int
 }
 
 @MainActor extension ForEach: CountedLoop where Content: View {
+    static var mayBeLoop: Bool { true }
+
     func liveElementCount(in context: RenderContext) -> Int { data(in: context).count }
+}
+
+/// ``CountedLoop/mayBeLoop`` of `type`: `false` for a view that is no loop.
+@MainActor
+private func viewMayBeLoop(_ type: Any.Type) -> Bool {
+    (type as? any CountedLoop.Type)?.mayBeLoop ?? false
 }
 
 /// Whether `content`, a section's, is a loop (written bare or in an `if`)
@@ -215,6 +231,8 @@ protocol SectionLoopRowsCounting {
 }
 
 @MainActor extension ConditionalView: CountedLoop {
+    static var mayBeLoop: Bool { viewMayBeLoop(TrueContent.self) || viewMayBeLoop(FalseContent.self) }
+
     func liveElementCount(in context: RenderContext) -> Int {
         switch self {
         case .trueContent(let content): (content as? any CountedLoop)?.liveElementCount(in: context) ?? 0
@@ -224,6 +242,8 @@ protocol SectionLoopRowsCounting {
 }
 
 @MainActor extension Optional: CountedLoop where Wrapped: View {
+    static var mayBeLoop: Bool { viewMayBeLoop(Wrapped.self) }
+
     func liveElementCount(in context: RenderContext) -> Int {
         guard case .some(let view) = self, let loop = view as? any CountedLoop else { return 0 }
         return loop.liveElementCount(in: context)
@@ -236,21 +256,48 @@ protocol SectionLoopRowsCounting {
     }
 
     /// These views as a column laid out at `alignment` and `spacing`, when
-    /// one is a loop past the lazy stack's threshold, or, `sectionLoops` (the
-    /// stack's sections' loops together pass it,
+    /// one is a loop: of any count where nothing is pinned and none of these
+    /// views may be a section; else one past the lazy stack's threshold, or,
+    /// `sectionLoops` (the stack's sections' loops together pass it,
     /// ``PinnedSectionScope/windowsSectionLoops``), a loop of sections however
-    /// few; `nil` otherwise, and, `pinning` (the loop's lazy stack pins its
+    /// few. `nil` otherwise, and, `pinning` (the loop's lazy stack pins its
     /// sections) or `sectionLoops`, `nil` too when a view beside the loop may
     /// be a section, which the column would neither pin nor keep whole.
+    ///
+    /// The column is a step of identity (``_ImplicitColumnOfSeveral``): its
+    /// views, and the loop's rows, are addressed under it, not where the
+    /// views stacked whole are. Taken only past the threshold, it came and
+    /// went as a filtered loop crossed it, both ways, and every one of these
+    /// views — a filter field beside the loop, with its focus — and every row
+    /// started afresh at each crossing (H-71). So it is taken whatever the
+    /// count (the owner's O-14 (c), 2026-11-21): one change of identity, when
+    /// an app first runs on this, and none after. A loop at or below the
+    /// threshold is drawn under the step as it was drawn without it: a lazy
+    /// stack's as a lazy stack of its own
+    /// (``_VStackCore/implicitColumn(of:context:rowCount:isContainersColumn:)``),
+    /// a windowing container's stacked whole (`ForEach.staysWhole(in:)`).
+    /// Content that pins, or may hold a section, keeps the threshold: below
+    /// it the loop's rows are the stack's own, where a section pins and is
+    /// read as one. So does a stack marked with `scrollTargetLayout()`, and
+    /// content whose scroll view reads its rows back
+    /// (``EnvironmentValues/contentRowsAreReadBack``): below it each row is a
+    /// view a scroll behaviour settles on and an id the scroll view reports,
+    /// where the column's views — the header and the loop's stack — would be
+    /// instead (`StackPulledColumn.swift`, which does so past it).
     package func columnOfSeveral(
         alignment: HorizontalAlignment, spacing: Int, pinning: Bool, sectionLoops: Bool, in context: RenderContext
     ) -> (any View)? {
+        let threshold = _VStackCore<EmptyView>.anchoredWindowThreshold
+        let stepsWhateverTheCount =
+            !pinning && !context.environment.isScrollTargetLayout && !context.environment.contentRowsAreReadBack
+            && !TUIFoundation.mayHandOver(.section, in: self)
         var foundLoop = false
         for child in repeat each children {
             if !foundLoop, let loop = child as? any CountedLoop,
-                loop.liveElementCount(in: context) > _VStackCore<EmptyView>.anchoredWindowThreshold
+                (stepsWhateverTheCount && type(of: loop).mayBeLoop)
+                    || loop.liveElementCount(in: context) > threshold
                     || (sectionLoops && (child as? any SectionLoopRowsCounting)?.sectionLoopRows(
-                        upTo: _VStackCore<EmptyView>.anchoredWindowThreshold, in: context) != nil)
+                        upTo: threshold, in: context) != nil)
             {
                 foundLoop = true
             } else if pinning || sectionLoops, TUIFoundation.mayHandOver(.section, type(of: child)) {
@@ -307,7 +354,54 @@ extension EnvironmentValues {
     }
 }
 
+/// EnvironmentKey for ``EnvironmentValues/contentRowsAreReadBack``.
+private struct ContentRowsAreReadBackKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether the scroll view this content is in reads its rows back — a
+    /// `.scrollPosition` binding, or an `onScrollTargetVisibilityChange` —
+    /// set on its content by the scroll view (`ScrollView+Content.swift`).
+    /// A lazy stack's column of several reports the column's views, not the
+    /// loop's rows, so such content takes the column only past the threshold
+    /// (``TupleView/columnOfSeveral(alignment:spacing:pinning:sectionLoops:in:)``).
+    package var contentRowsAreReadBack: Bool {
+        get { self[ContentRowsAreReadBackKey.self] }
+        set { self[ContentRowsAreReadBackKey.self] = newValue }
+    }
+}
+
+/// EnvironmentKey for ``EnvironmentValues/implicitColumnDrawnAt``.
+private struct ImplicitColumnDrawnAtKey: EnvironmentKey {
+    static let defaultValue: ViewIdentity? = nil
+}
+
+extension EnvironmentValues {
+    /// The identity a column nothing lays out is being drawn at as a lazy
+    /// stack (``_VStackCore/renderAsImplicitColumn(context:)``): the loop's
+    /// own, so the stack resolving its rows there asks the loop at the step
+    /// it stands at among a column of several, and the loop must not answer
+    /// that it stays whole (`ForEach.staysWhole(in:)`), or the stack's one
+    /// row would be the loop, stacked whole.
+    package var implicitColumnDrawnAt: ViewIdentity? {
+        get { self[ImplicitColumnDrawnAtKey.self] }
+        set { self[ImplicitColumnDrawnAtKey.self] = newValue }
+    }
+}
+
 extension RenderContext {
+    /// This context for the lazy stack a column nothing lays out is drawn as:
+    /// no ``EnvironmentValues/implicitColumnRowLayout``, and the column's
+    /// identity noted (``EnvironmentValues/implicitColumnDrawnAt``).
+    func drawingImplicitColumn() -> RenderContext {
+        var context = leavingImplicitColumnRowLayout()
+        if context.environment.implicitColumnDrawnAt != context.identity {
+            context.environment.implicitColumnDrawnAt = context.identity
+        }
+        return context
+    }
+
     /// This context with no ``EnvironmentValues/implicitColumnRowLayout``,
     /// written only where one was set.
     func leavingImplicitColumnRowLayout() -> RenderContext {
@@ -342,8 +436,11 @@ extension _VStackCore {
     /// stack of a title and a loop now builds a screenful).
     ///
     /// The rows' identities are the column's, not those the rows had taken
-    /// apart, so a loop growing past the threshold starts its rows' state
-    /// afresh, once, as a `GroupBox`'s does.
+    /// apart. Where nothing pins and no view may be a section the column is
+    /// taken whatever the loop's count, so they keep them as it crosses the
+    /// threshold (O-14 (c)); a stack that pins, or whose views may be
+    /// sections, takes it only past the threshold, and its rows start afresh
+    /// at each crossing.
     @MainActor func lazyColumnOfSeveral(context: RenderContext) -> (column: any View, context: RenderContext)? {
         let pins = pinsSectionHeaders || pinsSectionFooters
         guard overflow == .window, context.scrollContentOriginDepth != 0,
@@ -431,16 +528,20 @@ extension View {
     /// step, or an `if` among the column's views — the branch an `if`/`else`
     /// took, and the conditional or the `Optional` above it — stands between.
     /// A loop a stack in the column lays out is that stack's rows, not one of
-    /// the column's views.
+    /// the column's views; so is a loop the column's own loop draws, as the
+    /// content of the lazy stack drawn at that loop's step: only `node`
+    /// itself may be a loop, and every step above it an `if`.
     private static func isAmongColumnOfSeveral(_ node: ViewIdentity) -> Bool {
         var cursor: ViewIdentity? = node
+        var isNode = true
         while let step = cursor {
             if let type = step.leafType {
                 if ObjectIdentifier(type) == ObjectIdentifier(_ImplicitColumnOfSeveral.self) { return true }
-                guard type is any CountedLoop.Type else { return false }
+                guard isNode ? type is any CountedLoop.Type : type is any IfContent.Type else { return false }
             } else if !step.isBranchStep {
                 return false
             }
+            isNode = false
             cursor = step.parent
         }
         return false
@@ -452,9 +553,17 @@ extension View {
     /// Asked where it is resolved: at its own step among the column's views,
     /// or an `if`'s among them. Anywhere else — a stack it is the content of —
     /// it is taken apart as always.
+    ///
+    /// Whatever its count (O-14 (c)): the column is taken for a loop of any
+    /// count, and the rows are this loop's whether it draws them as a lazy
+    /// stack or stacked whole, so they keep their identities as the count
+    /// crosses the threshold. Taken apart below it, they were the column's.
+    /// Not where the lazy stack it is drawn as resolves its rows, at the same
+    /// identity (`implicitColumnDrawnAt`): its rows are
+    /// that stack's.
     public func staysWhole(in context: RenderContext) -> Bool {
         context.scrollContentOriginDepth != 0 && Self.isAmongColumnOfSeveral(context.identity)
-            && windowedColumn(context: context) != nil
+            && context.environment.implicitColumnDrawnAt != context.identity
     }
 }
 
@@ -462,9 +571,10 @@ extension _VStackCore {
     /// The lazy stack a column nothing lays out is drawn as — a windowing
     /// container's loop (`ForEach.windowedColumn`), or any other view of rows
     /// drawn on its own — in scroll content, when its `rowCount` rows are more
-    /// than a lazy stack draws whole; `nil` otherwise, and the column is
-    /// stacked whole. At the alignment, spacing and pins of the lazy stack a
-    /// column of several stands in for (``lazyColumnOfSeveral(context:)``),
+    /// than a lazy stack draws whole, or, under a lazy stack's column of
+    /// several, however few; `nil` otherwise, and the column is stacked
+    /// whole. At the alignment, spacing and pins of the lazy stack a column
+    /// of several stands in for (``lazyColumnOfSeveral(context:)``),
     /// else leading, with no spacing and nothing pinned, as the column drawn
     /// whole stacks its rows. Shared, and `package`, so a view of rows in
     /// another module windows exactly as a loop does.
@@ -473,8 +583,11 @@ extension _VStackCore {
         isContainersColumn: @autoclosure () -> Bool = true
     ) -> Self? {
         let layout = context.environment.implicitColumnRowLayout
-        guard context.scrollContentOriginDepth != 0,
-            layout?.windowsAnyCount == true || rowCount() > anchoredWindowThreshold,
+        // Under a lazy stack's column of several (`layout` stated), the loop
+        // is drawn as a lazy stack of its own whatever its count: the column
+        // is taken whatever the count (O-14 (c)), and a lazy stack draws a
+        // few rows as the stack the column stands in drew them.
+        guard context.scrollContentOriginDepth != 0, layout != nil || rowCount() > anchoredWindowThreshold,
             isContainersColumn(), !context.environment.drawsContainerRowsWhole,
             // A `List` draws a section it cannot read as rows as one view,
             // and keeps its own rows.
@@ -493,7 +606,7 @@ extension _VStackCore {
     /// build every row that fits the height it is offered, which for a measure
     /// is all of them.
     @MainActor package func renderAsImplicitColumn(context: RenderContext) -> FrameBuffer {
-        let context = context.leavingImplicitColumnRowLayout()
+        let context = context.drawingImplicitColumn()
         Self.fileImplicitColumn(context: context)
         guard context.isMeasuring else { return renderToBuffer(context: context) }
         let proposal = ProposedViewSize(width: context.availableWidth, height: nil)
@@ -503,7 +616,7 @@ extension _VStackCore {
 
     /// The size ``renderAsImplicitColumn(context:)`` draws at.
     @MainActor package func sizeAsImplicitColumn(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        let context = context.leavingImplicitColumnRowLayout()
+        let context = context.drawingImplicitColumn()
         Self.fileImplicitColumn(context: context)
         return implicitColumnSize(sizeThatFits(proposal: proposal, context: context), proposal: proposal, context: context)
     }

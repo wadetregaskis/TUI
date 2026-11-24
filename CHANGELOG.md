@@ -53,6 +53,15 @@ app's shortcut on an arrow now takes the key before the focus system moves the f
 names, Shift included (the owner's ruling O-11 (a)). The focused control and an `onMoveCommand` around it still have
 the arrow first, and an arrow no shortcut is on moves the focus as before.
 
+**A filtered list that crosses 256 rows keeps the focus and its rows' state.** In scroll content, a loop beside other
+views — `LazyVStack { TextField("Filter", text: $query); ForEach(results) { … } }`, or a `GroupBox` or
+`DisclosureGroup` of a header and a loop — was drawn under an extra step of identity only while the loop had more than
+256 rows. Each time a filter took it across 256, either way, the field beside it lost the focus mid-word and every
+row's `@State` and `.task` started again. The step is now taken whatever the count, so nothing changes at 256; the
+views' state starts afresh once, the first time an app runs on this version. A stack that pins its sections, is marked
+`scrollTargetLayout()`, holds a section beside the loop or sits in a scroll view with a `.scrollPosition` binding or
+an `onScrollTargetVisibilityChange`, and a lazy stack's own `Section` around a loop, still change at 256.
+
 **A soft hyphen in a `Text` is one cell wide.** U+00AD was measured as taking no cell, but terminals give it one
 (Ghostty and Apple's Terminal, measured), so a line holding one drew a cell wider than it was laid out, and pushed a
 border or the next column a cell to the right. It is now measured at the one cell it takes.

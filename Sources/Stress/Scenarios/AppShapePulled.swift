@@ -51,6 +51,11 @@ enum PulledShape: Sendable {
     /// lazy stack's threshold, and fewer rows in each, their rows together
     /// past it (S8).
     case sectionLoop
+    /// `LazyVStack { header; ForEach }` and `GroupBox { header; ForEach }` of
+    /// fewer entries than the lazy stack's threshold: a loop beside another
+    /// view, drawn under the column's identity step whatever its count
+    /// (the owner's O-14 (c), H-71), which a loop this short did not take.
+    case headedLazy, headedBox
 }
 
 /// A page of lazy stacks of one- and two-line entries in one scroll view, the
@@ -115,6 +120,24 @@ struct PulledPageApp: View {
                         ForEach(0..<entries, id: \.self) { entry in
                             PulledEntry(seed: seed, section: 0, entry: entry)
                         }
+                    }
+                }
+            )
+        case .headedLazy:
+            AnyView(
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    ForEach(0..<entries, id: \.self) { entry in
+                        PulledEntry(seed: seed, section: 0, entry: entry)
+                    }
+                }
+            )
+        case .headedBox:
+            AnyView(
+                GroupBox {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    ForEach(0..<entries, id: \.self) { entry in
+                        PulledEntry(seed: seed, section: 0, entry: entry)
                     }
                 }
             )

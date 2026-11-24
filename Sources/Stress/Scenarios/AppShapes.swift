@@ -301,6 +301,12 @@ enum AppShapeMatrix {
         scrolling("boxed-eager", "a title over a GroupBox directly around 10,000 one- and two-line entries, scrolled three lines a tick (SCROLL-FIT P8)") {
             AnyView(PulledPageApp(shape: .boxedEager, entries: $0.sized(10_000), seed: $0.seed))
         },
+        scrolling("headed-lazy-short", "a header over 200 one- and two-line entries in one lazy stack, scrolled three lines a tick (O-14 (c))") {
+            AnyView(PulledPageApp(shape: .headedLazy, entries: $0.sized(200), seed: $0.seed))
+        },
+        scrolling("headed-box-short", "a header over 200 one- and two-line entries in one GroupBox, scrolled three lines a tick (O-14 (c))") {
+            AnyView(PulledPageApp(shape: .headedBox, entries: $0.sized(200), seed: $0.seed))
+        },
         scrolling("flow-10k", "a title over a FlowLayout of 10,000 tags, scrolled three lines a tick (SCROLL-FIT P8)") {
             AnyView(PulledPageApp(shape: .flow, entries: $0.sized(10_000), seed: $0.seed))
         },

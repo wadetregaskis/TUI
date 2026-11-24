@@ -87,6 +87,19 @@ extension _ScrollViewCore {
         if !isChrome, !contentContext.environment.safeAreaContentMargins.isZero {
             contentContext.environment.safeAreaContentMargins = EdgeInsets()
         }
+        // Whether this view reads its content's rows back, by a
+        // `.scrollPosition` binding or a visibility observer: a lazy stack's
+        // column of several reports its own views, the header and the loop's
+        // stack, not the loop's rows, so such content takes that column only
+        // past the threshold (O-14 (c), `TupleView.columnOfSeveral`). Asked
+        // before both are taken off the content, below; written only when it
+        // changes, so a nested view's content says its own.
+        let readsRowsBack = !isChrome
+            && (contentContext.environment.scrollPositionBinding != nil
+                || !contentContext.environment.scrollObservers.targetVisibility.isEmpty)
+        if contentContext.environment.contentRowsAreReadBack != readsRowsBack {
+            contentContext.environment.contentRowsAreReadBack = readsRowsBack
+        }
         // So are the scroll observers: only the first scroll view reports. A
         // framework scroller claims none, and leaves them to its content's.
         if !isChrome, !contentContext.environment.scrollObservers.isEmpty {
