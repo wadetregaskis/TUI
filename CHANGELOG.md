@@ -59,6 +59,9 @@ hands the terminal back (or, after an external stop, as it takes it back) and se
 first frame after, at the cost of one transmission a picture. On iTerm2, whose one image store serves both screens,
 the pictures no longer stay in the terminal while the shell or the other program has it.
 
+**F1 to F5 work on the Linux console.** The console sends them as `ESC[[A` to `ESC[[E`, which TUI read as a sequence
+it did not know followed by a typed letter, so F1 typed a capital A. They now read as the function keys.
+
 **Shift-Return, Ctrl-Return, Ctrl-Tab and Shift-Space work under tmux's `extended-keys always` and xterm's
 `modifyOtherKeys`.** Both re-code a modified key, as `ESC[27;2;13~` or `ESC[13;2u`, for a program that never asked,
 and TUI dropped either spelling whole: those keys did nothing, and under xterm's level 2 no Control chord arrived,

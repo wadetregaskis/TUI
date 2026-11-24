@@ -221,6 +221,13 @@ struct InputSplitInvarianceTests {
             ("ctrl-tab-modify", esc + Array("[27;5;9~".utf8), [.key(KeyEvent(key: .tab, ctrl: true))]),
             ("shift-space-csi-u-then-text", esc + Array("[32;2ux".utf8),
              [.key(KeyEvent(key: .space, shift: true)), .key(KeyEvent(character: "x"))]),
+            ("console-f1", esc + Array("[[A".utf8), [.key(KeyEvent(key: .f1))]),
+            ("console-f5-then-text", esc + Array("[[Ex".utf8), [.key(KeyEvent(key: .f5)), .key(KeyEvent(character: "x"))]),
+            ("console-f2-then-up", esc + Array("[[B".utf8) + esc + Array("[A".utf8),
+             [.key(KeyEvent(key: .f2)), .key(KeyEvent(key: .up))]),
+            // Not the console's: the three bytes are no key, as before, and
+            // what follows them parses on its own.
+            ("bracket-bracket-then-up", esc + Array("[[".utf8) + esc + Array("[A".utf8), [.key(KeyEvent(key: .up))]),
         ]
         var reports: [String] = []
         for (name, bytes, expected) in cases {

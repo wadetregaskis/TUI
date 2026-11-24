@@ -579,6 +579,8 @@ extension KeyEvent {
     /// - 8 = Shift+Alt+Ctrl
     private static func parseCSISequence(_ params: [UInt8]) -> KeyEvent? {
         guard !params.isEmpty else { return nil }
+        // The Linux console's F1 to F5: `ESC [ [ A` … `ESC [ [ E`.
+        if params[0] == ASCIIByte.openBracket { return parseLinuxConsoleFunctionKey(params) }
 
         // Extract modifier from params if present (format: "1;2A" for Shift+Up)
         let modifiers = extractModifiers(from: params)

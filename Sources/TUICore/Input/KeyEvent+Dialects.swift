@@ -79,3 +79,18 @@ extension KeyEvent {
     private static let privateUseStart = 0xE000
     private static let privateUseEnd = 0xF8FF
 }
+
+// MARK: - The Linux console's F1 to F5
+
+extension KeyEvent {
+    /// The Linux console's F1 to F5, `ESC [ [ A` to `ESC [ [ E` (terminfo
+    /// `linux`, `kf1`…`kf5`), from the body after `ESC [`; `nil` for any
+    /// other byte after the second `[`. Its F6 and up, Home, End and arrows
+    /// are xterm's. Until 2026-11-23 the input parser took `ESC [ [` for a
+    /// whole CSI, dropped it, and typed the letter: F1 was a Shift-A.
+    static func parseLinuxConsoleFunctionKey(_ params: [UInt8]) -> KeyEvent? {
+        guard params.count == 2, params[0] == 0x5B, (0x41...0x45).contains(params[1]) else { return nil }
+        let keys: [Key] = [.f1, .f2, .f3, .f4, .f5]
+        return KeyEvent(key: keys[Int(params[1] - 0x41)])
+    }
+}

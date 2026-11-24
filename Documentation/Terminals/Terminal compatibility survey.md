@@ -7031,9 +7031,13 @@ below for them, and the Linux console's, are from documentation.
   Before, both spellings were dropped whole, so under tmux's `always` ⇧↩, ⌃↩,
   ⌃⇥ and ⇧␣ did nothing, and under xterm's level 2 neither did any Control
   chord, ⌃Q included.
+- The Linux console's F1 to F5, `ESC [ [ A` to `ESC [ [ E`: the input parser
+  holds `ESC [ [` for its fourth byte and reads the four as one key. Any other
+  fourth byte leaves the three what they were, a sequence no key spells,
+  dropped. Before, `ESC [ [` was taken for a whole CSI and the letter typed,
+  so F1 was a capital A in a text field.
 
-Until 2026-11-23, on the Linux console F1 to F5 typed
-the letters A to E. Under rxvt Home and End did nothing, and a Control-arrow
+Until 2026-11-23, under rxvt Home and End did nothing, and a Control-arrow
 typed `a` to `d` after an Alt-Shift-O. The console's `ESC TAB` is read as ⌥⇥,
 not as ⇧⇥, on purpose (`escTabIsAltTab`: it is what a meta-sending terminal
 sends for ⌥⇥, which a text editor types as a tab).

@@ -487,6 +487,8 @@ extension Terminal {
             return bytes
         }
 
+        if firstParam == 0x5B { return tryExtractLinuxConsoleKey() }
+
         // Single-letter CSI (e.g. ESC[A for Up Arrow): the first
         // byte after `[` is already a terminator.
         if firstParam >= 0x40 && firstParam <= 0x7E {
@@ -555,6 +557,23 @@ extension Terminal {
         // wait each read starts again.)
         noteSequenceWalk(stoppedAt: i)
         return nil
+    }
+
+    /// The Linux console's F1 to F5, `ESC [ [ A` to `ESC [ [ E` (terminfo
+    /// `linux`): four bytes, the second `[` no final byte there. Assumes
+    /// `input` starts with `ESC [ [`. Until 2026-11-23 `ESC [ [` was taken for
+    /// a whole CSI and dropped, and the letter typed. Any other byte after the
+    /// second `[` leaves the three as they always were, a CSI no key spells.
+    ///
+    /// Apart from ``tryExtractCSI()``, which was at its complexity limit.
+    private func tryExtractLinuxConsoleKey() -> [UInt8]? {
+        guard input.count >= 4 else { return nil }
+        let length = (0x41...0x45).contains(input[3]) ? 4 : 3
+        var bytes = [UInt8]()
+        bytes.reserveCapacity(length)
+        for index in 0..<length { bytes.append(input[index]) }
+        consume(length)
+        return bytes
     }
 
     /// Gives up holding the over-long sequence at the head of the buffer, and

@@ -99,4 +99,18 @@ struct KeyDialectTests {
         #expect(parse("[27~") == nil)
         #expect(parse("[3;2~") == KeyEvent(key: .delete, shift: true))
     }
+
+    // MARK: The Linux console
+
+    @Test(
+        "The Linux console's F1 to F5 are the function keys",
+        arguments: zip(["A", "B", "C", "D", "E"], [Key.f1, .f2, .f3, .f4, .f5]))
+    func linuxConsoleFunctionKeys(letter: String, key: Key) {
+        #expect(parse("[[\(letter)") == KeyEvent(key: key))
+    }
+
+    @Test("Another byte after the console's second bracket is no key", arguments: ["[[F", "[[a", "[[1A", "[["])
+    func linuxConsoleOtherIsDropped(sequence: String) {
+        #expect(parse(sequence) == nil)
+    }
 }
