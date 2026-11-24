@@ -86,7 +86,8 @@ inclusion in CI." So no CI job runs them. Rerun them when:
    `Hierarchical table insertions`, `Badge prominence`, `NavigationLink as a list row`, `Named colours by scheme`,
    `Image paint`, `Blend modes`, `Trailing values and labels`, `Ragged text in a larger frame`, `Markdown attribute
    syntax`, `Localization keys` and `Undo and the pointer leaving (INPUT)`; since 2026-11-10, `Navigation path and
-   view destinations` and `Grid narrower than its columns` too.
+   view destinations` and `Grid narrower than its columns` too; since 2026-11-23, `ViewThatFits widths and spacers
+   across the axis (H-62, H-64)`.
 
 The rest only when their subject comes up.
 
@@ -1680,3 +1681,39 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-23.
 - **Was:** written here.
 - **Cited by:** `Sources/TUIFoundation/Modifiers/DragAndDrop.swift`; `Tests/TUIAppTests/DisabledDragAndDropTests.swift`.
+
+### ViewThatFits widths and spacers across the axis (H-62, H-64)
+
+- **Asks:** four layout questions in monospaced text, one character's advance standing in for a cell and one line
+  for a row (`fits.swift`, `fits.out`; top-level code, after `Grid narrower than its columns`; each candidate in a
+  pass-through `Layout` that records the proposals it is asked about). What `ViewThatFits` proposes to its
+  candidates under `in: .vertical`, `in: .horizontal` and both axes, with a 60-word paragraph and `Text("short")` in
+  a frame 30 characters wide and 5 lines tall, and which one draws. How tall `HStack { Spacer() }` is, alone and
+  between two texts in a column. How large `ZStack { Text("x"); Spacer() }` is offered nothing and a great deal, and
+  beside a text in a row, and a `ZStack` of spacers alone. And whether a `Spacer(minLength:)` longer than its stack
+  is thick is counted across the stack's axis, in `HStack`, `HStackLayout`, `AnyLayout(HStackLayout())`, `VStack`
+  and `VStackLayout`.
+- **Answers:** `ViewThatFits` replaces the proposal with nil on the tested axes only and keeps the real extent on
+  the other: under `in: .vertical` each candidate is asked at 30 wide and an unspecified height, so the paragraph
+  wraps past 5 lines and "short" draws (a 10-word paragraph, 2 lines there, draws itself); under `in: .horizontal`
+  at an unspecified width and the real 5 lines; under both, nil on both. A row of only a spacer is 0 lines tall and
+  as wide as its column (`HStack { Spacer() }` and `HStackLayout { Spacer() }` offered 1000 square answer 1000 by
+  0): `VStack(spacing: 0) { Text("a"); HStack { Spacer() }; Text("b") }` puts "b" on the line under "a", and the
+  column is 30 wide. Under the default spacing that empty row still takes a gap on both sides. A `ZStack` with a
+  layer that is not a spacer ignores its spacers, minimum and all: `ZStack { Text("x"); Spacer() }` is 1 by 1
+  however much it is offered, and does not fill its row. A `ZStack` of spacers alone is as large as a spacer outside
+  a stack: its minimum on both axes, and all it is offered. A spacer's `minLength` counts along its stack's axis
+  only: a row of one-line texts with a spacer 3 lines long is 1 line tall, and a column of "ab" with one 10
+  characters long is 2 wide, in the stacks and their `Layout` values alike. Alone, a spacer takes its minimum on
+  both axes.
+- **What TUI does with it:** `ViewThatFits` grounds the axis it does not test in the real extent
+  (`Sources/TUIFoundation/Views/ViewThatFits.swift`). `Spacer` takes its `minLength` along the axis its stack
+  publishes and none across it (`Sources/TUIFoundation/Views/Spacer.swift`). A row's height starts at 0, not 1, and
+  a row of no lines still declares its width (`Sources/TUIFoundation/Views/HStack.swift`). A `ZStack` sizes itself by
+  its spacers only when it has nothing else (`Sources/TUIFoundation/Views/ZStack.swift`). TUI's column still gives
+  an empty row no gap, as it gives an `EmptyView` none; its default vertical spacing is 0, so that shows only under
+  an explicit `spacing`.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-23.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIFoundation/Views/ViewThatFits.swift`, `Sources/TUIFoundation/Views/Spacer.swift`,
+  `Sources/TUIFoundation/Views/HStack.swift`, `Sources/TUIFoundation/Views/ZStack.swift`.

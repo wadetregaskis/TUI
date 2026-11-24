@@ -1,0 +1,46 @@
+== 1. ViewThatFits
+vertical, 60 words [30x5]	long=not drawn	short=5x1@0,0
+  asked	long	30×nil 30×5
+  asked	short	30×nil 30×5
+vertical, 10 words [30x5]	long=30x2@0,0	short=not drawn
+  asked	long	30×nil 30×5
+  asked	short	
+vertical, 60 words, wide [100x5]	long=100x3@0,0	short=not drawn
+  asked	long	100×nil 100×5
+  asked	short	
+horizontal, 60 words [30x5]	long=not drawn	short=5x1@0,0
+  asked	long	nil×5 30×5
+  asked	short	nil×5 30×5
+horizontal, 10 words [60x1]	long=49x1@0,0	short=not drawn
+  asked	long	nil×1 60×1
+  asked	short	
+both, 60 words [30x5]	long=not drawn	short=5x1@0,0
+  asked	long	nil×nil 30×5
+  asked	short	nil×nil 30×5
+== 2. A row of only a spacer, in a column
+VStack(spacing: 0) a|HStack{Spacer}|b [30x10]	column=30x2@0,0	a=1x1@14.49,0	row=30x0@0,1	b=1x1@14.49,1
+VStack a|HStack{Spacer}|b [30x10]	column=30x2.67@0,0	a=1x1@14.49,0	row=30x0@0,1.33	b=1x1@14.49,1.67
+VStack(spacing: 0) a|b [30x10]	column=1x2@0,0	a=1x1@0,0	b=1x1@0,1
+HStack{Spacer}	zero 0.65x0 ideal 0.65x0 big 1000x0
+HStack{Spacer(minLength: 0)}	zero 0x0 ideal 0x0 big 1000x0
+HStackLayout{Spacer}	zero 0.65x0 ideal 0.65x0 big 1000x0
+== 3. A spacer in a ZStack
+ZStack{x|Spacer}	zero 0x0 ideal 1x1 big 1x1
+ZStack{x|Spacer(minLength: 6 cells)}	zero 0x0 ideal 1x1 big 1x1
+ZStack{x}	zero 0x0 ideal 1x1 big 1x1
+ZStack{Spacer}	zero 0.65x0.33 ideal 0.65x0.33 big 1000x1000
+ZStack{Spacer(minLength: 6 cells)}	zero 6x3 ideal 6x3 big 1000x1000
+ZStack{Spacer|Spacer(minLength: 6 cells)}	zero 6x3 ideal 6x3 big 1000x1000
+ZStack{Color.clear 0x0|Spacer}	zero 0x0 ideal 0x0 big 0x0
+ZStack{Color.red|Spacer(minLength: 6 cells)}	zero 2x1 ideal 2x1 big 2x1
+HStack{ZStack{x|Spacer}|y} [20x3]	row=2.67x1@0,0	zstack=1x1@0,0	x=1x1@0,0	y=1x1@1.66,0
+VStack{ZStack{x|Spacer}|y} [20x6]	column=1x2@0,0	zstack=1x1@0,0	x=1x1@0,0	y=1x1@0,1
+== 4. Spacer(minLength:) across its stack's axis
+HStack{a|Spacer(minLength: 3 lines)|b}	zero 5.82x0 ideal 8x1 big 1000x1
+HStackLayout{a|Spacer(minLength: 3 lines)|b}	zero 5.82x0 ideal 8x1 big 1000x1
+AnyLayout(HStackLayout){a|Spacer(minLength: 3 lines)|b}	zero 5.82x0 ideal 8x1 big 1000x1
+VStack{ab|Spacer(minLength: 10 cells)}	zero 0x5 ideal 2x6 big 2x1000
+VStackLayout{ab|Spacer(minLength: 10 cells)}	zero 0x5 ideal 2x6 big 2x1000
+Spacer(minLength: 3 lines) alone	zero 5.82x3 ideal 5.82x3 big 1000x1000
+HStack{VStack{ab|Spacer(min 10 cells)}|Spacer|R} [40x3]	column=2x6@0,0	R=1x1@39,2.58
+== done
