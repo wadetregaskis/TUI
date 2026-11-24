@@ -84,8 +84,9 @@ views — `LazyVStack { TextField("Filter", text: $query); ForEach(results) { �
 row's `@State` and `.task` started again. The step is now taken whatever the count, so nothing changes at 256; the
 views' state starts afresh once, the first time an app runs on this version. So does a stack marked
 `scrollTargetLayout()`, or in a scroll view with a `.scrollPosition` binding or an `onScrollTargetVisibilityChange`, a
-stack that pins its sections, and one with a section beside the loop. A section beside the loop that holds a loop of
-its own, unpinned, and a lazy stack's own `Section` around a loop, still change at 256.
+stack that pins its sections, one with a section beside the loop, and a lazy stack's own `Section` written around the
+loop — `LazyVStack { Section { ForEach(results) { … } } header: { TextField("Filter", text: $query) } }`. A section
+beside the loop that holds a loop of its own, unpinned, and sections a loop makes, still change at 256.
 
 **A scroll view reads back each row of a lazy stack with a heading above its loop.** `.scrollPosition(id:)`,
 `onScrollTargetVisibilityChange` and `.viewAligned` over a stack marked `scrollTargetLayout()` now see each row of

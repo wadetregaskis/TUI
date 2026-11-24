@@ -54,6 +54,8 @@ struct ColumnOfSeveralCrossingTests {
         case pinned
         /// A lazy stack with a section beside the loop.
         case sectionBeside
+        /// A pinning lazy stack's own section around the loop.
+        case pinnedSection
     }
 
     /// The filter field above a loop of `wide` rows while the field is empty
@@ -113,6 +115,14 @@ struct ColumnOfSeveralCrossingTests {
                         Section("Notes") { Text("a note") }
                         rows
                     }
+                case .pinnedSection:
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: .sectionHeaders) {
+                        Section {
+                            rows
+                        } header: {
+                            TextField("Filter", text: $query)
+                        }
+                    }
                 }
             }
         }
@@ -133,17 +143,7 @@ struct ColumnOfSeveralCrossingTests {
     @Test("Crossing down and back up keeps the field focused, its text, and row 0's state",
           arguments: Shape.allCases, [(300, 200), (200, 300)])
     func crossingKeepsState(_ shape: Shape, _ counts: (Int, Int)) {
-        guard shape == .section else {
-            Self.cross(shape, counts)
-            return
-        }
-        // A lazy stack's own section with a loop in it is taken apart into
-        // the stack's rows below the threshold and drawn whole, as a column
-        // of its parts, past it (`SectionCore+PulledParts.swift`): not the
-        // column of several O-14 (c) settles, and left as it was (H-71).
-        withKnownIssue("a lazy stack's section still changes identity at the threshold") {
-            Self.cross(shape, counts)
-        }
+        Self.cross(shape, counts)
     }
 
     private static func cross(_ shape: Shape, _ counts: (Int, Int)) {
@@ -190,6 +190,8 @@ struct ColumnOfSeveralCrossingTests {
         case pinnedSections
         /// A section beside the loop.
         case sectionBeside
+        /// A lazy stack's own section around the loop, unpinned and pinned.
+        case section, pinnedSection
     }
 
     /// Rows of uneven width, some two lines, one with a filling frame, a
@@ -235,6 +237,12 @@ struct ColumnOfSeveralCrossingTests {
                         smallLoop(rows)
                         Text("footer")
                     }
+                case .section:
+                    LazyVStack(alignment: .leading, spacing: 0) { sectionOfSmallLoop(rows) }
+                case .pinnedSection:
+                    LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders, .sectionFooters]) {
+                        sectionOfSmallLoop(rows)
+                    }
                 }
             }
             .scrollTargetBehavior(.viewAligned)
@@ -246,6 +254,16 @@ struct ColumnOfSeveralCrossingTests {
         Text("a wide header line")
         smallLoop(rows)
         Text("footer")
+    }
+
+    private static func sectionOfSmallLoop(_ rows: Int) -> some View {
+        Section {
+            smallLoop(rows)
+        } header: {
+            Text("a wide header line")
+        } footer: {
+            Text("footer")
+        }
     }
 
     private static func smallLoop(_ rows: Int) -> some View {

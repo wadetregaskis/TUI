@@ -2316,6 +2316,13 @@ column keeps the threshold and still resets at it. Pinned, a section beside the 
 count, so it never reset. `TupleView.columnOfSeveral` finds the loop by its type alone and decides on what stands
 beside it.
 
+And a lazy stack's own `Section` written out in its content (`PinnedSectionScope.writesOut(sectionAt:)`: no keyed step
+between them) is the column of its parts whatever its loop's count, unpinned (`Section.staysWhole(in:)`) and pinned
+(`_SectionCore.pulledPartsColumn`). A section a loop makes keeps the threshold: whole at every count, a stack of many
+small sections would be a pulled column of estimated sections, S7's lost exactness; written out, a stack holds only as
+many as are written. Still reset at 256: sections a loop makes, whose rows together cross it, and an unpinned section
+beside the loop holding a loop of its own.
+
 H-71's A/B of `app-shapes/headed-lazy-short` and `headed-box-short` measured the flat stack on both sides: their
 scroll views are bound to a `ScrollPosition`, which kept them at the threshold. Taking the step there, they are 10.1%
 and 54.3% faster (the commit that made it).

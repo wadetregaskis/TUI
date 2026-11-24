@@ -45,13 +45,15 @@ import TUIView
     /// measure of the stack on the first frame (30,035 for one section of
     /// 10,000 rows); kept whole, the section draws its parts as the stack
     /// would and its loop as a lazy stack of its own, pulled
-    /// (`_SectionCore.pulledPartsColumn`).
+    /// (`_SectionCore.pulledPartsColumn`). Whatever the loop's count when the
+    /// section is written out in the stack's content, so its parts keep their
+    /// identities as the loop crosses the threshold (the owner's O-14 (c)).
     public func staysWhole(in context: RenderContext) -> Bool {
-        sectionStaysWhole(in: context)
-            || (context.sectionWholeness == .loopRows && showsContent
-                && sectionContentLoopWindows(
-                    content, whateverItsCount: context.environment.pinnedSectionScope?.windowsSectionLoops == true,
-                    in: context))
+        guard !sectionStaysWhole(in: context) else { return true }
+        guard context.sectionWholeness == .loopRows, showsContent, viewMayBeLoop(Content.self) else { return false }
+        let scope = context.environment.pinnedSectionScope
+        let anyCount = scope.map { $0.windowsSectionLoops || $0.writesOut(sectionAt: context.identity) } ?? false
+        return sectionContentLoopWindows(content, whateverItsCount: anyCount, in: context)
     }
 }
 

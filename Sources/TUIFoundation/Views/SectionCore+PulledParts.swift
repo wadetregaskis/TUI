@@ -16,12 +16,36 @@
 import TUICore
 import TUIView
 
+/// The lazy stack a section is one of the own sections of, as the section
+/// draws for it: what it pins, how it lays out its children, whether its
+/// sections' loops together pass its threshold
+/// (``PinnedSectionScope/windowsSectionLoops``), and whether the section is
+/// written out in its content rather than made by a loop
+/// (``PinnedSectionScope/writesOut(sectionAt:)``).
+struct OwningStack {
+    let pins: (headers: Bool, footers: Bool)
+    let layout: PinnedSectionLayout
+    let windowsLoops: Bool
+    let writtenOut: Bool
+}
+
 extension _SectionCore {
     /// The section as a column of its parts, at a step of its own
     /// (``_ImplicitColumnOfSeveral``), when it is one of a lazy stack's own
     /// sections down a column and its content is a loop past the lazy stack's
-    /// threshold, in scroll content (``sectionContentLoopWindows(_:in:)``);
-    /// `nil` otherwise, and the section lays its parts out whole.
+    /// threshold, in scroll content (``sectionContentLoopWindows(_:whateverItsCount:in:)``),
+    /// or a loop of any count, written out in the stack's content; `nil`
+    /// otherwise, and the section lays its parts out whole.
+    ///
+    /// Written out — `LazyVStack { Section { ForEach(results) } header: {
+    /// TextField(…) } }` — it is the column whatever its loop's count, so its
+    /// parts keep their identities as a filtered loop crosses the threshold
+    /// (the owner's O-14 (c), 2026-11-21): taken apart below it and drawn whole
+    /// above, the field lost the focus at each crossing and every row its
+    /// state. A section a loop makes keeps the threshold: whole at every
+    /// count, a stack of many small sections would place each as a pulled
+    /// column of estimated rows, where it measures each whole and places it
+    /// exactly (the SCROLL-FIT design's S7).
     ///
     /// The column lays the parts out as the stack would, at its alignment and
     /// spacing, and its loop, one of the column's views, is drawn as a lazy
@@ -36,10 +60,12 @@ extension _SectionCore {
     /// is drawn so however few its elements, and the lazy stack estimates its
     /// rows from a sample as one past the threshold does.
     func pulledPartsColumn(
-        layout: PinnedSectionLayout, windowsLoop: Bool, context: RenderContext
+        of stack: OwningStack, context: RenderContext
     ) -> (column: _VStackCore<Section<Parent, Content, Footer>>, context: RenderContext)? {
+        let layout = stack.layout
+        let windowsLoop = stack.windowsLoops
         guard layout.axis == .vertical, isExpanded?.wrappedValue ?? true,
-            sectionContentLoopWindows(content, whateverItsCount: windowsLoop, in: context)
+            sectionContentLoopWindows(content, whateverItsCount: windowsLoop || stack.writtenOut, in: context)
         else { return nil }
         let alignment = layout.alignment.horizontal
         let column = _VStackCore(

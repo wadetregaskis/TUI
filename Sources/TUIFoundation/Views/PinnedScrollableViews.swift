@@ -102,6 +102,20 @@ struct PinnedSectionScope: Equatable {
         return steps <= 1
     }
 
+    /// Whether the section at `identity`, one of the stack's own, is written
+    /// out in its content rather than made there by a `ForEach`: no keyed
+    /// step lies between them. Such a section draws a loop it holds as a lazy
+    /// stack of its own whatever its count (`_SectionCore.pulledPartsColumn`,
+    /// the owner's O-14 (c)).
+    func writesOut(sectionAt identity: ViewIdentity) -> Bool {
+        var cursor = identity
+        while cursor.depth > Int(stackDepth), let parent = cursor.parent {
+            if cursor.childStep(below: parent)?.key != nil { return false }
+            cursor = parent
+        }
+        return true
+    }
+
     /// Which sections the stack's walks keep whole: every one of its own
     /// while it pins, and otherwise only a loop's section rows, which keep it
     /// lazy (`SectionWholeness`).

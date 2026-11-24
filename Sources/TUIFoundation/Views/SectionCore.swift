@@ -72,14 +72,14 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
 
     /// The pinned stack this is one of the own sections of: what it pins, and
     /// how it lays out its children — or `nil`.
-    private func pinningStack(
-        _ context: RenderContext
-    ) -> (pins: (headers: Bool, footers: Bool), layout: PinnedSectionLayout, windowsLoops: Bool)? {
+    private func pinningStack(_ context: RenderContext) -> OwningStack? {
         guard let scope = context.environment.pinnedSectionScope,
             scope.owns(sectionAt: context.identity),
             let layout = context.environment.pinnedSectionLayout
         else { return nil }
-        return ((scope.pinsHeaders, scope.pinsFooters), layout, scope.windowsSectionLoops)
+        return OwningStack(
+            pins: (scope.pinsHeaders, scope.pinsFooters), layout: layout, windowsLoops: scope.windowsSectionLoops,
+            writtenOut: scope.writesOut(sectionAt: context.identity))
     }
 
     /// `context` for what the section draws, which is no section of the
@@ -102,7 +102,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let stack = pinningStack(context) {
             let drawing = drawingContext(context)
-            if let pulled = pulledPartsColumn(layout: stack.layout, windowsLoop: stack.windowsLoops, context: drawing) {
+            if let pulled = pulledPartsColumn(of: stack, context: drawing) {
                 return measureChild(pulled.column, proposal: proposal, context: pulled.context)
             }
             return stackedSize(layout: stack.layout, proposal: proposal, context: drawing)
@@ -130,7 +130,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         let stack = pinningStack(context)
         let context = drawingContext(context)
         if let stack {
-            if let pulled = pulledPartsColumn(layout: stack.layout, windowsLoop: stack.windowsLoops, context: context) {
+            if let pulled = pulledPartsColumn(of: stack, context: context) {
                 return renderPulledParts(pulled, layout: stack.layout, pins: stack.pins, context: context)
             }
             return renderStacked(layout: stack.layout, pins: stack.pins, context: context)
