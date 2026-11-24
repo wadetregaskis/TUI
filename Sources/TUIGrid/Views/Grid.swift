@@ -430,7 +430,10 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
                 let seat = placement(
                     width: rendered.width, height: rendered.height, in: box, cell: cell,
                     rowAlignment: rowAlignment, columnAlignment: columnGuide)
-                canvas = canvas.composited(with: rendered, at: seat)
+                // In place: the row's canvas is uniform, so a cell touches only
+                // the lines it covers, not a copy of the canvas per cell (hunt
+                // 11-20, SCROLL-19).
+                canvas.composite(with: rendered, at: seat)
                 cells.append(cell)
                 pictures.append(rendered)
                 targets.append(ChildPlacement(x: seat.x, y: rowTops[rowIndex] + seat.y))

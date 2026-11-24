@@ -74,7 +74,7 @@ extension GridRow: ScrollPlacing {}
         var result = FrameBuffer(emptyWithWidth: width, height: band.height)
         for (index, piece) in band.pieces.enumerated() {
             guard let piece else { continue }
-            result = result.composited(with: piece.buffer, at: (x: placed[index].x, y: piece.y))
+            result.composite(with: piece.buffer, at: (x: placed[index].x, y: piece.y))
         }
         let clampHeight = max(band.height, context.availableHeight)
         let targets = placed.indices.map { ChildPlacement(x: placed[$0].x, y: band.pieces[$0]?.y ?? 0) }
