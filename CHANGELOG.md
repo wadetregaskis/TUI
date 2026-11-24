@@ -51,6 +51,14 @@ the reason "Fehler: ", "Erreur : " or "エラー：". The reason itself is still
 table has, so every language read them in English; it now reads TUI's own `button.edit` and `button.done`, and
 follows a subtree's `\.locale` as TUI's other buttons do.
 
+**Pictures are sent again after a suspend or a hand-off.** After ⌃Z and `fg`, a hand-off to another program
+(`\.handOffTerminal`), or `fg` after a `kill -STOP`, the app drew each picture's cells again but did not send the
+picture, trusting the terminal to have kept it; a terminal that frees its pictures with the alternate screen (Ghostty
+1.3.1 measured so for a strip) showed every picture blank until it changed. The app now deletes its pictures as it
+hands the terminal back (or, after an external stop, as it takes it back) and sends each one on screen again in the
+first frame after, at the cost of one transmission a picture. On iTerm2, whose one image store serves both screens,
+the pictures no longer stay in the terminal while the shell or the other program has it.
+
 **On Windows, closing the app's window or tab quits it in order.** Closing conhost's window or Windows Terminal's
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.

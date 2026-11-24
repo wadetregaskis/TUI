@@ -692,19 +692,48 @@ package final class TerminalImageStore {
 
     /// Gives back every image, for a shutdown that wants to leave the terminal
     /// as it found it: the deletes still owed after a frame's cells
-    /// (``takeDeletes()``) with them, as there is no frame to come.
+    /// (``takeDeletes()``) with them, as there is no frame to come. Queued, for
+    /// the exit's farewell to write (``takePending()``).
     package func releaseAll() {
-        pending += farewell()
+        pending = handBack()
+    }
+
+    /// Gives back every image and forgets them all, for a hand-back of the
+    /// terminal — a ⌃Z, a hand-off to another program, the recovery from an
+    /// external stop, a quit: the deletes (``farewell(fitting:)``), to be
+    /// written before the alternate screen is left.
+    ///
+    /// Forgets EVERYTHING it believes the terminal holds: the images and their
+    /// boxes, which view draws which, the holds, what the terminal plays, the
+    /// copies and crops made of them and the backdrops, and the escapes still
+    /// queued, which name only images now deleted. So the first frame after the
+    /// terminal is taken back sends each picture on screen again, under a new
+    /// id: a view asks for its picture as on any frame and is told the terminal
+    /// has none. Kept, the store answered with the cells alone, naming images a
+    /// terminal with a store per screen had freed with the screen (Ghostty
+    /// 1.3.1, Q8 in `Terminal compatibility survey.md`): every picture blank
+    /// until its signature changed (H-58).
+    ///
+    /// The deletes go even where the terminal would have kept the images
+    /// (iTerm2's one store for both screens; Ghostty 1.4.0): sent again, they
+    /// cost one transmit each after a resume, and kept, the shell's screen, or
+    /// the program the terminal was handed to, would be the one holding them.
+    package func handBack() -> String {
+        let farewell = farewell()
+        pending = ""
         deletes = ""
         retiring.removeAll()
         images.removeAll()
-        scaledBoxes.removeAll()
         slots.removeAll()
         entries.removeAll()
-        for backdrop in backdrops { derivedImages.forget(backdrop.id) }
+        holds.removeAll()
+        played.removeAll()
+        scaledBoxes.removeAll()
         backdrops.removeAll()
+        derivedImages = DerivedImages()
         crops = CroppedImages()
         _generation += 1
+        return farewell
     }
 
     /// What ``releaseAll()`` would write, without releasing anything: a delete

@@ -5272,8 +5272,16 @@ instance and the screenshot tool reaches only the first one's windows. iTerm2
 keeps both, the cells written again draw at once, and its chunked transmit is
 answered `i=0;OK` even with `q=2` on the first chunk.
 
-What TUI does with this is H-58's to decide (its image store forgets nothing
-across a hand-back today).
+What TUI does with this: nothing depends on it. A suspend and a hand-off
+delete every picture before leaving the alternate screen, and the recovery
+from an external stop before taking the terminal back
+(`TerminalImageStore.handBack()`); all three forget them, so the first frame
+after the retake sends each picture again (H-58, 2026-11-23). On a terminal
+that would have kept them that costs one transmit per picture on screen after
+a resume, and it is correct on every terminal: one that frees them (Ghostty
+1.3.1's strip), one that keeps them (iTerm2, whose one store for both screens
+would otherwise hold them while the shell has the screen), and one that drops
+the placement and keeps the image.
 
 ---
 

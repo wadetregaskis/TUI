@@ -107,20 +107,34 @@ extension AppRunner {
     /// before the push keeps one entry of this process's on the kitty stack
     /// whether or not the shell left it there (a pop of an empty stack does
     /// nothing).
+    ///
+    /// The pictures too are deleted and forgotten, as a hand-back does
+    /// (`TerminalImageStore.handBack()`), so the first frame after sends them
+    /// again: the shell had the screen, and a `clear` there (`ESC[2J`) frees
+    /// them on a host with a store per screen (Ghostty 1.3.1, Q8 in
+    /// `Terminal compatibility survey.md`).
     private func recoverFromExternalStop(renderer: RenderLoop<A>) {
         waitUntilForeground()
         terminal.applyMouseSupport(.disabled)
         tuiContext.mouseEventDispatcher.forgetRestingPointer()
+        let pictures = tuiContext.terminalImageStore.handBack()
+        if !pictures.isEmpty { terminal.write(pictures) }
         terminal.disableRawMode()
         retakeTerminal(renderer: renderer)
     }
 
     /// Hands the terminal back to the shell: the mouse mode off, the
-    /// hairlines' strips, the pictures drawn under text and the window title
-    /// taken back, the styling reset, raw mode off with every mode it set, the
-    /// cursor shown and the alternate screen left. Shared by
-    /// the Ctrl-Z suspend and a hand-off to another program
-    /// (``handOffTerminal(renderer:cursorTimer:running:)``).
+    /// hairlines' strips, the pictures drawn under text, every picture the
+    /// image store put in the terminal and the window title taken back, the
+    /// styling reset, raw mode off with every mode it set, the cursor shown and
+    /// the alternate screen left. Shared by the Ctrl-Z suspend and a hand-off
+    /// to another program (``handOffTerminal(renderer:cursorTimer:running:)``).
+    ///
+    /// The image store forgets its pictures as it deletes them
+    /// (`TerminalImageStore.handBack()`), so the first frame after
+    /// ``retakeTerminal(renderer:)`` sends each picture on screen again: a
+    /// terminal with a store per screen may have freed them with the alternate
+    /// screen, and one that kept them was told to let them go (H-58).
     ///
     /// The mouse mode is set to `.none` here and NOT re-applied by
     /// ``retakeTerminal(renderer:)``: the loop re-evaluates the effective mode
@@ -138,7 +152,7 @@ extension AppRunner {
         // line left on the alternate screen on the shell's (`HairlineLayer`).
         terminal.handBack(
             farewell: renderer.handBackHairlines() + renderer.handBackPicturesUnderText()
-                + renderer.handBackHostState(),
+                + tuiContext.terminalImageStore.handBack() + renderer.handBackHostState(),
             restoringStyling: renderer.restoreTerminalStyling)
         // The shell's screen is back, so held soft-trap reports can be read there.
         SoftTrap.terminalRestored()
