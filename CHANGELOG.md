@@ -39,6 +39,11 @@ the folder shown first, the other columns and open branches a moment later. And 
 thousands of folders no longer slows every frame: the row of the folder on the way, far down it, was looked for
 afresh some 600 times a frame.
 
+**An image paint goes on drawing its picture after the image cache lets it go.** A view filled with
+`.image(Image(.file(path)))` drew nothing from the frame after the cache evicted its picture to make room for
+others, for as long as it stayed on screen. It now keeps drawing what it converted, and loads the picture again if
+the cache let it go before it was drawn.
+
 **Views that load one picture at once share the load.** Thirty rows of a list showing one avatar each downloaded
 it, decoded it and sent it to the terminal, since none found it in the image cache before any had landed: thirty
 downloads, thirty decodes and thirty copies in memory. Loads of one URL, or of one file at one size, through one

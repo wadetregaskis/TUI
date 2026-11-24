@@ -36,7 +36,18 @@ private final class PaintPixelsHolder {
     /// was handed the old pixels. Kept, no other picture can take the address
     /// while the pixels stand for it.
     var owner: AnyObject?
+    /// Which pixels they were converted from: a picture the cache keeps is
+    /// named by its decode, so they stand for it after the cache has let it
+    /// go, and an edited file loaded again under the same path is another.
+    var convertedFrom: DecodedPixels?
     var pixels: ImagePaintPixels?
+
+    /// The pixels, where they were converted from `from` for `source` and
+    /// `owner`.
+    func pixels(from: DecodedPixels, source: ImageSource, owner: AnyObject?) -> ImagePaintPixels? {
+        guard convertedFrom == from, self.source == source, self.owner === owner else { return nil }
+        return pixels
+    }
 }
 
 extension _ImageCore {
@@ -60,41 +71,65 @@ extension _ImageCore {
         stateStorage.markActive(identity)
         let lastSourceBox: StateBox<ImageSource?> = stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: PaintStateIndex.lastSource), default: nil)
+        let holder: StateBox<PaintPixelsHolder> = stateStorage.storage(
+            for: StateStorage.StateKey(identity: identity, propertyIndex: PaintStateIndex.pixels),
+            default: PaintPixelsHolder())
+        let kept = holder.value
+        let owner = decoded?.owner
+        let cache = context.environment.resolvedURLImageCache
+        let token = "image-paint-\(identity.path)"
         // The load's lifecycle is a render's side effect, as the image's own
         // is: a measure only reads what has loaded.
         if !context.isMeasuring {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
+            // A picture the cache let go of before the paint converted it,
+            // which nothing else holds: loaded again, as a view that has
+            // appeared loads nothing more. Without this the paint drew nothing
+            // from then on (hunt H-96, IMAGE-6). Loading, not the picture let
+            // go, while it loads: otherwise each frame until it lands would
+            // find it let go again, and start the load over.
+            if decoded == nil, case .cached(let picture) = phaseBox.value,
+                kept.pixels(from: DecodedPixels(decode: picture.decode), source: source, owner: owner) == nil,
+                picture.pixels(in: cache) == nil
+            {
+                phaseBox.value = .loading
+                lifecycle.resetAppearance(token: token)
+            }
             manageLoadLifecycle(
-                lifecycle: lifecycle, token: "image-paint-\(identity.path)", phaseBox: phaseBox,
+                lifecycle: lifecycle, token: token, phaseBox: phaseBox,
                 lastSourceBox: lastSourceBox,
                 load: Self.LoadSettings(
                     maxPixelCount: context.environment.imageMaxPixelCount,
                     urlTimeout: context.environment.imageURLTimeout,
-                    urlCache: context.environment.resolvedURLImageCache,
+                    urlCache: cache,
                     synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit),
                 imageStore: nil, loads: decoded == nil)
         }
-        // A picture the cache keeps is read back from it; the holder below keeps
-        // what it was converted to, as it keeps any picture's.
+        // What the holder converted is looked for first: a picture the cache
+        // keeps is read back from it only to convert, so the paint goes on
+        // drawing it after the cache has let it go.
         let image: RGBAImage
+        let from: DecodedPixels
         switch phaseBox.value {
-        case .success(let held): image = held
-        case .reduced(let picture): image = picture.image
+        case .success(let held):
+            image = held
+            from = DecodedPixels(held)
+        case .reduced(let picture):
+            image = picture.image
+            from = DecodedPixels(picture.image)
         case .cached(let picture):
-            guard let kept = picture.pixels(in: context.environment.resolvedURLImageCache) else { return nil }
-            image = kept
+            from = DecodedPixels(decode: picture.decode)
+            if let pixels = kept.pixels(from: from, source: source, owner: owner) { return pixels }
+            guard let held = picture.pixels(in: cache) else { return nil }
+            image = held
         case .loading, .failure: return nil
         }
-        let holder: StateBox<PaintPixelsHolder> = stateStorage.storage(
-            for: StateStorage.StateKey(identity: identity, propertyIndex: PaintStateIndex.pixels),
-            default: PaintPixelsHolder())
-        let owner = decoded?.owner
-        let kept = holder.value
-        if let pixels = kept.pixels, kept.source == source, kept.owner === owner { return pixels }
+        if let pixels = kept.pixels(from: from, source: source, owner: owner) { return pixels }
         let pixels = Self.paintPixels(
             image, pointSize: decoded?.pointSize(of: image) ?? (Double(image.width), Double(image.height)))
         kept.source = source
         kept.owner = owner
+        kept.convertedFrom = from
         kept.pixels = pixels
         return pixels
     }
