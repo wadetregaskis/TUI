@@ -1136,9 +1136,17 @@ extension FrameBuffer {
             }
         }
 
-        // As in the copying twin: the fields each overlay row was painted over.
+        // As in the copying twin: the fields each overlay row was painted over,
+        // and none for a painted overlay, which is painted over nothing. Its line
+        // goes in as it is, so its runs' grounds must keep the fields the overlay
+        // stated too: grounded on the base's, a run replayed its frames on a
+        // field its line does not show, and the next full frame took it back —
+        // a flicker between two fields at the animation's rate, which a pinned
+        // header carrying a spinner, over a selected row, drew (hunt 11-20,
+        // CORE1-9).
         var fields =
-            overlay.animatedCells.isEmpty ? nil : [FieldsUnderOverlay](repeating: .none, count: overlay.lines.count)
+            overlay.animatedCells.isEmpty || overlayIsPainted
+            ? nil : [FieldsUnderOverlay](repeating: .none, count: overlay.lines.count)
         // A painted overlay as wide as the canvas from its first column covers
         // each of its rows whole: nothing of the base shows on them, so the base
         // need not be split around it — the split reads every cell of the row —
@@ -1146,7 +1154,8 @@ extension FrameBuffer {
         // it (``endsPlain(_:)``). A table's header pinned to a scroll view's top
         // is one, drawn over a row of its own on every frame that scrolls past
         // it (SCROLL-FIT P6b), and the split was most of what pinning it cost.
-        let coversRows = overlayIsPainted && position.x == 0 && fields == nil && overlay.linesAreUniformWidth
+        // It reports no fields, as a painted overlay needs none (above).
+        let coversRows = overlayIsPainted && position.x == 0 && overlay.linesAreUniformWidth
             && overlay.width >= resultWidth
         for overlayRow in overlay.lines.indices {
             let row = position.y + overlayRow

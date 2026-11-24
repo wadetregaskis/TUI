@@ -100,6 +100,31 @@ struct CompositeTwinTests {
         #expect(copied.animatedCells == inPlace.animatedCells)
         #expect(copied.hitTestRegions == inPlace.hitTestRegions)
     }
+
+    /// A painted overlay — a floating surface, a pinned header — states every
+    /// field it needs, so its line goes in as it is and the base's field under
+    /// it is not asked for. Its runs' grounds must say the same: a run replays
+    /// its frames on its ground, so a ground painted with the base's field draws
+    /// a field the line does not show, and the next full frame takes it back —
+    /// a flicker at the animation's rate. The in-place twin painted it (hunt
+    /// 11-20, CORE1-9); the copying twin, which matches the line, did not.
+    @Test("A painted overlay's runs keep their own ground through both paths")
+    func paintedOverlayRunsAgree() {
+        // The base states a blue field; the overlay a cell that states none,
+        // as a surface on a palette whose page is the terminal's own does.
+        let base = FrameBuffer(lines: ["\u{1B}[44m0123456789\u{1B}[0m"])
+        var header = FrameBuffer(lines: ["\u{1B}[49mab\u{1B}[0m"])
+        header.animatedCells = [run("a")]
+
+        let copied = base.composited(with: header, at: (x: 3, y: 0), overlayIsPainted: true)
+        var inPlace = base
+        inPlace.composite(with: header, at: (x: 3, y: 0), overlayIsPainted: true, terminalForeground: { nil })
+
+        #expect(copied.lines == inPlace.lines)
+        #expect(copied.animatedCells == inPlace.animatedCells, "the twins grounded the painted run differently")
+        let grounds = inPlace.animatedCells.compactMap(\.ground)
+        #expect(!grounds.contains { $0.contains("44") }, "the run's ground took the field its line does not show")
+    }
 }
 
 @Suite("Compositing punches what the overlay covers")
