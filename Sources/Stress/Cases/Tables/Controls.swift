@@ -20,6 +20,10 @@ extension CaseTables {
     // values-stepper / values-slider / values-date: each value control driven by its keys, alone on the page.
     // form-slider: the slider moved in a form of 5 toggles (50 at 10n): a value change must not rebuild them.
     // menu-walk: a menu of 40 items opened, walked and closed. `linear`: a menu's items are made when it opens.
+    // menu-walk-500: the same menu of 500 items: what an open pop-up's frame costs at the size H-92 asked about.
+    // picker-sibling / picker-focused / picker-walk: a menu picker of 500 options under a stepper, the stepper changed
+    //   with the picker closed and unfocused, the picker focused and left idle, and the picker opened, walked and
+    //   closed (H-92, CTRLS-2). `linear`: a picker resolves every option to find its tags and its width.
     static let controls = CaseTableSource(file: #fileID, line: #line, """
         id                 composition   in     size    n    script                                      scales  timed  tags
         grid-scroll        grid          title  80x24   120  open;wheel:+3*5                             linear  -      grid,scroll
@@ -33,5 +37,9 @@ extension CaseTables {
         values-date        values        alone  80x24   1    open;key:tab*2;key:up*5;key:right;key:up*3  flat    -      values
         form-slider        form.grouped  alone  80x24   5    open;key:tab;key:right*10                   flat    -      form,values,invalidate
         menu-walk          menu          alone  80x24   40   open;key:space;key:down*20;key:esc          linear  -      menu
+        menu-walk-500      menu          alone  80x24   500  open;key:space;key:down*20;key:esc          linear  t      menu
+        picker-sibling     picker        alone  80x24   500  open;key:right*10                           linear  t      menu,values
+        picker-focused     picker        alone  80x24   500  open;key:tab;idle*10                        linear  t      menu,focus
+        picker-walk        picker        alone  80x24   500  open;key:tab;key:space;key:down*20;key:esc  linear  t      menu
         """)
 }

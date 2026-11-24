@@ -88,6 +88,10 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     case values
     /// A `Menu` of a `Button` per row, under a line of text.
     case menu
+    /// A `Stepper`, then a menu `Picker` of an option per row, then a line of
+    /// text: a closed picker of many options beside a control whose value a
+    /// key changes, and the same picker focused, opened and walked.
+    case picker
 }
 
 extension CaseLeaf {
@@ -104,7 +108,7 @@ extension CaseLeaf {
     /// Whether the leaf is one of the controls `CaseControlView` draws.
     var isControl: Bool {
         switch self {
-        case .grid, .formGrouped, .formColumns, .controls, .values, .menu: true
+        case .grid, .formGrouped, .formColumns, .controls, .values, .menu, .picker: true
         default: false
         }
     }

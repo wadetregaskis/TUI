@@ -40,6 +40,20 @@ struct CaseControlView: View {
                     }
                     Text(verbatim: Self.menuTitle)
                 })
+        case .picker:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Stepper(
+                        Self.pickerLabels[0], value: Binding(get: { rows.amount }, set: { rows.amount = $0 }),
+                        in: 0...1_000)
+                    Picker(
+                        Self.pickerLabels[1],
+                        selection: Binding(get: { rows.selection ?? 0 }, set: { rows.selection = $0 })
+                    ) {
+                        ForEach(rows.rows) { row in Text(verbatim: rows.title(row)).tag(row.id) }
+                    }
+                    Text(verbatim: Self.menuTitle)
+                })
         default:
             AnyView(Text(verbatim: "\(leaf.rawValue) is not a control leaf"))
         }
@@ -48,6 +62,9 @@ struct CaseControlView: View {
     /// The menu's title, as a string rather than a literal: a literal is a
     /// localization key, and a case adds none.
     static let menuTitle = "Actions"
+
+    /// The picker page's stepper and picker titles, likewise.
+    static let pickerLabels = ["Amount", "Row"]
 }
 
 /// The rows in a `Grid`, four cells a row.
