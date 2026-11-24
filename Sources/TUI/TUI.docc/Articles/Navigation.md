@@ -130,6 +130,11 @@ are pushed, takes them off the path first, and Back returns to the root.
   recommends) keeps every type reachable. A value with no destination shows a
   blank screen that still has its back button, rather than being silently
   dropped.
+- **A value finds the destination for the type it was pushed as**, as in
+  SwiftUI, not its own: a `Circle` subclass of a `Shape` class, pushed as a
+  `Shape` (`path.append(circle as Shape)`, a `[Shape]` path,
+  `NavigationLink(value: circle as Shape)`), shows
+  `navigationDestination(for: Shape.self)`.
 - **To save a `NavigationPath`, use its ``NavigationPath/codable`` property**,
   which is `nil` if any value in the path isn't `Codable`, and rebuild it with
   `NavigationPath(_:)`. It records each value's type by name, so a saved path

@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A value pushed as its superclass finds its superclass's `navigationDestination`.** A `Circle` subclass of a
+`Hashable` class `Shape`, pushed as a `Shape` (`path.append(circle as Shape)`, a `[Shape]` path, or
+`NavigationLink(value: circle as Shape)`), was looked up as a `Circle` and showed an empty screen; it now shows
+`navigationDestination(for: Shape.self)`, and a destination for `Circle` answers only a value pushed as a `Circle`,
+as in SwiftUI.
+
 **Content blended over its own background blends with the background.** `Text("Hi").foregroundStyle(.cyan)
 .blendMode(.multiply).background(.yellow)` drew cyan letters on yellow, and over another view multiplied the
 yellow into that view; it now draws green letters on an unblended yellow, as SwiftUI does. The same holds inside

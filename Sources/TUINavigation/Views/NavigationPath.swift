@@ -45,9 +45,11 @@ import TUIFoundation
 public struct NavigationPath: Equatable {
 
     /// The pushed values, root-most first. `AnyHashable` is exactly the
-    /// erasure SwiftUI describes: the elements need only be `Hashable`, and
-    /// `AnyHashable` keeps both the value and its dynamic type — which is what
-    /// lets ``NavigationStack`` find the matching `.navigationDestination`.
+    /// erasure SwiftUI describes: the elements need only be `Hashable`. A
+    /// value appended as a type other than its own, a class as one of its
+    /// superclasses, is wrapped with that type (``PushedNavigationValue``),
+    /// which is the type ``NavigationStack`` finds its
+    /// `.navigationDestination` by, as SwiftUI's does.
     var elements: [AnyHashable]
 
     /// Creates an empty navigation path.
@@ -57,7 +59,7 @@ public struct NavigationPath: Equatable {
 
     /// Creates a navigation path from the given hashable values.
     public init<S: Sequence>(_ elements: S) where S.Element: Hashable {
-        self.elements = elements.map { AnyHashable($0) }
+        self.elements = elements.map { PushedNavigationValue.erase($0) }
     }
 
     /// Creates a navigation path from already-erased values.
@@ -73,7 +75,7 @@ public struct NavigationPath: Equatable {
 
     /// Appends a value to the end of the path, pushing a screen.
     public mutating func append<V: Hashable>(_ value: V) {
-        elements.append(AnyHashable(value))
+        elements.append(PushedNavigationValue.erase(value))
     }
 
     /// Removes the last `k` values, popping that many screens.
@@ -187,7 +189,7 @@ extension NavigationPath {
     public var codable: CodableRepresentation? {
         var entries: [CodableRepresentation.Entry] = []
         for element in elements {
-            guard let value = element.base as? any Codable,
+            guard let value = PushedNavigationValue.value(of: element).base as? any Codable,
                   let typeName = _mangledTypeName(type(of: value)),
                   let data = try? JSONEncoder().encode(value),
                   let json = String(bytes: data, encoding: .utf8)

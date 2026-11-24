@@ -140,14 +140,14 @@ public struct NavigationStack<Root: View> {
     {
         self.root = root()
         self.storage = .bound(
-            read: { path.wrappedValue.map { AnyHashable($0) } },
+            read: { path.wrappedValue.map { PushedNavigationValue.erase($0) } },
             // A typed path can hold only its own element type, so only those
             // go back into it; the screens that are not values of it stay in
             // the stack (`accessors()`), as SwiftUI keeps them off the path.
             write: { erased in
-                path.wrappedValue = Data(erased.compactMap { $0.base as? Data.Element })
+                path.wrappedValue = Data(erased.compactMap { PushedNavigationValue.value(of: $0).base as? Data.Element })
             },
-            keeps: { $0.base is Data.Element })
+            keeps: { PushedNavigationValue.value(of: $0).base is Data.Element })
     }
 
     /// The content and behavior of this view.

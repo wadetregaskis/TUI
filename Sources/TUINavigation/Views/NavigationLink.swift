@@ -92,7 +92,9 @@ nonisolated public struct NavigationLink<Label: View, Destination: View>: View {
 @MainActor extension NavigationLink: TagCarrying {
     package var carriedTag: (value: AnyHashable, includeOptional: Bool)? {
         guard case .value(let value?) = target else { return nil }
-        return (value, true)
+        // The value itself, not the type it is pushed as: a list's selection
+        // is matched by value.
+        return (PushedNavigationValue.value(of: value), true)
     }
 }
 
@@ -106,7 +108,7 @@ extension NavigationLink where Destination == Never {
     ///   - value: The value to push. `nil` disables the link.
     ///   - label: The link's visible content.
     public init<P: Hashable>(value: P?, @ViewBuilder label: () -> Label) {
-        self.target = .value(value.map { AnyHashable($0) })
+        self.target = .value(value.map { PushedNavigationValue.erase($0) })
         self.label = label()
     }
 
@@ -119,7 +121,7 @@ extension NavigationLink where Destination == Never {
     ///   - titleKey: The key for the link's title.
     ///   - value: The value to push. `nil` disables the link.
     public init<P: Hashable>(_ titleKey: LocalizedStringKey, value: P?) where Label == Text {
-        self.target = .value(value.map { AnyHashable($0) })
+        self.target = .value(value.map { PushedNavigationValue.erase($0) })
         self.label = Text(titleKey)
     }
 
@@ -130,7 +132,7 @@ extension NavigationLink where Destination == Never {
     ///   - value: The value to push. `nil` disables the link.
     @_disfavoredOverload
     public init<S: StringProtocol, P: Hashable>(_ title: S, value: P?) where Label == Text {
-        self.target = .value(value.map { AnyHashable($0) })
+        self.target = .value(value.map { PushedNavigationValue.erase($0) })
         self.label = Text(String(title))
     }
 }

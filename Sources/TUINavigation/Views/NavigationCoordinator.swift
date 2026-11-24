@@ -41,7 +41,8 @@ struct NavigationViewToken: Hashable {
 @MainActor
 final class NavigationCoordinator {
 
-    /// Destination builders, keyed by the dynamic type of the value pushed.
+    /// Destination builders, keyed by the type a value is pushed as
+    /// (``PushedNavigationValue/lookupType(of:)``).
     /// Registered by `.navigationDestination(for:)` as it renders, and never
     /// cleared: a builder must still be found on the frames where the modifier
     /// itself did not re-render.
@@ -368,7 +369,10 @@ extension NavigationCoordinator {
         if let token = value.base as? NavigationViewToken {
             return viewDestinations[token.id]?.view
         }
-        return builders[ObjectIdentifier(type(of: value.base))].map { $0(value) }
+        // By the type the value was pushed as, not its own, as SwiftUI's
+        // stack finds it (`PushedNavigationValue`).
+        let pushed = PushedNavigationValue.value(of: value)
+        return builders[PushedNavigationValue.lookupType(of: value)].map { $0(pushed) }
     }
 }
 
