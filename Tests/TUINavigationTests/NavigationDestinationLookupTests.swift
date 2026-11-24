@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 @testable import TUIApp
@@ -25,6 +26,12 @@ private class Shape: Hashable, CustomStringConvertible {
     var description: String { "\(type(of: self))(\(id))" }
 }
 private final class Circle: Shape {}
+
+/// The path the pages read and the tests write.
+@Observable
+private final class PathModel {
+    var path = NavigationPath()
+}
 
 @MainActor
 @Suite("NavigationStack: the destination a pushed value finds")
@@ -100,5 +107,75 @@ struct NavigationDestinationLookupTests {
         _ = app.press(.enter)
         let shown = app.screen.lines.joined(separator: "\n")
         #expect(shown.contains("Shape destination for Circle(7)"), "\(shown)")
+    }
+
+    // MARK: Two registrations of one type
+
+    /// `String` registered on every screen an `Int` pushes, and on the root
+    /// too when `onRoot`.
+    private struct Strings: View {
+        let model: PathModel
+        let onRoot: Bool
+        var body: some View {
+            NavigationStack(path: Binding(get: { model.path }, set: { model.path = $0 })) {
+                if onRoot {
+                    screens.navigationDestination(for: String.self) { Text("root's String \($0)") }
+                } else {
+                    screens
+                }
+            }
+        }
+        private var screens: some View {
+            Text("root").navigationDestination(for: Int.self) { number in
+                Text("int \(number)").navigationDestination(for: String.self) { Text("int \(number)'s String \($0)") }
+            }
+        }
+    }
+
+    private func shown(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
+    }
+
+    @Test("Of two screens registering one type, the one closest to the root is used, as SwiftUI's is")
+    func closestToTheRootWins() {
+        // SwiftUI warns and uses the one declared closest to the root
+        // (navident.out, case 3A). A buried screen does not render, so the
+        // registration of the screen above it, made last, used to win.
+        let model = PathModel()
+        let app = TestApp(width: 60, height: 6) { Strings(model: model, onRoot: false) }
+        model.path.append(1)
+        _ = app.screen
+        model.path.append(2)
+        _ = app.screen
+        model.path.append("x")
+        #expect(shown(app).contains("int 1's String x"), "\(shown(app))")
+    }
+
+    @Test("The root's registration is used over a pushed screen's")
+    func rootWins() {
+        let model = PathModel()
+        let app = TestApp(width: 60, height: 6) { Strings(model: model, onRoot: true) }
+        model.path.append(1)
+        _ = app.screen
+        model.path.append("x")
+        #expect(shown(app).contains("root's String x"), "\(shown(app))")
+    }
+
+    @Test("A popped screen's registration answers nothing, as SwiftUI's does")
+    func poppedScreensRegistrationIsGone() {
+        // navident.out, case 3C: with `String` registered on the Int screen
+        // alone, a string pushed from the root once that screen has gone shows
+        // no destination. Registrations used to be kept for the stack's life.
+        let model = PathModel()
+        let app = TestApp(width: 60, height: 6) { Strings(model: model, onRoot: false) }
+        model.path.append(1)
+        _ = app.screen
+        model.path.append("x")
+        #expect(shown(app).contains("int 1's String x"), "\(shown(app))")
+
+        model.path.removeLast(2)
+        _ = app.screen
+        model.path.append("y")
+        #expect(!shown(app).contains("String y"), "a popped screen's destination answered:\n\(shown(app))")
     }
 }

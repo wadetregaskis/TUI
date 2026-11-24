@@ -79,7 +79,11 @@ nonisolated struct NavigationDestinationModifier<Content: View, D: Hashable, C: 
         // that stays true while a screen is pushed.
         if !context.isMeasuring, let coordinator = context.environment.navigationCoordinator {
             let build = destination
-            coordinator.register(dataType) { AnyView(build($0)) }
+            // The screen it is declared on: the closest to the root wins. Out
+            // of a stack's screens (a collapsed split's columns) every one is
+            // at the same place, and the last declared wins, as before.
+            let depth = context.environment.navigationScreenDepth ?? 0
+            coordinator.register(dataType, depth: depth) { AnyView(build($0)) }
         }
         return TUIView.renderToBuffer(content, context: context)
     }

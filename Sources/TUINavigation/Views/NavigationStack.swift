@@ -287,7 +287,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         // screen is measured below, which files the lazy stack.
         defer { context.notePulledContainer(holding: { [screenChildContext.identity] }) }
         let destination = observingBodyClosure(of: Self.self, context: screenChildContext, observesWhenMeasuring: true) {
-            coordinator.destination(for: top)
+            coordinator.destination(for: top, atDepth: elements.count)
         }
         guard let destination else {
             return ViewSize(
@@ -316,6 +316,8 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             // and the ones that did not are swept at its end — after the
             // screens have rendered, against the path as it then stands.
             coordinator.beginRegistrationPass()
+            // What popped screens declared goes with them.
+            coordinator.forgetDestinations(above: read().count)
         }
         defer { if !context.isMeasuring { coordinator.endRegistrationPass() } }
 
@@ -492,7 +494,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         if let relay { screenChildContext = relay.contentContext(screenChildContext) }
         var content =
             observingBodyClosure(of: Self.self, context: screenChildContext) {
-                coordinator.destination(for: top)
+                coordinator.destination(for: top, atDepth: depth)
             }.map {
                 TUIView.renderToBuffer(
                     $0, context: screenChildContext)

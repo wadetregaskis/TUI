@@ -135,6 +135,10 @@ are pushed, takes them off the path first, and Back returns to the root.
   `Shape` (`path.append(circle as Shape)`, a `[Shape]` path,
   `NavigationLink(value: circle as Shape)`), shows
   `navigationDestination(for: Shape.self)`.
+- **Of two destinations for one type, the one declared closest to the root is
+  used**, as in SwiftUI (which warns about it): declared on the root and again
+  on a pushed screen, the root's shows. A destination declared on a pushed
+  screen goes with it when it is popped.
 - **To save a `NavigationPath`, use its ``NavigationPath/codable`` property**,
   which is `nil` if any value in the path isn't `Codable`, and rebuild it with
   `NavigationPath(_:)`. It records each value's type by name, so a saved path

@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Of two `navigationDestination(for:)`s for one type in a stack, the one closest to the root is used, and a popped
+screen's is forgotten.** A stack kept the destination registered last: of two pushed screens declaring one type,
+the upper one's showed, and a destination declared on a screen since popped still answered values pushed from the
+root. Both now behave as SwiftUI's stack does.
+
 **A value pushed as its superclass finds its superclass's `navigationDestination`.** A `Circle` subclass of a
 `Hashable` class `Shape`, pushed as a `Shape` (`path.append(circle as Shape)`, a `[Shape]` path, or
 `NavigationLink(value: circle as Shape)`), was looked up as a `Circle` and showed an empty screen; it now shows

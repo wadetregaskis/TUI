@@ -1827,6 +1827,6 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-24.
 - **Was:** written here.
 - **Cited by:** `Sources/TUINavigation/Views/NavigationStack.swift`,
-  `Sources/TUINavigation/Views/PushedNavigationValue.swift`; `Tests/TUINavigationTests/NavigationScreenStateTests.swift`,
+  `Sources/TUINavigation/Views/NavigationCoordinator.swift`, `Sources/TUINavigation/Views/PushedNavigationValue.swift`; `Tests/TUINavigationTests/NavigationScreenStateTests.swift`,
   `Tests/TUINavigationTests/NavigationDestinationLookupTests.swift`; H-69 in the maintainers' working notes
   (`plan/hunt-1120/HUNT-QUEUE.md`).

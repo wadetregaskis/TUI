@@ -42,11 +42,28 @@ struct NavigationViewToken: Hashable {
 final class NavigationCoordinator {
 
     /// Destination builders, keyed by the type a value is pushed as
-    /// (``PushedNavigationValue/lookupType(of:)``).
-    /// Registered by `.navigationDestination(for:)` as it renders, and never
-    /// cleared: a builder must still be found on the frames where the modifier
-    /// itself did not re-render.
-    private var builders: [ObjectIdentifier: (AnyHashable) -> AnyView] = [:]
+    /// (``PushedNavigationValue/lookupType(of:)``), each type's ordered by the
+    /// depth of the screen that declared it, the root's (`0`) first.
+    ///
+    /// Registered by `.navigationDestination(for:)` as it renders, and kept
+    /// while its screen is on the stack: a builder must still be found on the
+    /// frames where the modifier itself did not re-render, a buried screen's
+    /// or a memoized root's. Forgotten when the stack no longer reaches its
+    /// screen (``forgetDestinations(above:)``), as SwiftUI forgets a popped
+    /// screen's (measured,
+    /// `Tools/SwiftUIProbes/Navigation identities (H-69)/navident.out`, case 3C).
+    private var builders: [ObjectIdentifier: [DestinationBuilder]] = [:]
+
+    /// One `.navigationDestination(for:)`, and the depth of the screen it is
+    /// declared on.
+    private struct DestinationBuilder {
+        let depth: Int
+        let build: (AnyHashable) -> AnyView
+    }
+
+    /// The deepest screen any builder was declared on, so a pass that pops
+    /// nothing pays nothing to forget.
+    private var deepestBuilderDepth = 0
 
     /// Views pushed directly by `NavigationLink(destination:)`, keyed by the
     /// link's identity path, each with the pass that last registered it.
@@ -278,11 +295,36 @@ extension NavigationCoordinator {
 extension NavigationCoordinator {
 
     /// Registers the view to show for pushed values of the type `type`
-    /// identifies, read as `D`.
-    func register<D: Hashable>(_ type: ObjectIdentifier, builder: @escaping (D) -> AnyView) {
-        builders[type] = { erased in
+    /// identifies, read as `D`, declared on the screen at `depth` (the root's
+    /// is `0`). It replaces the one that screen declared before, and stands
+    /// beside the other screens' (``destination(for:atDepth:)``).
+    func register<D: Hashable>(_ type: ObjectIdentifier, depth: Int, builder: @escaping (D) -> AnyView) {
+        let entry = DestinationBuilder(depth: depth) { erased in
             guard let value = erased.base as? D else { return AnyView(EmptyView()) }
             return builder(value)
+        }
+        // In place: a type has one entry per declaring screen, nearly always one.
+        if let index = builders[type]?.firstIndex(where: { $0.depth == depth }) {
+            builders[type]?[index] = entry
+            return
+        }
+        builders[type, default: []].append(entry)
+        builders[type]?.sort { $0.depth < $1.depth }
+        deepestBuilderDepth = max(deepestBuilderDepth, depth)
+    }
+
+    /// Forgets the destinations declared on screens deeper than `depth`, the
+    /// stack's depth this pass: those screens have been popped.
+    ///
+    /// Only the stack calls it, where every screen states its depth. A value
+    /// replaced at a depth in one action keeps its screen (`NavigationScreen`),
+    /// and so keeps what that screen declared until it renders again.
+    func forgetDestinations(above depth: Int) {
+        guard deepestBuilderDepth > depth else { return }
+        deepestBuilderDepth = depth
+        for (type, entries) in builders where entries.contains(where: { $0.depth > depth }) {
+            let kept = entries.filter { $0.depth <= depth }
+            builders[type] = kept.isEmpty ? nil : kept
         }
     }
 
@@ -361,18 +403,28 @@ extension NavigationCoordinator {
 
     /// The view for a pushed value, or `nil` when nothing has claimed its type.
     ///
+    /// `depth` is where the value's screen is: only the destinations declared
+    /// below it can show it, and of those the one closest to the root does, as
+    /// in SwiftUI, which warns that "only the destination declared closest to
+    /// the root view of the stack will be used" (measured,
+    /// `Tools/SwiftUIProbes/Navigation identities (H-69)/navident.out`, case 3A).
+    /// The root renders first each pass, so the screen's, declared after it,
+    /// used to win, and always did over a root served from its memo.
+    ///
     /// A `nil` here is the navigation equivalent of a broken link: the value is
     /// on the path but no `.navigationDestination(for:)` for its type has ever
     /// rendered. The stack shows an empty screen with a working back button
     /// rather than dropping the value, so the app stays navigable.
-    func destination(for value: AnyHashable) -> AnyView? {
+    func destination(for value: AnyHashable, atDepth depth: Int = .max) -> AnyView? {
         if let token = value.base as? NavigationViewToken {
             return viewDestinations[token.id]?.view
         }
         // By the type the value was pushed as, not its own, as SwiftUI's
         // stack finds it (`PushedNavigationValue`).
         let pushed = PushedNavigationValue.value(of: value)
-        return builders[PushedNavigationValue.lookupType(of: value)].map { $0(pushed) }
+        guard let closest = builders[PushedNavigationValue.lookupType(of: value)]?.first, closest.depth < depth
+        else { return nil }
+        return closest.build(pushed)
     }
 }
 
