@@ -85,3 +85,19 @@ since an `@AppStorage` key can be any string. Scene state now lives in a store o
 domain, measured on macOS 15), and another in-memory store for `TestApp`'s. The keys lost their `scene` prefix with it:
 `tab`, `viewer#2.tab`, `@<digest>.viewer#2.tab`, and the ledger `@sessions`. Pre-1.0, there was no migration: scene
 state saved before is not read back.
+
+## Adopted once, and a `nil` kept (2026-11-24)
+
+Bug hunt FENV-6 found two ways the `UserDefaults` store broke "two windows keep a value each". It read every value
+afresh, because another process may have written it, so a session that had written nothing yet took the last saved on
+every read and followed another window's writes as they were made, where it should start from the last saved and keep
+its place. And it kept a `String?` or an `Int?` as itself, whose `nil` removes the key, so a session's `nil` left no
+copy of its own and its read fell through to the last saved from another session. The JSON store had neither: it
+loads its file once, and keeps `nil` as `null`.
+
+The scene-state `UserDefaultsStorage` now does as the JSON store does: it reads each value once, the first time it is
+asked for or written, and serves what it found from then on, and it keeps every value as its JSON, nothing but
+`@SceneStorage` reading its suite. The ledger is read afresh each time, as before, so two processes don't write each
+other's records away. An optional raw-representable's `nil`, kept as `null` in every store, was read as nothing stored
+too, and now reads as a kept `nil`. A store made afresh with every view (`defaultAppStorage(_:)` given a
+`UserDefaults` in a body) adopts once per store it makes, so it keeps the store's place only as long as that store.

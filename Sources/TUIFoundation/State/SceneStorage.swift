@@ -59,6 +59,13 @@ import Foundation
 /// once keep a value each, and a new window — someone who opens one for
 /// each task — starts from wherever they last left it.
 ///
+/// The built-in stores read a scene's values from disk once, and keep what
+/// they found, so a window that has changed nothing yet keeps the
+/// place it started from while another window running the app changes its
+/// own, rather than following it; and they keep an optional's `nil` as a
+/// value, so a window that cleared its selection keeps it cleared (bug hunt
+/// FENV-6, 2026-11-20). A store of your own decides for itself.
+///
 /// Where the terminal names no session, as over a plain ssh connection, there
 /// is only the last saved. A store keeps each session for 30 days after its
 /// last write, however many there are; one dropped starts from the last

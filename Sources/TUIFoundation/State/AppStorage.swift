@@ -691,8 +691,15 @@ struct RawValueStorageCodec<Value: RawRepresentable>: StorageCodec where Value.R
 /// An optional raw-representable's raw value; its `nil` as an optional raw
 /// value's `nil`.
 struct OptionalRawValueStorageCodec<Wrapped: RawRepresentable>: StorageCodec where Wrapped.RawValue: Codable {
+    /// A kept `nil` — JSON's `null` — is a value, as `.some(nil)`, not
+    /// nothing stored: read as nothing, a scene session's `nil` fell through
+    /// to the last saved from another session (bug hunt FENV-6). Where a
+    /// store removes the key for a `nil`, as `UserDefaults` does, there is
+    /// nothing stored, as before.
     func read(_ store: any StorageBackend, _ key: String) -> Wrapped?? {
-        guard let raw: Wrapped.RawValue = store.value(forKey: key), let value = Wrapped(rawValue: raw) else { return nil }
+        guard let stored: Wrapped.RawValue? = store.value(forKey: key) else { return nil }
+        guard let raw = stored else { return .some(nil) }
+        guard let value = Wrapped(rawValue: raw) else { return nil }
         return .some(value)
     }
 

@@ -31,6 +31,15 @@ root. Both now behave as SwiftUI's stack does.
 `navigationDestination(for: Shape.self)`, and a destination for `Circle` answers only a value pushed as a `Circle`,
 as in SwiftUI.
 
+**A window that hasn't changed a `@SceneStorage` value keeps its own place while another window changes theirs.** With
+the app running in two terminal tabs on macOS, a tab that had not yet changed `@SceneStorage("tab")` read the last saved
+afresh every time, so it followed the other tab's choices as they were made. It now reads the last saved once, when it
+starts, and keeps it, as the JSON store off Apple platforms always did. And an optional's `nil` is kept as the tab's own
+value: `@SceneStorage("selection") var selection: String?` cleared in one tab came back as the other tab's selection,
+then and after a relaunch, since a `String?` or an `Int?` was kept as a property-list value, whose `nil` removes the key;
+scene state in `UserDefaults` is now kept as JSON, as in the file. An optional raw-representable, such as
+`@SceneStorage("pane") var pane: Pane?`, read its kept `nil` as nothing stored on every platform, and now keeps it.
+
 **An `@AppStorage` over `UserDefaults` is redrawn by a write made to `UserDefaults` itself.** A settings model that
 calls `UserDefaults.standard.set(true, forKey: "showHidden")`, a background task writing a suite, or another process's
 `defaults write` left a view reading `@AppStorage("showHidden")` showing the old value until something else redrew it,

@@ -350,6 +350,74 @@ struct UserDefaultsStorageTests {
             #expect(!AppStorage(wrappedValue: false, key, store: storage).wrappedValue)
         }
     }
+
+    // MARK: - Scene state (bug hunt FENV-6)
+
+    /// `@SceneStorage` for `key` over `store`, as its view would find it in
+    /// the terminal session `session`.
+    private static func scene<Value: Codable>(
+        _ key: String, _ value: Value, in store: UserDefaultsStorage, session: String
+    ) -> SceneStorage<Value> {
+        let property = SceneStorage(wrappedValue: value, key, store: store)
+        var environment = EnvironmentValues()
+        environment.sceneStorageSession = session
+        property.resolveEnvironment(environment)
+        return property
+    }
+
+    /// `body`, and then the scene-state suite of a store of `suite` removed.
+    private static func withSceneSuite(_ suite: String, _ body: () -> Void) {
+        defer {
+            let scenes = suite + ".scene-state"
+            UserDefaults(suiteName: scenes)?.removePersistentDomain(forName: scenes)
+        }
+        body()
+    }
+
+    /// Two stores over one suite stand for the app running in two terminal
+    /// tabs at once. The second had written nothing, so it read the last
+    /// saved, and read it afresh each time: it followed the first tab's
+    /// writes as they were made.
+    @Test("A session that has written nothing adopts the last saved once, and keeps it while another writes")
+    func sceneSessionAdoptsOnce() {
+        Self.withSuite { suite, key in
+            Self.withSceneSuite(suite) {
+                let (first, second) = (UserDefaultsStorage(suiteName: suite), UserDefaultsStorage(suiteName: suite))
+                Self.scene(key, "inbox", in: first, session: "one").wrappedValue = "drafts"
+                #expect(
+                    Self.scene(key, "inbox", in: second, session: "two").wrappedValue == "drafts",
+                    "a new session starts from the last saved")
+                Self.scene(key, "inbox", in: first, session: "one").wrappedValue = "sent"
+                #expect(
+                    Self.scene(key, "inbox", in: second, session: "two").wrappedValue == "drafts",
+                    "the other tab's write moved this one")
+                #expect(Self.scene(key, "inbox", in: first, session: "one").wrappedValue == "sent")
+                // A tab opened afterwards starts from the last saved.
+                let third = UserDefaultsStorage(suiteName: suite)
+                #expect(Self.scene(key, "inbox", in: third, session: "three").wrappedValue == "sent")
+            }
+        }
+    }
+
+    /// A property-list optional's `nil` removed the key, the session's copy
+    /// with it, so the session read the last saved from another.
+    @Test("A session's nil is kept as its own, there and after a relaunch")
+    func sceneSessionKeepsNil() {
+        Self.withSuite { suite, key in
+            Self.withSceneSuite(suite) {
+                let (first, second) = (UserDefaultsStorage(suiteName: suite), UserDefaultsStorage(suiteName: suite))
+                Self.scene(key, String?.none, in: first, session: "one").wrappedValue = "chosen"
+                Self.scene(key, String?.none, in: first, session: "one").wrappedValue = nil
+                Self.scene(key, String?.none, in: second, session: "two").wrappedValue = "elsewhere"
+                #expect(
+                    Self.scene(key, String?.none, in: first, session: "one").wrappedValue == nil,
+                    "the session's nil was taken for the other session's value")
+                let relaunched = UserDefaultsStorage(suiteName: suite)
+                #expect(Self.scene(key, String?.none, in: relaunched, session: "one").wrappedValue == nil)
+                #expect(Self.scene(key, String?.none, in: relaunched, session: "two").wrappedValue == "elsewhere")
+            }
+        }
+    }
     #endif
 
     #if os(Windows)

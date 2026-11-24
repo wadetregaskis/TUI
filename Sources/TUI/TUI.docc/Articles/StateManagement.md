@@ -315,6 +315,10 @@ takes the session's copy, else the last saved, else the default. So:
 - Run it in two windows at once and each keeps its own place.
 - Open a new window, as someone who opens one for each task does, and it starts from wherever they last left it.
 
+A window that hasn't changed a value yet keeps the one it started from while another window running the app changes
+its own: the built-in stores read a scene's values from disk once and keep what they found. An optional's `nil` is
+kept as a value too, so a window that cleared its selection keeps it cleared.
+
 The session is what the terminal names in the environment it started the shell with: a tmux pane, a screen window,
 `TERM_SESSION_ID` (Apple Terminal), `ITERM_SESSION_ID` (iTerm2), `KITTY_WINDOW_ID`, `WEZTERM_PANE`, `WT_SESSION`
 (Windows Terminal) and the like. Where there's none, as over a plain ssh connection or in Ghostty, which names no window,

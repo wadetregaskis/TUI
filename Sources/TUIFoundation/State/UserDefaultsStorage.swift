@@ -42,6 +42,10 @@ import TUICore
             /// for it, the value they decoded to, and its ``StoredKey``.
             var entries: [String: StoredEntry] = [:]
 
+            /// The keys a scene-state store has read from `UserDefaults`, or
+            /// written, and serves from here from then on (``sceneStateEntry``).
+            var adopted: Set<String> = []
+
             /// Whether the keys this store sees are watched for changes made
             /// around it (`UserDefaultsWatcher`): not a scene-state store's,
             /// whose values are TUI's own, in a suite nothing else writes.
@@ -162,6 +166,7 @@ import TUICore
         /// Write failures, which are genuinely lossy, DO report (see
         /// ``store(_:forKey:)``).
         public func entry<T: Codable>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) {
+            if sceneStateSuite == nil { return sceneStateEntry(forKey: key) }
             // A property-list value is read as itself, every time: there are no
             // bytes to keep a decoding of.
             if let stored = PropertyListValue.read(T.self, from: defaults, forKey: key) {
@@ -186,7 +191,8 @@ import TUICore
         /// unlike the read path: a value that cannot be written is data the
         /// user expected to keep, so it is worth surfacing.
         public func store<T: Codable>(_ value: T, forKey key: String) -> StoredKey {
-            if PropertyListValue.write(value, to: defaults, forKey: key) {
+            // A scene-state store keeps every value as its JSON (``sceneStateEntry``).
+            if sceneStateSuite != nil, PropertyListValue.write(value, to: defaults, forKey: key) {
                 let (stored, new) = state.withLock { state in
                     let entry = state.entry(key)
                     entry.clear()
@@ -210,6 +216,7 @@ import TUICore
             let (stored, new) = state.withLock { state in
                 let entry = state.entry(key)
                 entry.set(crossing.value, encoded: data)
+                if !state.watchesKeys { state.adopted.insert(key) }
                 return (entry.key, state.takeUnwatched())
             }
             watch(new)
@@ -226,8 +233,46 @@ import TUICore
             return state.withLock { state in
                 guard let entry = state.entries[key] else { return Self.sharedKeys.withLock { $0[key] } }
                 entry.clear()
+                if !state.watchesKeys { state.adopted.insert(key) }
                 return entry.key
             }
+        }
+
+        /// A scene-state store's read: of the value's JSON, which keeps an
+        /// optional's `nil` as `null`, and from `UserDefaults` once.
+        ///
+        /// Once, because `@SceneStorage` reads a session's own copy, else the
+        /// last saved from any session: read afresh each time, a session that
+        /// had written nothing followed another window's writes as they were
+        /// made, where it should start from the last saved and keep its place
+        /// (bug hunt FENV-6, 2026-11-20). A value once read, or written, is
+        /// served from here, as the JSON store, which loads its file once,
+        /// serves it. Each process keeps the value it found, so two windows
+        /// running the app at once keep a value each.
+        ///
+        /// As JSON, because a property-list optional's `nil` removes the key
+        /// (`PropertyListValue`), so a session's `nil` left no copy of its own
+        /// and its read fell through to the last saved from another session;
+        /// `null` reads back as a present `nil`, as in the JSON store. Nothing
+        /// but `@SceneStorage` reads this suite.
+        ///
+        /// The ledger of sessions is read afresh every time: two processes
+        /// that kept their own would each write the other's records away.
+        private func sceneStateEntry<T: Codable>(forKey key: String) -> (value: T?, key: StoredKey) {
+            let rereads = key == SceneStorageSessions.ledgerKey
+            if !rereads, let kept = state.withLock({ state -> (StoredValue<T?>, StoredKey)? in
+                guard state.adopted.contains(key), let entry = state.entries[key] else { return nil }
+                return (StoredValue(entry.value()), entry.key)
+            }) {
+                return (kept.0.value, kept.1)
+            }
+            let data = defaults.data(forKey: key)
+            let (read, stored) = state.withLock { state -> (StoredValue<T?>, StoredKey) in
+                let entry = state.entry(key)
+                if rereads || state.adopted.insert(key).inserted { entry.reload(data) }
+                return (StoredValue(entry.value()), entry.key)
+            }
+            return (read.value, stored)
         }
 
         /// Watches `keys`, new to this store, for changes made around it — by

@@ -120,6 +120,32 @@ struct SceneStorageSessionTests {
         #expect(ledger?["A"]?.lastWritten == renewed.timeIntervalSince1970)
     }
 
+    private enum Pane: String {
+        case list, detail
+    }
+
+    /// An optional raw-representable keeps its `nil` as an optional raw
+    /// value's, JSON's `null`, which its read took for nothing stored: the
+    /// session's `nil` fell through to the last saved (bug hunt FENV-6).
+    @Test("An optional raw-representable's nil is kept as the session's own")
+    func optionalRawNilIsKept() {
+        let store = MockStorageBackend()
+        func pane(_ session: String) -> SceneStorage<Pane?> {
+            let property = SceneStorage<Pane?>("pane")
+            var environment = EnvironmentValues()
+            environment.sceneStorageSession = session
+            environment.defaultAppStorage = DefaultAppStorage(store)
+            property.resolveEnvironment(environment)
+            return property
+        }
+        pane("A").wrappedValue = .detail
+        pane("A").wrappedValue = nil
+        pane("B").wrappedValue = .list
+        #expect(pane("A").wrappedValue == nil, "A's nil was taken for B's value")
+        #expect(pane("B").wrappedValue == .list)
+        #expect(pane("C").wrappedValue == .list, "a new session starts from the last saved")
+    }
+
     @Test("A property that names no store uses the one defaultAppStorage(_:) set, as @AppStorage does")
     func honoursTheEnvironmentsStore() {
         let store = MockStorageBackend()
