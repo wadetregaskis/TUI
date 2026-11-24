@@ -2356,6 +2356,22 @@ sections of 5) +21.0% [+19.8, +22.1], `small-sections-pinned` +23.1% [+21.0, +24
 `outline`, `megalist` and `kitchensink` indistinguishable. Past the owner's few-percent line, so optimised before
 landing (the next paragraph).
 
+*Taken back.* The profile (`analyze_timeprofile.py`, `small-sections`, release, 12 s under Stress's autopilot, main
+thread) put half the step's time in the section's loop drawn as a lazy stack that walks every row:
+`_VStackCore.sizeAsImplicitColumn` 49.2% inclusive, `naturalRowSlots` 64.6% (62.2% on f773c5d24, where
+`_SectionCore.stackedSize` measured the rows in one walk). What kept the state was the rows' identity, under the
+loop's step below the column's, not the lazy stack: the column takes the loop apart when it would draw every row —
+at or below the threshold, the sections' loops together within it too (`ImplicitColumnRowLayout.takesFewApart`,
+consulted by `ForEach.staysWhole(in:)`) — and resolves its rows as its own children through the section's content
+part, `sectionPartChildren`, which pins them to the loop's step, so they keep the identities the lazy stack gives
+them. After: `sizeAsImplicitColumn` gone from the profile, `naturalRowSlots` 54.2%. A/B (same method, load 7.0, base
+f773c5d24): `small-sections` −18.5% [−19.4, −18.1], `small-sections-pinned` −15.8% [−16.8, −15.1],
+`many-small-sections` −20.8% [−26.5, −18.9], `many-small-sections-pinned` −19.3% [−23.9, −17.9], all faster than
+before the step; `section-loop`, `one-section`, `outline`, `megalist`, `kitchensink` indistinguishable.
+`frame_parity.py` draws alike on the four pages, `section-loop`, `one-section` and `outline` (120 frames each, 120×40);
+the plant and the drawing twins pass. A section written out (H-71b) takes the same path, its small loop no longer a
+lazy stack either.
+
 *Found, not fixed* (on 4cfb53cd4 too, so not the step's): 260 sections of a row cut to 250 under a title at spacing 1,
 pinned or not, draws the sections' headers and none of their rows until the next change — the frame on which the
 sections' loops together pass the threshold again after one past it. Marked a known issue in `SectionLoopCrossingTests`

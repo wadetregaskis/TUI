@@ -365,8 +365,18 @@ package struct ImplicitColumnRowLayout: Equatable, Sendable {
     /// a lazy stack whose sections' loops together pass the threshold
     /// (``PinnedSectionScope/windowsSectionLoops``). Unset, a loop at or below
     /// the threshold is still drawn as a lazy stack under the column, which
-    /// draws every row of so few.
+    /// draws every row of so few — unless ``takesFewApart``.
     var windowsAnyCount = false
+    /// Whether a loop the column would draw as a lazy stack that draws every
+    /// row — at or below the threshold, ``windowsAnyCount`` unset — is taken
+    /// apart into the column's own rows instead (`ForEach.staysWhole(in:)`):
+    /// a section's column of its parts (`_SectionCore.pulledPartsColumn`).
+    /// The rows have the same identities either way, resolved under the
+    /// loop's step, so nothing changes as the loop crosses the threshold;
+    /// taken apart, the column lays them out in its own walk, as the section
+    /// laid out whole did, where the lazy stack's exact walk over a few rows
+    /// cost a small stack of sections 13 to 23% a frame (H71-SECTIONS).
+    var takesFewApart = false
 }
 
 /// EnvironmentKey for ``EnvironmentValues/implicitColumnRowLayout``.
@@ -574,9 +584,17 @@ extension View {
     /// Not where the lazy stack it is drawn as resolves its rows, at the same
     /// identity (`implicitColumnDrawnAt`): its rows are
     /// that stack's.
+    ///
+    /// Nor, in a section's column of its parts, where the lazy stack would
+    /// draw every row (`ImplicitColumnRowLayout.takesFewApart`): the column
+    /// takes the rows as its own, under the same identities.
     public func staysWhole(in context: RenderContext) -> Bool {
-        context.scrollContentOriginDepth != 0 && Self.isAmongColumnOfSeveral(context.identity)
-            && context.environment.implicitColumnDrawnAt != context.identity
+        guard context.scrollContentOriginDepth != 0, Self.isAmongColumnOfSeveral(context.identity),
+            context.environment.implicitColumnDrawnAt != context.identity
+        else { return false }
+        guard let layout = context.environment.implicitColumnRowLayout, layout.takesFewApart, !layout.windowsAnyCount
+        else { return true }
+        return data(in: context).count > _VStackCore<EmptyView>.anchoredWindowThreshold
     }
 }
 

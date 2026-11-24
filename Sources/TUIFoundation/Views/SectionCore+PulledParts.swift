@@ -43,18 +43,22 @@ extension _SectionCore {
     /// row its state (the owner's O-14 (c), 2026-11-21, for a section written
     /// out; H71-SECTIONS (b), 2026-11-24, for sections a loop makes, as in
     /// SwiftUI). The column does not price its rows by a sample for it: at
-    /// or below the threshold its loop's lazy stack draws every row
-    /// (`windowsAnyCount` unset), so the section measures and places as
-    /// laid out whole, and a stack of many small sections keeps its exact
-    /// placement (the SCROLL-FIT design's S7).
+    /// or below the threshold, where the stack's sections' loops together
+    /// are within it too (`windowsAnyCount` unset), the column takes the
+    /// loop's rows as its own (``ImplicitColumnRowLayout/takesFewApart``) and
+    /// lays them out in its one walk, so the section measures, places and
+    /// costs as laid out whole, and a stack of many small sections keeps its
+    /// exact placement (the SCROLL-FIT design's S7).
     ///
     /// The column lays the parts out as the stack would, at its alignment and
-    /// spacing, and its loop, one of the column's views, is drawn as a lazy
-    /// stack at the same alignment and spacing (``ImplicitColumnRowLayout``),
-    /// a pulled child of the column past the threshold. So only the rows on
-    /// screen are built. The parts' identities are the column's, not those
-    /// the section laid out whole gave them, so their state starts afresh
-    /// once, when an app first runs on this.
+    /// spacing. Otherwise its loop, one of the column's views, is drawn as a
+    /// lazy stack at the same alignment and spacing
+    /// (``ImplicitColumnRowLayout``), a pulled child of the column. So only
+    /// the rows on screen are built. Either way the rows are resolved under
+    /// the loop's step below the column's, and keep those identities from
+    /// one to the other; they are not those the section laid out whole gave
+    /// them, so their state starts afresh once, when an app first runs on
+    /// this.
     ///
     /// `windowsLoop`: the stack's sections' loops together pass its
     /// threshold (``PinnedSectionScope/windowsSectionLoops``), so this one's
@@ -74,7 +78,7 @@ extension _SectionCore {
             content: Section(header: header, content: content, footer: footer, isExpanded: isExpanded))
         var columnContext = context.withChildIdentity(type: _ImplicitColumnOfSeveral.self)
         columnContext.environment.implicitColumnRowLayout = ImplicitColumnRowLayout(
-            alignment: alignment, spacing: layout.spacing, windowsAnyCount: windowsLoop)
+            alignment: alignment, spacing: layout.spacing, windowsAnyCount: windowsLoop, takesFewApart: true)
         return (column, columnContext)
     }
 
