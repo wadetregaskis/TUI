@@ -116,6 +116,12 @@ it had all the width it wanted, so a paragraph came out one line tall, fit every
 and cut: `ViewThatFits(in: .vertical) { Text(paragraph); ScrollView { Text(paragraph) } }` never chose the scroll
 view. As in SwiftUI, only the axes `in:` names are measured unbounded now, and the other keeps the real space.
 
+**`HStack { Spacer() }` is no rows tall.** A row was never shorter than one row, so the SwiftUI idiom for a
+full-width column, `VStack(spacing: 0) { Text("a"); HStack { Spacer() }; Text("b") }`, put a blank line between the
+texts. As in SwiftUI, a row of nothing but spacers now has no height, and it still fills its column's width;
+`LazyHStack` too. Any other row keeps its row: a row of colours, shapes or frames, which have no height of their own,
+is still one row tall.
+
 **On Windows, closing the app's window or tab quits it in order.** Closing conhost's window or Windows Terminal's
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.

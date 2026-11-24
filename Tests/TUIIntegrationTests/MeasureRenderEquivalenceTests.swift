@@ -148,6 +148,11 @@ struct MeasureRenderEquivalenceTests {
         check(LazyVStack { Text("hi"); Spacer() }, "LazyVStack(spacer)")
         check(HStack { Text("a"); Text("bb") }, "HStack(plain)")
         check(HStack { Text("a"); Spacer(); Text("z") }, "HStack(spacer)")
+        // A row of spacers alone is no rows tall and as wide as it is given,
+        // and a column holding one is as wide as it (hunt 11-20, LAYOUT-8).
+        check(HStack { Spacer() }, "HStack(spacerOnly)")
+        check(LazyHStack { Spacer() }, "LazyHStack(spacerOnly)")
+        check(VStack(spacing: 0) { Text("a"); HStack { Spacer() }; Text("b") }, "VStack(spacerOnlyRow)")
         check(HStack(spacing: 2) { Text("A"); EmptyView(); Text("B") }, "HStack(emptyChild)")
         check(VStack(spacing: 2) { Text("A"); EmptyView(); Text("B") }, "VStack(emptyChild)")
         // A zero-width child that is not zero-LINE: `Text("")` renders one line

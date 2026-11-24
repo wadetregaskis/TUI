@@ -377,6 +377,11 @@ extension FrameBuffer {
     /// `EmptyView()` in an `else` branch will NOT reserve the row, because
     /// `EmptyView()` is also empty.
     ///
+    /// Its declared width still counts: the result is at least as wide as
+    /// `other` says it is. That is a row of no rows — `HStack { Spacer() }`,
+    /// which fills its column's width and has no height (SwiftUI's measured
+    /// answer) — and a column holding it is as wide as it is.
+    ///
     /// Height is what decides that, not paint: a buffer of N *empty* lines has
     /// a height of N and takes N rows, though it paints nothing in them. That
     /// is the shape a floated view leaves behind (`OffsetView`,
@@ -418,6 +423,14 @@ extension FrameBuffer {
                 opacityRegions.append(
                     contentsOf: other.shiftedOpacityRegions(byX: 0, y: priorHeight))
             }
+            // …and the width it declares. A row of no rows (`HStack { Spacer() }`,
+            // which SwiftUI makes no rows tall) is still as wide as it was
+            // given, and the column it stands in is that wide, as
+            // `appendHorizontally` keeps the rows of a buffer of no columns.
+            // The lines keep their widths, so a wider declared width makes
+            // the uniform hint false where there are any (none is "unknown").
+            linesAreUniformWidth = linesAreUniformWidth && (storage.isEmpty || other.width <= width)
+            width = max(width, other.width)
             return
         }
 
@@ -445,7 +458,10 @@ extension FrameBuffer {
         // reads.
         let resultUniform: Bool
         if selfWasEmpty {
-            resultUniform = other.linesAreUniformWidth
+            // Unless this buffer of no lines declared a wider width (a
+            // buffer of no lines appended to it), which `other`'s lines do
+            // not reach.
+            resultUniform = other.linesAreUniformWidth && other.width >= width
         } else {
             resultUniform =
                 linesAreUniformWidth && other.linesAreUniformWidth

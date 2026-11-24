@@ -1730,8 +1730,9 @@ messages cite that path), and what cites it.
   both axes.
 - **What TUI does with it:** `ViewThatFits` grounds the axis it does not test in the real extent
   (`Sources/TUIFoundation/Views/ViewThatFits.swift`). `Spacer` takes its `minLength` along the axis its stack
-  publishes and none across it (`Sources/TUIFoundation/Views/Spacer.swift`). A row of only spacers is still one row
-  tall: making it none as SwiftUI does (H-64b) also emptied rows of colours, so that change waits on a narrower rule. A `ZStack` sizes itself by
+  publishes and none across it (`Sources/TUIFoundation/Views/Spacer.swift`). A row of only spacers (or of spacers and
+  views that draw nothing) is no rows tall and still declares its width; any other row, a row of colours included,
+  keeps one row (`Sources/TUIFoundation/Views/HStack.swift`, H-64b). A `ZStack` sizes itself by
   its spacers only when it has nothing else (`Sources/TUIFoundation/Views/ZStack.swift`). TUI's column still gives
   an empty row no gap, as it gives an `EmptyView` none; its default vertical spacing is 0, so that shows only under
   an explicit `spacing`.

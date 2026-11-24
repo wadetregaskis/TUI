@@ -151,6 +151,13 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         /// difference matters.
         let tallestConsumedChild: Int
 
+        /// The fewest rows the row is drawn in: one, unless it has none at all.
+        /// ``height`` is 0 only for a row of spacers alone
+        /// (``drawsNoRows(spacersAlone:_:)``), whose floor `resolvedLayout`
+        /// starts at 0; every other row's starts at 1, and a guide run is never
+        /// shorter than its floor.
+        var minimumRows: Int { height == 0 ? 0 : 1 }
+
         func fillsHeight(ofChildAt index: Int) -> Bool {
             index >= UInt64.bitWidth || childFillsHeightMask & (1 << UInt64(index)) != 0
         }
@@ -167,6 +174,37 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
     @MainActor func gaps(between children: [ChildView], context: RenderContext) -> StackGaps {
         guard resolvesSpacingPerPair, Content._statesSpacingPreference else { return StackGaps(uniform: spacing) }
         return StackGaps(uniform: spacing, stating: children, along: .horizontal, context: context)
+    }
+
+    /// Whether a row of `children` has no rows at all: every one a spacer, or
+    /// a view that draws nothing (``drawsNothing(_:)``), and at least one a
+    /// spacer. `spacersAlone` is the first half, which the caller has already
+    /// answered off the sizes it measured.
+    ///
+    /// SwiftUI's `HStack { Spacer() }` is no rows tall and as wide as it is
+    /// given (measured: `Tools/SwiftUIProbes/ViewThatFits widths and spacers
+    /// across the axis (H-62, H-64)/fits.out`), so its idiom for a full-width
+    /// column, `VStack(spacing: 0) { Text("a"); HStack { Spacer() };
+    /// Text("b") }`, puts "b" right under "a". Floored at one row, TUI put a
+    /// blank line between them (hunt 11-20, LAYOUT-8).
+    ///
+    /// Any other child keeps the one-row floor, a flexible one above all: a
+    /// `Color`, a shape or a frame with no fixed height reports no height of
+    /// its own, and `HStack { Color.red }` with nothing above it giving height
+    /// is still one row, which a mask of colours relies on
+    /// (`MaskModifierTests.nestedAlphas`). The probe does not measure that
+    /// case; one row is TUI's answer, as it always was. Nor does a row with no
+    /// spacer change: `HStack { EmptyView() }` keeps the answer it had.
+    @MainActor static func drawsNoRows(spacersAlone: Bool, _ children: [ChildView]) -> Bool {
+        spacersAlone && children.contains { $0.isSpacer }
+    }
+
+    /// Whether a child measured `size` draws nothing: no cells either way, and
+    /// asking for none (`EmptyView`, or an `if` whose condition is false, which
+    /// a stack still holds as a child). Not a `Color`: it has no height of its
+    /// own either, but it takes what it is given.
+    static func drawsNothing(_ size: ViewSize) -> Bool {
+        size.width == 0 && size.height == 0 && !size.isWidthFlexible && !size.isHeightFlexible
     }
 
     /// The single sizing routine shared by `sizeThatFits` and `renderToBuffer`,
@@ -208,6 +246,9 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         // (a minimum length and a fill flag) is the same at any budget.
         var childrenAreNatural = true
         var tallestConsumedChild = 0
+        // Whether every child is a spacer or draws nothing at all, so the row
+        // has no rows (``drawsNoRows(spacersAlone:_:)``).
+        var spacersAlone = true
         for (index, child) in children.enumerated() {
             if child.isSpacer {
                 ideal[index] = child.spacerLength(along: .horizontal)
@@ -219,6 +260,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
                 // measure and render can no longer disagree.
                 let size = child.measure(proposal: .unspecified, context: context)
                 if !size.isNaturalSize { childrenAreNatural = false }
+                if !Self.drawsNothing(size) { spacersAlone = false }
                 tallestConsumedChild = max(tallestConsumedChild, size.height)
                 // A child that came back filling the limit has no ideal width
                 // of its own to add to the row's (`wholeContentWidth(of:limit:)`).
@@ -282,7 +324,12 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         // the one already measured — reuse it. Only a child squeezed *narrower*
         // than its ideal can grow taller, so only those are re-measured. This
         // halves the per-child measures in the common (un-squeezed) case.
-        var height = 1
+        //
+        // From 1, a row of one line however short its children, except a row
+        // of spacers alone, which has none (``drawsNoRows(spacersAlone:_:)``).
+        // A child that draws nothing is never squeezed (its ideal width is 0),
+        // so its height stays the 0 it measured.
+        var height = Self.drawsNoRows(spacersAlone: spacersAlone, children) ? 0 : 1
         var finalHeight = [Int](repeating: 0, count: count)
         for (index, child) in children.enumerated() where !child.isSpacer {
             if widths[index] >= ideal[index] {
@@ -549,7 +596,14 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         // so a child squeezed narrow enough to wrap truncates (with an
         // ellipsis) instead of silently spilling an extra row that the
         // parent — which measured the stack as shorter — then clips.
-        let rowHeight = max(1, min(layout.height, context.availableHeight))
+        //
+        // No rows at all for a row of spacers alone
+        // (``drawsNoRows(spacersAlone:_:)``): the spacers below are then blocks
+        // of no rows that still declare their widths, and `appendHorizontally`
+        // adds those up, so the row comes out a buffer of no lines as wide as
+        // it measured. A column keeps that width (`appendVertically`), and a
+        // row stands it a column wide.
+        let rowHeight = max(layout.minimumRows, min(layout.height, context.availableHeight))
         // Empty children (e.g. `if false { ChildView() }`, which
         // ViewBuilder lowers to `Optional<ChildView>.none`, and
         // `EmptyView()`) are filtered from layout entirely: they
@@ -770,7 +824,12 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         // Each entry: (buffer, spacingBefore, isSpacer). The walk stops at the
         // first child that would overflow.
         var collected: [(FrameBuffer, Int, ChildView?)] = []
-        var maxHeight = 1
+        // No rows for a row of spacers alone, as `resolvedLayout` decides it
+        // for the eager row (``drawsNoRows(spacersAlone:_:)``): wherever there
+        // is a spacer every other column was rendered above, so its buffer
+        // answers whether it draws anything (no cells either way).
+        let drawsSomething = eagerBuffers.contains { $0.map { $0.width > 0 || $0.height > 0 } ?? false }
+        var maxHeight = spacerCount > 0 && !drawsSomething ? 0 : 1
         var currentWidth = 0
         var spacerIndex = 0
 
@@ -924,7 +983,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         guard anyAlignmentGuide(in: children) else { return nil }
         let gaps = gaps(between: children, context: context)
         let layout = resolvedLayout(children, gaps: gaps, availableWidth: dimensions.width, context: context)
-        let rowHeight = max(1, min(layout.height, dimensions.height))
+        let rowHeight = max(layout.minimumRows, min(layout.height, dimensions.height))
         var frames: [(x: Int, y: Int, width: Int, height: Int)] = []
         frames.reserveCapacity(children.count)
         var x = 0

@@ -47,7 +47,7 @@ extension _HStackCore: ScrollPlacing {}
         guard !children.isEmpty else { return nil }
         let gaps = gaps(between: children, context: context)
         let layout = resolvedLayout(children, gaps: gaps, availableWidth: context.availableWidth, context: context)
-        let rowHeight = max(1, layout.height)
+        let rowHeight = max(layout.minimumRows, layout.height)
         // An explicit guide's run names a top for each child the row places
         // (spacers have none), as the eager row's placement reads it.
         var guided: [Int: Int] = [:]
