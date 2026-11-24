@@ -364,6 +364,7 @@ enum Sessions {
             BigTextHighlightedSession.descriptor,
             BigTextFindSession.descriptor,
             BigTextFindQuerySession.descriptor,
+            BigTextRichFindSession.descriptor,
             BigTextReplaceAllSession.descriptor,
         ]
         // Last: every perf case, `case:<id>`, its script looped.

@@ -26,9 +26,9 @@ struct BigTextFindPage: View {
 
 /// What the find bar's counter says on `screen`: the current match and how
 /// many there are, read from the row that holds Done (`3/40000`), or `nil`
-/// where no such row is drawn.
+/// where no such row is drawn. `bigtext-rich-find` reads it too.
 @MainActor
-private func findCounter(on screen: [String]) -> (current: Int, total: Int)? {
+func findCounter(on screen: [String]) -> (current: Int, total: Int)? {
     for row in screen where row.contains("Done") {
         for word in row.split(separator: " ") {
             let parts = word.split(separator: "/")

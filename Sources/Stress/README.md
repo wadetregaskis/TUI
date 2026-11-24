@@ -424,6 +424,7 @@ memos at the end of every frame.
 | `bigtext-highlighted` | `bigtext` highlighted: the same document and keys, its editor given the JSON styler (`TUIJSONStyler`, a fixture target that is not a product) through `.textEditorHighlighter`, the seam tuitree's tree-sitter adapter will use. What a key and a scroll cost the editor when what it draws is highlighted: the session told of the edit, the tokens of the lines in its window moved with it, the window's runs joined to the text's and drawn; `bigtext`'s A/B against it is the price of highlighting a large document. The styler runs on its own task, off the main actor and outside the timed region, and only between steps: each step lets it answer what the last one changed and waits for it (`HighlightGate`), so a frame draws what a highlighter as quick as tree-sitter's queries would have published by then, and the twin and the bench draw the same. Its check is `bigtext`'s, and that the highlighter answered every step |
 | `bigtext-find` | `bigtext` with the editor's find bar up from the first frame (`.findNavigator(isPresented:)`) on `ok`, which every record has, so the 40,000 lines hold a match each: the query typed into the bar, a click into the text, and `bigtext`'s keys from there. What a key costs while every match is counted by the bar and tinted on screen: the matches brought up to date with the edit, the bar's count, the rows' tints. Its check is `bigtext`'s, and that the bar counts a match for every record |
 | `bigtext-find-query` | the same document and bar, the bar's own field typed into: `size` spelled a character at a time, Return pressed three times to step through the matches, and the query taken back with Backspace, over and over. Each key changes what matches, so each is a search of the document; what the step costs beyond that one search is what it prices. Its check is that the text is untouched, and that the bar counts a match for every record while the whole query is typed and none while there is none |
+| `bigtext-rich-find` | `bigtext-rich` with the find bar up on `ok`, as `bigtext-find` has it: the query typed into the bar, a click into the text, and `bigtext-rich`'s keys from there, in an editor bound to an `AttributedString`. What a key costs an attributed editor while every match is counted and tinted, where the bar reads the text as the value's characters rather than a `String` the app holds. Its check is `bigtext-rich`'s, and that the bar counts a match for every record |
 | `bigtext-replace-all` | Replace All over the first 2,500 of `bigtext`'s records (200 KB at the default scale, `--scale 16` is `bigtext`'s size), every one a match of `ok` whatever its case: each step retypes the replacement in the other case (`OK`, `ok`, …) and presses Replace All from the keyboard, so every step replaces every match, as one undo step. What one Replace All costs against the matches it replaces, in time and in peak memory (`rss-peak`). Its check is that every record's key is in the case the last Replace All wrote |
 
 Adding one: a `StressSession` — a page built once over a model the session
@@ -444,9 +445,10 @@ before each step (`look(at:)`), so both instances of a verified run aim at the
 same cell.
 Choices come from a `SessionRandom` seeded from the config, so the twin makes
 the same ones. Steps' frames are a sixtieth of a second apart unless the
-descriptor says otherwise (`stepNanos`): the `bigtext-find` sessions pace theirs
-ten a second, as a person types, since what is drawn from the clock depends on
-it (a focused control's breath moves every 50 ms).
+descriptor says otherwise (`stepNanos`): the find bar's sessions (`bigtext-find`,
+`bigtext-find-query`, `bigtext-rich-find`) pace theirs ten a second, as a person
+types, since what is drawn from the clock depends on it (a focused control's
+breath moves every 50 ms).
 
 A session whose cost is what builds up over a long run says
 `checkpointEvery`, and the runner prints the process's resident size and
