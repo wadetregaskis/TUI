@@ -118,7 +118,7 @@ scale live · `a` toggle autopilot.
 | `tables-vstack` | **multiple** `Table`s in a `VStack` (no scroll) — N per-table column-width computations, VStack measure/layout over many table children |
 | `deep` | structural `ViewIdentity` chain depth, measure recursion, context propagation |
 | `fanout` | non-lazy container measure over **all** children (O(n) layout) |
-| `modifiers` | `ModifiedView`/environment-modifier layering, per-node measure overhead. **A matrix of two**: `chains` (the default, the layout chain) and `color-effects` (all seven colour effects on coloured rows, their amounts moving with the tick, so every frame pays each effect's SGR rewrite of every line) |
+| `modifiers` | `ModifiedView`/environment-modifier layering, per-node measure overhead. **A matrix of three**: `chains` (the default, the layout chain), `color-effects` (all seven colour effects on coloured rows, their amounts moving with the tick, so every frame pays each effect's SGR rewrite of every line) and `offsets` (every row offset with the tick under a badge overlay, so the root composites a floating layer per row every frame) |
 | `preferences` | preference side-effect declaration, value-memo defeat, per-row re-measure |
 | `customlayout` | `Layout` protocol call pattern, repeated subview measurement, `AnyLayout` erasure |
 | `textwall` | text width measurement, word wrapping, glyph throughput |

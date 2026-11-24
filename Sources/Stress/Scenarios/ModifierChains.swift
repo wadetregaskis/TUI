@@ -14,7 +14,7 @@ import TUI
 /// buffers through, so this stresses the `ModifiedView` / environment-modifier
 /// layering and per-node measure overhead independent of data size.
 ///
-/// A matrix of two chains. `chains`, the first and so the default, is the
+/// A matrix of three chains. `chains`, the first and so the default, is the
 /// layout chain above, unchanged from before the scenario had variants: a
 /// bench of `modifiers` with no `--variant` measures what it always did.
 /// `color-effects` is the colour-effect chain — brightness, contrast,
@@ -23,7 +23,8 @@ import TUI
 /// other scenario applies a colour effect, so without it a benchmark could not
 /// see what that rewrite costs, nor what the module split's crossing into it
 /// costs (the colour effects leave the base module, and each effect hands the
-/// rewrite a closure per line).
+/// rewrite a closure per line). `offsets` floats every row as a layer the
+/// root composites, which nothing else draws a screen of.
 enum ModifierChainsScenario {
     @MainActor
     static let descriptor = Scenario(
@@ -58,6 +59,9 @@ enum ModifierChainsScenario {
         },
         variant("color-effects", "all seven colour effects on coloured rows, their amounts moving with the tick") { config in
             AnyView(ColorEffectChainsView(config: config))
+        },
+        variant("offsets", "every row offset with the tick under a badge overlay: a floating layer per row") { config in
+            AnyView(OffsetChainsView(config: config))
         },
     ]
 }
@@ -119,6 +123,32 @@ private struct ColorEffectChainsView: View {
                             .modifier(InvertOnOddRows(invert: !index.isMultiple(of: 2)))
                     }
                 }
+            }
+        }
+    }
+}
+
+/// Rows drawn somewhere other than where they stand. `.offset` floats a row's
+/// drawing off as a layer, which the root composites onto the screen, and a
+/// badge `.overlay` is composited over each row before it floats. The offsets
+/// move with the tick, so no memo serves a row and every frame composites a
+/// layer per row: what a screen of displaced views costs (hunt 11-20, H-84).
+private struct OffsetChainsView: View {
+    let config: StressConfig
+    @Environment(StressClock.self) private var clock
+
+    var body: some View {
+        let count = config.sized(40)
+        let tick = clock.tick
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(Lf("stress.scenario.modifiers.heading", count)).bold()
+            Divider()
+            ForEach(0..<count, id: \.self) { index in
+                let h = mix(config.seed, index)
+                Text(Synth.slug(h))
+                    .foregroundStyle(Color.rgb(UInt8(truncatingIfNeeded: h), 160, 90))
+                    .overlay(alignment: .trailing) { Text(verbatim: "●").foregroundStyle(.red) }
+                    .offset(x: (index &+ tick) % 4, y: (index &+ tick) % 2)
             }
         }
     }
