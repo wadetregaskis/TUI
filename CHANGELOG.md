@@ -37,6 +37,11 @@ any cell of a `Text`); where it draws nothing (`Color.clear`, `.opacity(0)`, a f
 through, as SwiftUI does. An app that lays a decoration over controls and wants them clickable through it adds
 `.allowsHitTesting(false)` to the decoration. Hover, the wheel and the keyboard still reach the control.
 
+**`.defaultFocus(_:_:priority: .userInitiated)` applies once.** It took the focus back on every frame, so no
+other control on the page could keep it. It is now applied once, as `.automatic` is and as SwiftUI applies both on
+macOS 15 (measured), and Tab, a click or a `@FocusState` write keeps the focus where it put it (the owner's ruling
+O-13 (a)). Of two defaults that want the initial focus, the `.userInitiated` one still wins.
+
 **Setting a `@FocusState` to `nil` leaves nothing focused.** The next frame gave the focus straight back to the
 first control, often the field that had just resigned it, so `.onSubmit { isEditing = false }` began editing again.
 As in SwiftUI, nothing is now focused until Tab, an arrow or a click puts the focus somewhere (the owner's ruling

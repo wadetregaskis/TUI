@@ -875,13 +875,12 @@ A `.defaultFocus` declaration is replayed for the same reason running the other
 way. Everything above would go MISSING on a served frame; this one would come
 BACK. The declaration carries the render generation as a focus binding does, and
 the end-of-pass prune drops one the pass did not renew — taking with it the flag
-that records an `.automatic` default as already applied. So a frame that served
+that records a default as already applied. So a frame that served
 the subtree silently un-applied the default, and the next frame the subtree
 actually rendered on applied it a second time, taking the focus off wherever the
 user had moved it. Renewing the declaration on a hit is what makes "apply once"
 mean once whether the subtree rendered or was served; the priority is replayed
-with it, so a `.userInitiated` default goes on overriding the user's moves every
-frame, as it is documented to. It declines under a backdrop's or a probe's
+with it, which decides which of two defaults takes the initial focus. It declines under a backdrop's or a probe's
 manager — where the declaration is discarded with the throwaway manager, so a
 subtree stored while it drew against one would be served against the LIVE
 manager having never told it the default at all.

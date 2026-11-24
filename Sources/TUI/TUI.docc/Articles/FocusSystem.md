@@ -67,10 +67,12 @@ struct SignIn: View {
 }
 ```
 
-With the default priority, `.automatic`, the default focus is applied once, when
-the scope appears, and from then on the user moves the focus. Pass
-`priority: .userInitiated` to have it applied again on every render, even after
-the user moved the focus elsewhere.
+The default focus is applied once, when the scope appears, and from then on the
+user moves the focus. `priority: .userInitiated` does the same, as it did in
+SwiftUI on macOS 15, measured (`Tools/SwiftUIProbes/Default focus priority
+(H-70)/`): no later render takes the focus back from where Tab, a click or a
+`@FocusState` write put it. Of two defaults that want the initial focus, a
+`.userInitiated` one wins (the owner's ruling O-13 (a), 2026-11-21).
 
 Writing to `field` moves focus; reading it tells you where focus is. A `Bool`
 `@FocusState` binds a single control the same way, via `focused($isEditing)`.

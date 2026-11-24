@@ -414,8 +414,8 @@ public final class FocusManager {
     /// Hands out ``DefaultFocusDeclaration/sequence``.
     private var defaultFocusSequence: UInt64 = 0
 
-    /// Store ids whose `.automatic` default focus has been applied —
-    /// `.defaultFocus` sets the INITIAL focus once, then leaves the user in
+    /// Store ids whose default focus has been applied — `.defaultFocus` sets
+    /// the INITIAL focus once, at either priority, then leaves the user in
     /// control. Dropped when a store's scope leaves the tree, so a dismissed and
     /// re-presented scope re-applies its default.
     private var appliedDefaultFocus: Set<String> = []
@@ -847,9 +847,8 @@ extension FocusManager {
     /// most likely — becomes a durable pending intent (``pendingFocusID``)
     /// rather than a silent no-op: the next render routes to it (default,
     /// path-derived IDs), renders it so it registers, and focuses it. An ID
-    /// that matches nothing expires after a couple of passes — unless a
-    /// standing declaration keeps re-stating it, which a `.userInitiated`
-    /// ``View/defaultFocus(_:_:priority:)`` does on every pass.
+    /// that matches nothing expires after a couple of passes — unless the
+    /// caller keeps re-stating it.
     ///
     /// - Parameter id: The focus ID of the element to focus.
     public func focus(id: String) {
@@ -870,14 +869,14 @@ extension FocusManager {
         // Announced only when the intent is NEW — not on every miss. The
         // repaint a miss asks for is the routing render that will register the
         // target, and re-stating an intent the manager already holds asks for
-        // nothing the last one did not. That matters because a `.userInitiated`
-        // default re-states its intent every pass: bound to a control that can
-        // never take the focus (`.disabled(true)`, or `.hidden()`, which
-        // registers the `@FocusState` binding but no focusable behind it), an
-        // unconditional notify here is a repaint request per frame forever —
-        // the same runaway `endRenderPass`'s own guarded notify exists to
-        // avoid, and it also re-zeroes the focus pulse's clock so the ring
-        // never breathes.
+        // nothing the last one did not. That matters for a caller that
+        // re-states its intent every pass (a `.userInitiated` default did,
+        // until O-13): bound to a control that can never take the focus
+        // (`.disabled(true)`, or `.hidden()`, which registers the `@FocusState`
+        // binding but no focusable behind it), an unconditional notify here is
+        // a repaint request per frame forever — the same runaway
+        // `endRenderPass`'s own guarded notify exists to avoid, and it also
+        // re-zeroes the focus pulse's clock so the ring never breathes.
         if previousPending != id { onFocusChange?() }
     }
 
@@ -927,17 +926,21 @@ extension FocusManager {
     /// first-focusable choice and let the default land directly (no transient
     /// focus on the wrong control).
     private var hasUnresolvedDefaultFocus: Bool {
-        focusDefaultValues.contains { store, declaration in
-            declaration.priority == .userInitiated || !appliedDefaultFocus.contains(store)
-        }
+        focusDefaultValues.keys.contains { !appliedDefaultFocus.contains($0) }
     }
 
     /// Applies each store's declared default focus — the initial focus, after
-    /// which the user is in control (`.automatic`), or on every pass
-    /// (`.userInitiated`). Called from ``endRenderPass()`` once every `.focused`
-    /// binding for the frame has registered.
+    /// which the user is in control, at either priority. Called from
+    /// ``endRenderPass()`` once every `.focused` binding for the frame has
+    /// registered.
     ///
-    /// An `.automatic` default is a ONE-SHOT: it is consumed on the first pass
+    /// `.userInitiated` re-applied its default on every pass until the owner's
+    /// ruling O-13 (a), 2026-11-21: SwiftUI, measured on macOS 15, re-applies
+    /// neither priority on a render, and Tab, a click or a `@FocusState` write
+    /// keeps the focus where it put it (`Tools/SwiftUIProbes/Default focus
+    /// priority (H-70)/`).
+    ///
+    /// A default is a ONE-SHOT: it is consumed on the first pass
     /// it is declared, whether or not its target has a bound control yet. If the
     /// target is present it takes focus; if it is not (a conditionally-shown or
     /// not-yet-windowed control) the shot is spent and the automatic
@@ -955,16 +958,14 @@ extension FocusManager {
     /// priority means), then declaration order — so of two ordinary defaults the
     /// one earlier in the tree wins, every run.
     ///
-    /// Every automatic declaration still SPENDS its shot on the pass it is seen,
+    /// Every declaration still SPENDS its shot on the pass it is seen,
     /// including the ones that did not win: that is the one-shot rule above, and
     /// leaving a shot unspent would let it fire later and yank focus off the
     /// user's own choice.
     private func resolvePendingDefaultFocus() {
         var applied = false
         for (store, declaration) in focusDefaultValues.sorted(by: DefaultFocusDeclaration.precedes) {
-            let isAutomatic = declaration.priority == .automatic
-            if isAutomatic && appliedDefaultFocus.contains(store) { continue }
-            if isAutomatic { appliedDefaultFocus.insert(store) }
+            guard appliedDefaultFocus.insert(store).inserted else { continue }
             guard !applied, let binding = focusBindings[store]?[declaration.value] else { continue }
             // `focus(id:)` fires the old element's onFocusLost and the new one's
             // onFocusReceived (and no-ops if it is already focused).

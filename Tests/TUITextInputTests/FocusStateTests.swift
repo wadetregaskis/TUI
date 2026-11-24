@@ -356,8 +356,12 @@ struct FocusStateTests {
             "a re-presented scope's default focus applies again")
     }
 
-    @Test(".userInitiated defaultFocus re-asserts focus every render (finding 7)")
-    func userInitiatedDefaultReAsserts() {
+    /// As SwiftUI does on macOS 15: `.userInitiated` re-applies nothing on a
+    /// render, and Tab or a `@FocusState` write keeps the focus where it put it
+    /// (`Tools/SwiftUIProbes/Default focus priority (H-70)/`; owner ruling
+    /// O-13 (a), 2026-11-21).
+    @Test(".userInitiated defaultFocus applies once, then leaves the user in control")
+    func userInitiatedDefaultAppliesOnce() {
         let tui = TUIContext()
         let manager = FocusManager()
         let bindingBox = Box<FocusState<Field?>.Binding?>(nil)
@@ -367,12 +371,24 @@ struct FocusStateTests {
         render(view, tuiContext: tui, focusManager: manager)
         #expect(bindingBox.value?.wrappedValue == .email)
 
-        // The user moves to .name; .userInitiated drags it back on the next render.
+        // A write moves the focus to .name, and it stays there.
         bindingBox.value?.wrappedValue = .name
         render(view, tuiContext: tui, focusManager: manager)
+        render(view, tuiContext: tui, focusManager: manager)
         #expect(
-            bindingBox.value?.wrappedValue == .email,
-            ".userInitiated re-asserts the default even after the user moved focus")
+            bindingBox.value?.wrappedValue == .name,
+            ".userInitiated does not take the focus back after a write")
+
+        // Tab moves it on to .email and back to .name; each stays.
+        manager.focusNext()
+        render(view, tuiContext: tui, focusManager: manager)
+        #expect(bindingBox.value?.wrappedValue == .email)
+        manager.focusNext()
+        render(view, tuiContext: tui, focusManager: manager)
+        render(view, tuiContext: tui, focusManager: manager)
+        #expect(
+            bindingBox.value?.wrappedValue == .name,
+            ".userInitiated does not take the focus back after Tab")
     }
 
     @Test("defaultFocus lands directly on its target — no transient focus on the wrong control (finding 6)")

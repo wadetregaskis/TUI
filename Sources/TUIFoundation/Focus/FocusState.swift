@@ -301,9 +301,12 @@ extension View {
     /// appears — the control bound to `value` receives the initial focus,
     /// overriding the automatic "first focusable" choice.
     ///
-    /// With the default `.automatic` priority this is applied once and then the
-    /// user controls focus; `.userInitiated` re-applies it every render, even
-    /// after the user has moved focus.
+    /// It is applied once, at either priority, and then the user controls the
+    /// focus: as in SwiftUI, measured on macOS 15, no later render takes it
+    /// back from where Tab, a click or a `@FocusState` write put it (the
+    /// owner's ruling O-13 (a), 2026-11-21; `Tools/SwiftUIProbes/Default focus
+    /// priority (H-70)/`). Of two defaults that want the initial focus, a
+    /// `.userInitiated` one wins.
     nonisolated public func defaultFocus<Value: Hashable>(
         _ binding: FocusState<Value>.Binding, _ value: Value,
         priority: DefaultFocusEvaluationPriority = .automatic
@@ -313,12 +316,19 @@ extension View {
     }
 }
 
-/// How aggressively `.defaultFocus(_:_:priority:)` claims focus. Mirrors
-/// SwiftUI's `DefaultFocusEvaluationPriority`.
+/// When `.defaultFocus(_:_:priority:)` is applied. Mirrors SwiftUI's
+/// `DefaultFocusEvaluationPriority`.
+///
+/// Both set the initial focus once and then leave the user in control, as
+/// both did in SwiftUI on macOS 15, where neither re-applied on a render, and
+/// Tab into the region went to its first control, not to the default
+/// (`Tools/SwiftUIProbes/Default focus priority (H-70)/`; the owner's ruling
+/// O-13 (a), 2026-11-21).
 public enum DefaultFocusEvaluationPriority: Sendable {
     /// Set the initial focus once, then leave the user in control (default).
     case automatic
-    /// Re-assert the focus on every render, overriding the user's moves.
+    /// As `.automatic`, and ahead of an `.automatic` default when both want
+    /// the initial focus.
     case userInitiated
 }
 

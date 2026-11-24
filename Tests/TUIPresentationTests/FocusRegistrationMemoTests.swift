@@ -524,8 +524,8 @@ struct FocusRegistrationMemoTests {
             """)
     }
 
-    @Test("A userInitiated default focus still re-asserts itself on served frames")
-    func userInitiatedDefaultFocusReassertsOnServedFrames() {
+    @Test("A userInitiated default focus is spent on served frames as an automatic one is")
+    func userInitiatedDefaultFocusStaysSpentOnServedFrames() {
         let harness = LoopHarness()
         let page = DefaultFocusPage(title: CardTitle(), priority: .userInitiated)
 
@@ -534,24 +534,17 @@ struct FocusRegistrationMemoTests {
             page.focus == .second,
             "the default focus never landed: \(String(describing: page.focus))")
 
-        // `.userInitiated` is the priority that overrides the user's moves on
-        // every render — so a served frame has to take the focus back, which is
-        // the opposite of what the automatic default must do, and the half a
-        // replay that dropped the priority would get wrong.
-        //
-        // TWICE, because once does not tell the two priorities apart: a replay
-        // that downgraded this declaration to `.automatic` would still take the
-        // focus back the first time (the automatic shot is unspent, the first
-        // render having been `.userInitiated` and never having spent one) and
-        // only then stop.
+        // `.userInitiated` applies once, as SwiftUI's does on macOS 15 (owner
+        // ruling O-13 (a), 2026-11-21): a served frame must not take the focus
+        // back from the user. Twice, as a re-applying default might first
+        // spend a shot and only then stop.
         for round in 1...2 {
             page.focus = .first
             #expect(harness.misses(page) == 0, "round \(round) rendered the card again")
             #expect(
-                page.focus == .second,
+                page.focus == .first,
                 """
-                round \(round) let the move stand, so the declaration the served \
-                frame replayed was not the userInitiated one: \
+                round \(round) took the focus back to the default: \
                 \(String(describing: page.focus))
                 """)
         }

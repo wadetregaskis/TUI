@@ -491,14 +491,15 @@ struct EndOfRenderPassFocusNotificationTests {
         #expect(repaints == 0, "or the loop would re-render forever and never idle")
     }
 
-    /// The same invariant, for the one declaration that re-asserts itself on
-    /// EVERY pass: a `.userInitiated` `.defaultFocus`. When its target cannot
-    /// take the focus — `.disabled(true)`, or `.hidden()`, which registers the
-    /// `@FocusState` binding but no focusable behind it — the re-assertion
-    /// misses every pass, forever. A repaint request on that miss is a repaint
-    /// request per frame: the demand-driven loop runs at the frame cap over a
-    /// byte-identical screen, and the focus pulse's clock is re-zeroed before
-    /// it can advance, so the ring is stuck at its bright end.
+    /// The same invariant, for a `.userInitiated` `.defaultFocus`, which
+    /// re-asserted itself on every pass until the owner's ruling O-13 (a)
+    /// (2026-11-21). When its target cannot take the focus — `.disabled(true)`,
+    /// or `.hidden()`, which registers the `@FocusState` binding but no
+    /// focusable behind it — a re-assertion would miss every pass, forever. A
+    /// repaint request on that miss is a repaint request per frame: the
+    /// demand-driven loop runs at the frame cap over a byte-identical screen,
+    /// and the focus pulse's clock is re-zeroed before it can advance, so the
+    /// ring is stuck at its bright end.
     @Test("A .userInitiated default whose target cannot be focused requests no repaint")
     func userInitiatedDefaultOnUnfocusableTargetIsQuiet() {
         let manager = FocusManager()
