@@ -1739,3 +1739,31 @@ messages cite that path), and what cites it.
 - **Was:** written here.
 - **Cited by:** `Sources/TUIFoundation/Views/ViewThatFits.swift`, `Sources/TUIFoundation/Views/Spacer.swift`,
   `Sources/TUIFoundation/Views/HStack.swift`, `Sources/TUIFoundation/Views/ZStack.swift`.
+
+### Layers over a control (H-68)
+
+- **Asks:** whether a later layer of a `ZStack` stops a click reaching a `Button` under it (`covered.swift`,
+  `covered.out`). A press and a release are posted at the button's centre, under each layer in turn, with a
+  bordered button (AppKit's control inside SwiftUI) and a plain one (SwiftUI's own hit testing); `none` is the
+  control. `PROBE_ONSCREEN=1` puts the window on the screen, with the same answers.
+- **Answers:** a layer that paints absorbs the click, and one that paints nothing lets it through:
+
+  | Layer over the button | Click |
+  |---|---|
+  | `Color.black.opacity(0.4)`, and `Color.black.opacity(0.001)` | blocked |
+  | `Color.black.opacity(0.4).disabled(true)` | blocked |
+  | `Color.black.opacity(0.4).allowsHitTesting(false)` | reaches the button |
+  | `Color.clear`, `Color.black.opacity(0)` | reaches the button |
+  | `Rectangle().fill(.black).opacity(0)`, a `Text` at `.opacity(0)` | reaches the button |
+  | a `Text` with a glyph at the centre, and one with a space there (inside the text's own bounds) | blocked |
+  | a `Text("x")` off the centre, in a 200 × 200 `.frame` (the frame's blank area at the centre) | reaches the button |
+  | a scrim over the half without the centre / over the half with it | reaches / blocked |
+  | no layer, the button itself at `.opacity(0)` | blocked (the button takes no click) |
+
+  Both button styles agree in every case. So a layer is hit where its own content draws with an alpha above zero
+  (a colour, a shape's fill, a text's run including its spaces), and not where it draws nothing (a clear colour,
+  opacity zero, a frame's empty padding); `.disabled` does not make a layer transparent to clicks. The last row says
+  a view at `.opacity(0)` is not hit itself either: a faded-out button is not clicked.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-23.
+- **Was:** written here.
+- **Cited by:** H-68 in the maintainers' working notes (`plan/hunt-1120/HUNT-QUEUE.md`), for owner ruling O-10 (a).
