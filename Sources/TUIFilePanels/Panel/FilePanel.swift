@@ -462,10 +462,16 @@ struct FilePanel: View {
     /// Whether the confirmation button does anything: it chooses, or it opens
     /// the one folder selected, as a macOS panel's Open opens a folder that
     /// cannot be chosen.
+    ///
+    /// Whether ``confirmable(_:)`` chooses anything is asked without the URLs
+    /// it would choose: a link's is resolved where links are
+    /// (`resolvingSymlinksInPath()`, a file-system call for each link
+    /// selected), which is the confirmation's to do, not each body's.
     private var canConfirm: Bool {
         if request.saveContentTypes != nil { return saveDestination != nil }
         let selected = selectedEntries
-        return !confirmable(selected).isEmpty || openableSelection(selected) != nil
+        let choosesAny = selected.contains(where: \.isChoosable) || (request.rule.choosesFolders && selected.isEmpty)
+        return choosesAny || openableSelection(selected) != nil
     }
 
     /// Where a save panel saves now: the folder shown and the name resolved
