@@ -582,22 +582,26 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         // `FocusRegistration.register` bundles three things; skipping it must
         // not skip the other two. `markActive` is state-GC, not focus — without
         // it the row's hover box and any `@State` in a `@ViewBuilder` label are
-        // collected at the end of the frame. And the side-effect record is what
-        // keeps the row out of a value memo: a cached row would serve last
-        // frame's highlight forever, which is the same hole a memoised `ForEach`
-        // row falls into.
-        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        // collected at the end of the frame. And the claim is recorded for a
+        // value memo to make again, with what the row is drawn as — its
+        // ordinal and its highlight — which the menu keeps right for a served
+        // row (`MenuRowSink+ServedRows.swift`); without that, a cached row
+        // would serve last frame's highlight forever.
         context.stateStorage?.markActive(context.identity)
         // A submenu's row publishes the submenu it opens with its ordinal
         // (`_MenuSubmenuRow`); every other row, `nil`.
         let sink = context.environment.menuRowSink
-        sink?.publish(
-            ordinal: menuOrdinal, action: action, isEnabled: !isDisabled,
-            submenu: context.environment.menuSubmenu)
+        let submenu = context.environment.menuSubmenu
+        sink?.publish(ordinal: menuOrdinal, action: action, isEnabled: !isDisabled, submenu: submenu)
         // A menu the keyboard just opened lights its first enabled row as the
         // row draws (`MenuRowSink.highlightsFirstEnabledRow`).
-        return menuOrdinal == context.environment.menuHighlightedOrdinal
+        let isLit =
+            menuOrdinal == context.environment.menuHighlightedOrdinal
             || sink?.takesFirstHighlight(ordinal: menuOrdinal, isEnabled: !isDisabled) == true
+        sink?.recordClaim(
+            ordinal: menuOrdinal, isLit: isLit, action: action, isEnabled: !isDisabled,
+            opensSubmenu: submenu != nil, context: context)
+        return isLit
     }
 
     /// Everything a pass works out before it asks the style for anything.

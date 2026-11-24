@@ -56,14 +56,30 @@ final class MenuRowSink {
         let submenu: MenuSubmenu?
     }
 
+    /// Whether a row may be served from a memo: a pop-up's column, which
+    /// handles a row served as it no longer is (`MenuRowSink+ServedRows.swift`),
+    /// and not a swipe-actions strip, whose rows are drawn every pass.
+    init(servesRows: Bool = false) {
+        self.servesRows = servesRows
+    }
+
+    let servesRows: Bool
     private var claims: [ViewIdentity: Int] = [:]
     private var rows: [Int: Row] = [:]
+
+    /// Each ordinal's row, in ordinal order: who claimed it this pass.
+    private(set) var claimants: [ViewIdentity] = []
+
+    /// The rows served this pass whose stored drawing is not this pass's: a
+    /// different ordinal, or a different highlight (``replayClaim(_:)``).
+    var staleRows: [ViewIdentity] = []
 
     /// This row's ordinal — the same one on every pass of the same frame.
     func claimOrdinal(for identity: ViewIdentity) -> Int {
         if let existing = claims[identity] { return existing }
-        let ordinal = claims.count
+        let ordinal = claimants.count
         claims[identity] = ordinal
+        claimants.append(identity)
         return ordinal
     }
 
@@ -104,7 +120,9 @@ final class MenuRowSink {
     /// the ordinals restart at zero and stay dense frame to frame.
     func beginPass() {
         claims.removeAll(keepingCapacity: true)
+        claimants.removeAll(keepingCapacity: true)
         rows.removeAll(keepingCapacity: true)
+        staleRows.removeAll()
         firstEnabledRow = nil
     }
 
@@ -223,8 +241,10 @@ package final class MenuPopupController {
     /// menu (TUIChrome).
     package init() {}
 
-    /// Collects what the rows report as they render.
-    let sink = MenuRowSink()
+    /// Collects what the rows report as they render. Its rows may be served
+    /// from a memo: ``forgetRowsChangingHighlight(in:)`` and the column's
+    /// second drawing keep what is served what this frame would draw.
+    let sink = MenuRowSink(servesRows: true)
 
     /// The highlighted row, and every gesture that moves it.
     let highlight = MenuHighlight.popUpMenu()
@@ -289,12 +309,19 @@ package final class MenuPopupController {
     /// Takes the ordinals the frame just published, and the first enabled row
     /// as the highlight where it took it.
     func adoptRenderedRows() {
+        drawnClaimants = sink.claimants
+        drawnHighlight = highlightedOrdinal ?? sink.firstEnabledRow
         if highlightsFirstRow {
             highlightsFirstRow = false
             if highlightedOrdinal == nil, let first = sink.firstEnabledRow { highlight.move(to: first) }
         }
         highlight.adopt(selectable: sink.selectableOrdinals)
     }
+
+    /// Who drew each ordinal last frame, and the ordinal drawn highlighted
+    /// (``forgetRowsChangingHighlight(in:)``).
+    var drawnClaimants: [ViewIdentity] = []
+    var drawnHighlight: Int?
 
     /// The row a scrolling menu should keep on screen, named the way the row's
     /// own hit-test region is.

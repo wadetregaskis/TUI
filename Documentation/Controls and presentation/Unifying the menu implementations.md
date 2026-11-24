@@ -83,9 +83,17 @@ to touch `_InlineMenuCore` beyond one argument, the design has drifted.
     non-menu path a measure falls back to registers nothing either.)
   - **`FocusRegistration.register` bundles three things.** Skipping it must not
     skip `stateStorage.markActive` (else the row's hover box and any `@State` in
-    a `@ViewBuilder` label are collected at the end of the frame) nor
-    `recordRenderSideEffect()` (else the row is cacheable, and a cached row
-    freezes the highlight — the `ForEach` memo hole again).
+    a `@ViewBuilder` label are collected at the end of the frame). The row
+    used to declare `recordRenderSideEffect()` as well, so that no memo stored
+    it: a cached row froze the highlight, the `ForEach` memo hole again. Since
+    H-92b (2026-11-24) the claim is a registration a memo makes again
+    (`EffectJournal`), and the menu keeps a served row right instead: it drops
+    the stored drawings of the two rows a moving highlight changes before it
+    draws, and a served row whose claim shows another ordinal or highlight
+    makes the column draw again, its walk put back
+    (`MenuRowSink+ServedRows.swift`). A Down in a menu of 500 rows drew all 500;
+    it now draws two. A row opening a submenu, and every row of a swipe-actions
+    strip, still declines the memo.
   - **A tall menu still has to scroll to its highlight.** The reveal finds a
     control by matching a rendered region's `focusID` against the focused id, and
     a pop-up row now has neither. So the row's region is named from its ordinal

@@ -95,6 +95,11 @@ enum CaseKnownIssues {
         "form-slider": (
             ["built", "served", "bodies", "misses"], "PERFCASE-F7: a slider's step asks every toggle's memo, served"
         ),
+        "menu-walk": (
+            ["key:down misses"],
+            "CHROME-10 (H-92b): an open menu's column is eager, so each Down asks every row's memo, served: three "
+                + "measure misses a row and about sixty for the column, 3n + 60, which at 40 rows is no doubling"
+        ),
         "resize-storm": (
             ["listed", "built", "bodies", "misses"],
             "PERFCASE-F8: a TabView measures its hidden tab (an eager grid of n rows) as it opens and again at every "
