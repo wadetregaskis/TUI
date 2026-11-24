@@ -37,6 +37,12 @@ any cell of a `Text`); where it draws nothing (`Color.clear`, `.opacity(0)`, a f
 through, as SwiftUI does. An app that lays a decoration over controls and wants them clickable through it adds
 `.allowsHitTesting(false)` to the decoration. Hover, the wheel and the keyboard still reach the control.
 
+**A `.keyboardShortcut` on an arrow key fires.** An arrow the focused control did not use moved the focus to
+the next control, so `Button("Next") { … }.keyboardShortcut(.rightArrow)` never ran, bare or with any modifier. An
+app's shortcut on an arrow now takes the key before the focus system moves the focus with it, whatever modifiers it
+names, Shift included (the owner's ruling O-11 (a)). The focused control and an `onMoveCommand` around it still have
+the arrow first, and an arrow no shortcut is on moves the focus as before.
+
 **A soft hyphen in a `Text` is one cell wide.** U+00AD was measured as taking no cell, but terminals give it one
 (Ghostty and Apple's Terminal, measured), so a line holding one drew a cell wider than it was laid out, and pushed a
 border or the next column a cell to the right. It is now measured at the one cell it takes.

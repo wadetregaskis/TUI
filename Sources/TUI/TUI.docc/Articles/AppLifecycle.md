@@ -178,11 +178,11 @@ An open pop-up menu holds the keyboard without holding the focus, so its type se
 
 ### Layer 3: Focus System (conditional)
 
-Skipped when text input has focus (Layer 0 already ran). Otherwise, `focusManager.dispatchKeyEvent()` first delegates to the focused element's `handleKeyEvent()`, then offers what it declined to SwiftUI's move, exit and delete commands on the views containing it (innermost first — Layer 0 does the same for a text input), then handles ⇥/⇧⇥ for focus cycling, then arrow keys as section navigation fallback.
+Skipped when text input has focus (Layer 0 already ran). Otherwise, `focusManager.dispatchKeyEvent()` first delegates to the focused element's `handleKeyEvent()`, then offers what it declined to SwiftUI's move, exit and delete commands on the views containing it (innermost first — Layer 0 does the same for a text input), then handles ⇥/⇧⇥ for focus cycling, then arrow keys as section navigation fallback — unless an app `.keyboardShortcut` is on the arrow, which Layer 3.5 then fires.
 
 ### Layer 3.5: Semantic Shortcut Actions
 
-If the focused control let the key fall through, an app's `.keyboardShortcut` fires: Return the default button and Escape the cancel button — à la SwiftUI's `.keyboardShortcut(.defaultAction)` / `.keyboardShortcut(.cancelAction)` — and any other key equivalent on its key. A chord Layer 0 did not offer a focused text control, because it is an editing command that gives way to an app shortcut registered on it, arrives here too.
+If the focused control let the key fall through, an app's `.keyboardShortcut` fires: Return the default button and Escape the cancel button — à la SwiftUI's `.keyboardShortcut(.defaultAction)` / `.keyboardShortcut(.cancelAction)` — and any other key equivalent on its key. A chord Layer 0 did not offer a focused text control, because it is an editing command that gives way to an app shortcut registered on it, arrives here too. So does an arrow, bare or with any modifier, Shift included, that the focused control let go and an app shortcut is registered on: the focus system gives it up rather than move the focus with it (the owner's ruling O-11 (a), 2026-11-21).
 
 ### Layer 4: Default Bindings
 

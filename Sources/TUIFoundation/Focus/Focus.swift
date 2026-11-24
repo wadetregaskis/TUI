@@ -1088,14 +1088,26 @@ extension FocusManager {
     /// moving the focus — a TUI affordance macOS does not have, which would
     /// otherwise leave `onMoveCommand` nothing to hear.
     ///
+    /// An arrow the focused control and `commands` left goes to the app's
+    /// keyboard shortcut on it, when `appShortcutClaims` says there is one,
+    /// rather than to moving the focus: this then answers `false`, and the
+    /// caller's shortcut layer fires it. Bare or with any modifier, Shift
+    /// included (the owner's ruling O-11 (a), 2026-11-21). SwiftUI has no
+    /// arrow focus fallback for a shortcut to lose the key to, so a
+    /// `.keyboardShortcut(.rightArrow)` must not lose it here either.
+    ///
     /// - Parameters:
     ///   - event: The key event to dispatch.
     ///   - commands: Offered the key when the focused element declines it;
     ///     answers whether it took it.
+    ///   - appShortcutClaims: Whether an app's keyboard shortcut is
+    ///     registered on an arrow the focus would otherwise move with.
     /// - Returns: True if the event was handled.
     @discardableResult
     @MainActor
-    package func dispatchKeyEvent(_ event: KeyEvent, commands: ((KeyEvent) -> Bool)?) -> Bool {
+    package func dispatchKeyEvent(
+        _ event: KeyEvent, commands: ((KeyEvent) -> Bool)?, appShortcutClaims: ((KeyEvent) -> Bool)? = nil
+    ) -> Bool {
         // Dispatch to focused element first — let it handle keys like Up/Down/Left/Right.
         // If element consumes the event, stop here.
         if let focused = currentFocused {
@@ -1153,6 +1165,15 @@ extension FocusManager {
                 focusNext()
             }
             return true
+        }
+
+        // An arrow the app bound a shortcut to is the shortcut's, ahead of the
+        // focus moves below (O-11 (a)): declined here, the caller fires it.
+        switch event.key {
+        case .up, .down, .left, .right:
+            if let appShortcutClaims, appShortcutClaims(event) { return false }
+        default:
+            break
         }
 
         // Left and Right move between COLUMNS where the active section is one — see

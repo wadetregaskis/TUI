@@ -64,7 +64,10 @@ import TUIView
 ///   app registered. Reached only when the focused control let the key fall
 ///   through (`2a106663`, 2026-07-09) — or when layer 0 skipped a focused text
 ///   control because the chord is an editing command that gives way to an app
-///   shortcut on it (``KeyboardShortcutRegistry/hasAppShortcut(for:)``).
+///   shortcut on it (``KeyboardShortcutRegistry/hasAppShortcut(for:)``). An
+///   arrow the focused control let go reaches it before the focus system can
+///   move the focus with it, when the app bound a shortcut to that arrow, bare
+///   or with any modifier (the owner's ruling O-11 (a), 2026-11-21).
 ///
 /// A ⌘ chord, which only the kitty keyboard protocol delivers, takes none of
 /// this: it reaches the focus path's `onKeyPress` handlers and the app's
@@ -484,10 +487,14 @@ extension InputHandler {
         // Skipped when text-input has focus since it was already dispatched
         // above — and when the modal-claimed ESC pre-route already offered
         // this very event and was declined.
-        if !focusManager.hasTextInputFocus, !focusDeclinedEscape {
-            if focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) {
-                return true
-            }
+        // An arrow the focused control left goes to an app's shortcut on it
+        // before the focus moves with it (O-11 (a)): declined here, Layer 3.5
+        // fires it.
+        if !focusManager.hasTextInputFocus, !focusDeclinedEscape,
+            focusManager.dispatchKeyEvent(
+                event, commands: focusedViewCommands, appShortcutClaims: appShortcutClaims)
+        {
+            return true
         }
 
         // Layer 3.5: semantic shortcut actions — the default button
@@ -669,7 +676,10 @@ extension InputHandler {
         if let session = dragAndDropSession, !session.isKeyboardCarry, session.handleDragNavigator(event) {
             return true
         }
-        guard !textInputGivesWay(event), focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) else {
+        guard !textInputGivesWay(event),
+            focusManager.dispatchKeyEvent(
+                event, commands: focusedViewCommands, appShortcutClaims: appShortcutClaims)
+        else {
             return false
         }
         // Typing or selecting in a field is the newest thing the user did; a
@@ -718,7 +728,19 @@ extension InputHandler {
         guard let input = focusManager.currentFocused as? any TextInputFocusHandler,
             input.givesWayToKeyboardShortcut(event)
         else { return false }
-        return keyboardShortcuts.hasAppShortcut(
+        return appShortcutClaims(event)
+    }
+
+    /// Whether an app's keyboard shortcut is registered on `event` where the
+    /// focus is: the pane, page and modal section Layer 3.5 fires it for.
+    ///
+    /// Asked by a focused text input's Emacs chords (``textInputGivesWay(_:)``)
+    /// and by the focus system before it moves the focus with an arrow the
+    /// focused control left: an app's shortcut on an arrow, bare or with any
+    /// modifier, Shift included, takes it instead (the owner's ruling O-11 (a),
+    /// 2026-11-21).
+    private func appShortcutClaims(_ event: KeyEvent) -> Bool {
+        keyboardShortcuts.hasAppShortcut(
             for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
             modalSection: focusManager.activeModalSectionID)
     }

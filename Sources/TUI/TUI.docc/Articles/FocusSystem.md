@@ -597,8 +597,8 @@ The focus system handles a key in Layer 3 of the key event pipeline (see <doc:Ap
 2. Layer 0: text input, when `focusManager.hasTextInputFocus` — mutually exclusive with Layer 3
 3. Layer 1 (status bar) gets first chance at everything else. A presented alert or modal publishes its own `⎋ dismiss` item here, which is what stops a page's `⎋ back` from firing underneath it
 4. Layer 2: `KeyEventDispatcher` dispatches `.onKeyEvent` handlers (deepest view first); then an open pop-up menu's type select is asked (Layer 2.5), the menu holding the keyboard without the focus
-5. Layer 3: `FocusManager` delegates to the focused view's `handleKeyEvent(_:)`, then handles ⇥/⇧⇥ and arrow key fallback
-6. Layer 3.5: semantic shortcut actions — `.defaultAction` (Return) and `.cancelAction` (Escape) — so a default button fires only once the focused control has let the key through
+5. Layer 3: `FocusManager` delegates to the focused view's `handleKeyEvent(_:)`, then handles ⇥/⇧⇥ and arrow key fallback; an arrow an app `.keyboardShortcut` is on, bare or with any modifier, goes on to Layer 3.5 instead (the owner's ruling O-11 (a), 2026-11-21)
+6. Layer 3.5: the app's `.keyboardShortcut`s, `.defaultAction` (Return) and `.cancelAction` (Escape) among them — so a default button fires only once the focused control has let the key through
 7. Layer 4 (default bindings) handles quit, theme cycling, etc.
 
 ## See Also
