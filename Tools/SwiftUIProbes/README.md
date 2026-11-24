@@ -413,9 +413,19 @@ messages cite that path), and what cites it.
   `speed(_:)` is not scaled by it (the semantic audit's item 4). `p11.swift` prints the value every 0.05 s
   for the orders `p10` left open: an autoreversing repeat's wait holds where each pass starts, a delay after a
   repeat comes once, a delay after a speed repeats unscaled, and a repeat of a repeat is erratic.
+  `p12.swift` (hunt H-66) hosts phase animators whose content does not animate, and times each new phase: SwiftUI
+  does not pace such a step by its animation's duration. `PhaseAnimator([0, 1, 2]) { Text("P\($0)") } animation:
+  { _ in .linear(duration: 0.5) }` steps once, to P1, and then never again (no closure is called in the next
+  4 s); so does the same at `.easeInOut(duration: 0.5)`, in a fixed frame, and a `Color` whose width changes with
+  animations disabled. With a spring (`.default`, `.spring(duration: 0.5)`) the same `Text` steps every 0.8 s,
+  and the `Color` every 0.5 s; with `.monospacedDigit()` the `Text` steps every 0.5 s at linear 0.5 s; p9's
+  opacity content every 0.5 s with any of the four. A one-phase animator (`[0]`) calls its content closure at
+  appearance and its animation closure never: it rests, drawing nothing more.
 - **Ran:** against the macOS 26.2 SDK, on the development Mac, 2026-10-03; `p9` and `p10` on 2026-10-14 (macOS 15.8,
   Xcode's Swift 6.2.4, three runs alike); `p11` on 2026-10-18 (macOS 15.8, Xcode's Swift 6.2.4; a frame's
-  timing moves a value in the second decimal from run to run, so compare its shape, not with `diff`). `p1`, `p2`, `p3` and `p8` kept no output; their results are in wave
+  timing moves a value in the second decimal from run to run, so compare its shape, not with `diff`); `p12` on
+  2026-11-23 (macOS 15.8.3, Xcode's Swift 6.2.4, two runs alike in shape, a gap moving by 0.1 s; compare its
+  shape, not with `diff`). `p1`, `p2`, `p3` and `p8` kept no output; their results are in wave
   12's decisions. `p9.out` prints the timing-dependent cases classified (start, end or between), so a rerun
   compares with `diff`.
 - **Was:** `w12/probe/`.
