@@ -70,11 +70,16 @@ final class EditorLayout {
     convenience init(text: String) {
         Self.buildReporter?()
         let breaks = Self.lineBreaks(in: text)
+        self.init(text: text, lines: Self.lines(of: text, startingAt: breaks.starts), breaks: breaks)
+    }
+
+    /// `text`'s lines, each its bytes from one of `starts` — where
+    /// ``lineBreaks(in:)`` found each line starts — to the break after it.
+    static func lines(of text: String, startingAt starts: [Int]) -> [TextCharacters] {
         // Bridged text read as UTF-8 once, so the offsets below are O(1).
         var source = text
         source.makeContiguousUTF8()
         let utf8 = source.utf8
-        let starts = breaks.starts
         var lines: [TextCharacters] = []
         lines.reserveCapacity(starts.count)
         var lower = utf8.startIndex
@@ -93,7 +98,7 @@ final class EditorLayout {
             lines.append(TextCharacters(source[lower..<upper]))
             if index + 1 < starts.count { lower = utf8.index(utf8.startIndex, offsetBy: starts[index + 1]) }
         }
-        self.init(text: text, lines: lines, breaks: breaks)
+        return lines
     }
 
     /// The layout of `text`, whose lines the caller already has — the editor's
