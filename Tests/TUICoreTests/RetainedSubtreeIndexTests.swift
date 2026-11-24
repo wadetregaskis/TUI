@@ -66,6 +66,22 @@ struct RetainedSubtreeIndexTests {
         #expect(RetainedSubtreeIndex(roots: []).isEmpty)
     }
 
+    /// Past eight roots a hash hit is confirmed against the roots of that
+    /// hash, not by a scan of them all: an open menu serves one root a row.
+    @Test("Many roots, past the scan, agree with the naive walk")
+    func manyRootsAgreeWithTheWalk() {
+        let forest = Self.forest()
+        for stride in [1, 2, 3] {
+            let roots = forest.enumerated().filter { $0.offset.isMultiple(of: stride) }.map(\.element)
+            #expect(roots.count > 8)
+            var index = RetainedSubtreeIndex(roots: roots)
+            for identity in forest {
+                let expected = roots.contains { $0.isAncestor(of: identity) }
+                #expect(index.retains(identity) == expected, "every \(stride): \(identity.path)")
+            }
+        }
+    }
+
     /// A tiny deterministic generator, so the forests are the same each run.
     private struct SplitMix {
         var state: UInt64

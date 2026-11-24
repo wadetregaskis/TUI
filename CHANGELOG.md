@@ -26,9 +26,11 @@ highlighting, marks and find bar's matches of the lines it did not touch. An `At
 text that mixes kinds of line break, are still written whole.
 
 **An arrow key in an open menu of many items costs a third of what it did.** Each Down or Up in a pop-up `Menu` or
+
+**An arrow key in an open menu of many items costs a fifth of what it did.** Each Down or Up in a pop-up `Menu` or
 `.contextMenu` drew every item again: in a menu of 500 items about 25 ms a key. Items written with `ForEach` are now
 kept from frame to frame like a `List`'s rows, and a key draws again only the two items the highlight moves between:
-about 8 ms. Opening the menu costs what it did.
+about 5 ms. Opening the menu costs what it did.
 
 **A closed menu `Picker` of many options costs about half what it did a frame.** It resolved its options and drew
 every option's label several times over each frame it was drawn, open or not: a picker of 500 options took about

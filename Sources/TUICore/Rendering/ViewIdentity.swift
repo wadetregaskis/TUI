@@ -678,6 +678,15 @@ package struct RetainedSubtreeIndex {
     /// The roots' structural hashes (``PrehashedVerdicts``: asked once per
     /// node climbed through).
     private let hashes: PrehashedVerdicts
+    /// The roots by structural hash, where there are more than
+    /// ``scannedRoots``: what a hash hit is confirmed against. A scan of every
+    /// root on every hit made the prune O(entries × roots), and an open menu
+    /// of 500 rows serves 500 roots a frame — 27% of its frame was this scan
+    /// (H-92b).
+    private let rootsByHash: [Int: [ViewIdentity]]
+
+    /// How many roots a hash hit is confirmed against by a scan of them all.
+    private static let scannedRoots = 8
     private let shallowest: Int
     private let anyRootIsRaw: Bool
     /// The verdict for every ancestor node already climbed through, by its
@@ -706,6 +715,7 @@ package struct RetainedSubtreeIndex {
         var hashes = PrehashedVerdicts(minimumCount: roots.count)
         for root in roots { hashes.set(true, for: root.structuralHash) }
         self.hashes = hashes
+        rootsByHash = roots.count > Self.scannedRoots ? Dictionary(grouping: roots, by: \.structuralHash) : [:]
         self.shallowest = roots.map(\.depth).min() ?? .max
         self.anyRootIsRaw = roots.contains(where: \.isRawRooted)
         verdicts = PrehashedVerdicts(minimumCount: roots.isEmpty ? 0 : expectedChecks)
@@ -738,7 +748,8 @@ package struct RetainedSubtreeIndex {
             }
             climbed.append(hash)
             if hashes[hash] != nil,
-                roots.contains(where: { $0.depth == candidate.depth && $0 == candidate })
+                (roots.count > Self.scannedRoots ? rootsByHash[hash] ?? [] : roots)
+                    .contains(where: { $0.depth == candidate.depth && $0 == candidate })
             {
                 verdict = true
                 break
