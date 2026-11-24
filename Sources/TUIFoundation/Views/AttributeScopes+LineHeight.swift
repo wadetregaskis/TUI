@@ -17,10 +17,15 @@ import Foundation
 /// rule `Text` and `TextEditor` share, so both draw a value alike.
 ///
 /// A terminal row is a whole line of text, so a line height is drawn crudely
-/// (the owner's ruling A-ATTRED-3, 2026-11-17): `.multiple(factor:)` takes
-/// `factor` rows, rounded half away from zero, at least one and at most
-/// ``maximum``; the rows past the first are blank, below the line's text. So
-/// 1.5 and 2 put a blank row after each line, 2.5 and 3 two; 1.2 or 1.4 none.
+/// (the owner's rulings A-ATTRED-3, 2026-11-17, and LH-LOOSE, 2026-11-23):
+/// `.multiple(factor:)` takes `factor` rows, rounded with a half down, at least
+/// one and at most ``maximum``; the rows past the first are blank, below the
+/// line's text. So 1.6 and 2 put a blank row after each line, 2.6 and 3 two;
+/// 1.2 or 1.5 none. Half down, because on a Mac `.multiple(factor: 1.5)` read
+/// as `.loose` (macOS 26, CI run 113): most likely Core Text's `.loose` is that
+/// very value, which `TextParagraphLineHeightTests.presetsAgainstMultiples`
+/// prints. One row for 1.5 agrees with the presets' one row whichever it is,
+/// on every platform.
 /// Every other value takes one row: the presets (`normal`, `tight`, `loose`,
 /// `variable`) and `leading(increase:)` and `exact(points:)`, whose points have
 /// no fixed rows in a terminal (a row is as tall as the terminal's font makes
@@ -32,21 +37,23 @@ package enum ParagraphLineRows {
     package static let maximum = 8
 
     /// The rows a line takes at a line height of `factor` times its own:
-    /// `factor` rounded half away from zero, within `1...maximum`. Not a
-    /// number takes one.
+    /// `factor` rounded with a half down (1.5 one, 1.55 two), within
+    /// `1...maximum`. Not a number takes one.
     package static func rows(forFactor factor: Double) -> Int {
         guard factor.isFinite else { return factor == .infinity ? maximum : 1 }
-        return Int(min(Double(maximum), max(1, factor.rounded())))
+        // Half down: the least whole number not below `factor - 0.5`. Not
+        // `rounded(.down)`, which would put 1.9 at one row.
+        return Int(min(Double(maximum), max(1, (factor - 0.5).rounded(.up))))
     }
 
     /// The factors Core Text's `LineHeight` is read by on Apple's platforms,
-    /// in twentieths: every multiple of 0.05 from 1.5, the least that takes a
-    /// second row, to 8.45, the most below ``maximum``'s rounding up. Core
+    /// in twentieths: every multiple of 0.05 from 1.55, the least that takes a
+    /// second row, to 8.5, the most that rounds to no more than ``maximum``. Core
     /// Text's type has no accessor for its factor, so TUI compares the value
     /// with `.multiple(factor:)` of each (the owner's ruling A-ATTRED-13 (b));
     /// any other factor draws one row there. Off Apple's platforms TUI's own
     /// type reads every factor.
-    package static let readableTwentieths = 30...169
+    package static let readableTwentieths = 31...170
 }
 
 #if canImport(CoreText)
@@ -72,7 +79,7 @@ package enum ParagraphLineRows {
         /// rows after each of the paragraph's lines, its factor rounded
         /// (`multiple(factor: 2)` one, `multiple(factor: 3)` two), and every
         /// other value draws one row a line. TUI reads the factor by comparing
-        /// the value with each multiple of 0.05 from 1.5 to 8.45; any other
+        /// the value with each multiple of 0.05 from 1.55 to 8.5; any other
         /// factor draws one row. macOS 26, as SwiftUI's.
         @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
         public var lineHeight: AttributeScopes.CoreTextAttributes.LineHeightAttribute {

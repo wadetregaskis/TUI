@@ -51,11 +51,12 @@ struct TextParagraphLineHeightTests {
 
     // MARK: - The rule, on every platform
 
-    @Test("A factor takes its rounded rows, half away from zero, from one to eight")
+    @Test("A factor takes its rounded rows, a half down, from one to eight")
     func rowsForFactor() {
         let expected: [(Double, Int)] = [
-            (1, 1), (1.2, 1), (1.49, 1), (1.5, 2), (2, 2), (2.25, 2), (2.49, 2), (2.5, 3), (3, 3), (7.6, 8),
-            (8.49, 8), (8.5, 8), (1e300, 8), (.infinity, 8), (0, 1), (0.5, 1), (-3, 1), (.nan, 1), (-.infinity, 1),
+            (1, 1), (1.2, 1), (1.49, 1), (1.5, 1), (1.51, 2), (1.55, 2), (2, 2), (2.25, 2), (2.5, 2), (2.51, 3),
+            (3, 3), (7.6, 8), (8.49, 8), (8.5, 8), (8.55, 8), (1e300, 8), (.infinity, 8), (0, 1), (0.5, 1), (-3, 1),
+            (.nan, 1), (-.infinity, 1),
         ]
         for (factor, rows) in expected {
             #expect(ParagraphLineRows.rows(forFactor: factor) == rows, "factor \(factor)")
@@ -68,17 +69,19 @@ struct TextParagraphLineHeightTests {
         // Below the grid every factor takes one row, so nothing is lost there.
         #expect(ParagraphLineRows.rows(forFactor: Double(grid.lowerBound - 1) / 20) == 1)
         #expect(ParagraphLineRows.rows(forFactor: Double(grid.lowerBound) / 20) == 2)
-        // Its top is the last factor below the cap's rounding.
+        // Its top is the last factor whose rows the cap does not cut: one more
+        // would round past it.
         #expect(ParagraphLineRows.rows(forFactor: Double(grid.upperBound) / 20) == ParagraphLineRows.maximum)
-        #expect(Double(grid.upperBound + 1) / 20 == Double(ParagraphLineRows.maximum) + 0.5)
+        #expect(Double(grid.upperBound) / 20 == Double(ParagraphLineRows.maximum) + 0.5)
     }
 
     /// Each value's rows, on the platform's own `LineHeight`: Core Text's,
     /// read by comparison, on a Mac (macOS 26, which CI's macOS 26 lane runs),
     /// and TUI's, read directly, on Linux, Windows and WebAssembly.
     nonisolated private static let drawnRowsByValue: [(String, Int)] = [
-        ("multiple 2", 2), ("multiple 1.5", 2), ("multiple 1.75", 2), ("multiple 1.2", 1), ("multiple 3", 3),
-        ("multiple 2.5", 3), ("multiple 8", 8), ("normal", 1), ("tight", 1), ("loose", 1), ("variable", 1),
+        ("multiple 2", 2), ("multiple 1.5", 1), ("multiple 1.75", 2), ("multiple 1.2", 1), ("multiple 3", 3),
+        ("multiple 2.5", 2), ("multiple 2.6", 3), ("multiple 8", 8), ("normal", 1), ("tight", 1), ("loose", 1),
+        ("variable", 1),
         ("leading 20", 1), ("exact 40", 1),
     ]
 
@@ -86,6 +89,22 @@ struct TextParagraphLineHeightTests {
     func drawnRows(_ named: String, _ rows: Int) throws {
         guard LineHeightProbe.isAvailable else { return }
         #expect(try LineHeightProbe.drawnRows(named) == rows, "\(named)")
+    }
+
+    @Test("Which of Core Text's line-height presets equal a multiple (LH-LOOSE's evidence, printed)")
+    func presetsAgainstMultiples() {
+        #if canImport(CoreText)
+            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                let presets: [(String, AttributedString.LineHeight)] = [
+                    ("normal", .normal), ("tight", .tight), ("loose", .loose), ("variable", .variable),
+                ]
+                for (name, preset) in presets {
+                    let equal = ParagraphLineRows.readableTwentieths
+                        .filter { preset == .multiple(factor: CGFloat($0) / 20) }.map { Double($0) / 20 }
+                    print("LH-LOOSE: .\(name) equals .multiple(factor:) at \(equal)")
+                }
+            }
+        #endif
     }
 
     @Test("A factor off Core Text's grid draws one row on a Mac, and its rows elsewhere")

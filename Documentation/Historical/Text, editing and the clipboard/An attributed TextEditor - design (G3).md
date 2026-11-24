@@ -452,15 +452,17 @@ on the same basis as alignment:
 | Linux, Windows, WebAssembly | TUI's identical type and key (`"TUI.LineHeight"`, bounded by paragraphs), stored in the scope | Directly: TUI's type keeps what it was made as |
 
 **The rounding (`ParagraphLineRows`, shared by `Text` and the editor and tested on every platform):** a line of a
-paragraph at `.multiple(factor:)` takes `factor` rows, rounded half away from zero, at least 1 and at most 8; the rows
-past the first are blank, after the line's text. So 1.5 and 2 put one blank row after each line, 2.5 and 3 two, and
-1.2 or 1.4 none; past 8.5 it is 8, so a factor of a million cannot ask for a million rows a line. Every other value
+paragraph at `.multiple(factor:)` takes `factor` rows, rounded with a half down (owner, 2026-11-23, LH-LOOSE; it was
+half away from zero), at least 1 and at most 8; the rows past the first are blank, after the line's text. So 1.6 and 2
+put one blank row after each line, 2.6 and 3 two, and 1.2 or 1.5 none; past 8.5 it is 8, so a factor of a million cannot ask for a million rows a line. Every other value
 takes one row: the presets (typographic nudges a cell grid cannot show), and `leading(increase:)` and
 `exact(points:)`, because a terminal row's height in points is the terminal's font's, which TUI does not know, and on
-Apple platforms the points cannot be read back anyway, so a point value draws alike everywhere. Half away from zero is
-Swift's `rounded()`, and puts 1.5, the commonest "airy" factor, at two rows: one row would draw it as nothing at all.
-The grid starts at 1.5 because every factor below draws one row whatever it is, and ends at 8.45, the last factor
-below the cap's rounding; it is 140 comparisons at worst, made only for a run that states a line height. **What
+Apple platforms the points cannot be read back anyway, so a point value draws alike everywhere. Half away from zero was
+Swift's `rounded()`, and put 1.5, the commonest "airy" factor, at two rows. On 2026-11-23 CI's first macOS 26
+run drew `.multiple(factor: 1.5)` as one row: read by `==`, it compared equal to a preset, most likely `.loose`, which
+would make the two one value on a Mac. The owner ruled (LH-LOOSE) to round with a half down, so 1.5 draws one row
+(and 1.6 two): one reading for both, and the same on every platform. The grid starts at 1.55 because every factor
+below draws one row whatever it is, and ends at 8.5, the last factor whose rows are not capped; it is 140 comparisons at worst, made only for a run that states a line height. **What
 differs by platform:** a factor off the grid (2.33, 100) draws one row on a Mac and its rows elsewhere; the tests hold
 each side to its own answer. Not measured here (macOS 26 does not run on this machine): whether Core Text's key is
 bounded by paragraphs (the tests that set it on a word assert so, on CI's macOS 26 lane), and whether `==` on Core

@@ -1179,12 +1179,12 @@ screen are styled again.
 
 **A paragraph's `lineHeight` in an `AttributedString` is drawn, in whole rows.** `string.lineHeight =
 .multiple(factor: 2)` compiles and draws as SwiftUI's spelling does, crudely: a terminal row is a whole line, so each
-line of the paragraph takes its factor's rows, rounded half away from zero (1.5 and 2 take two, 2.5 and 3 three, 1.2
+line of the paragraph takes its factor's rows, rounded with a half down (1.6 and 2 take two, 2.6 and 3 three, 1.2 and 1.5
 one, at most eight), the rows past the first blank, and nothing follows a text's last line. The presets (`.normal`,
 `.tight`, `.loose`, `.variable`), `.leading(increase:)` and `.exact(points:)` take one row: a row's height in points is
 the terminal's font's, which TUI does not know. On Apple platforms the attribute and `AttributedString.LineHeight` are
 Core Text's own, macOS 26 only as in SwiftUI, and Core Text gives no way to read a factor back, so TUI compares the
-value with each multiple of 0.05 from 1.5 to 8.45, and any other factor draws one row there; before macOS 26 a program
+value with each multiple of 0.05 from 1.55 to 8.5, and any other factor draws one row there; before macOS 26 a program
 cannot set a line height, as in SwiftUI. On Linux, Windows and WebAssembly TUI declares the same names itself and reads
 every factor. It belongs to a whole paragraph, as `alignment` does. A `Text` puts the blank rows after each line, on top
 of `.lineSpacing(_:)`'s, and measures them; a `TextEditor` puts them after each row of the paragraph, where they belong
