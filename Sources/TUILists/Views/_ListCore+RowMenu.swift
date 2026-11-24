@@ -106,17 +106,25 @@ extension _ListCore {
         let anchor =
             menu.isOpen && menu.openedByKeyboard
             ? cursorRow().map { (x: rowLeft, y: $0.y, height: max(1, $0.height)) } : nil
-        let items: AnyView?
-        if case .selection(let ids) = box.value.target {
-            // Observed as a body is (Table's is, under its draw's scope): the
-            // closure builds the menu here, in the core, so a write to what it
-            // read would otherwise ask for no frame while the menu is open.
-            items = observingBodyClosure(of: Self.self, context: context) { selection.menu(for: ids) }
-        } else {
-            items = nil
-        }
+        // Built by `present` only while the menu is open, as Table's is: a
+        // closed menu's frame neither runs the app's closure nor observes what
+        // it reads (H-92).
         RowContextMenuHost.present(
-            items: items, over: &buffer, stateBox: box,
+            items: selectionMenuItems(selection, target: box.value.target, context: context),
+            over: &buffer, stateBox: box,
             sectionID: "listmenu-\(context.identity.path)", keyboardAnchor: anchor, context: context)
+    }
+
+    /// The selection menu `target` opens to, built now — `nil` for a target
+    /// that is not the selection's.
+    ///
+    /// Observed as a body is (Table's is, under its draw's scope): the closure
+    /// builds the menu here, in the core, so a write to what it read would
+    /// otherwise ask for no frame while the menu is open.
+    private func selectionMenuItems(
+        _ selection: SelectionContextMenu, target: RowMenuTarget, context: RenderContext
+    ) -> AnyView? {
+        guard case .selection(let ids) = target else { return nil }
+        return observingBodyClosure(of: Self.self, context: context) { selection.menu(for: ids) }
     }
 }
