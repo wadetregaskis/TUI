@@ -42,12 +42,18 @@ struct SharedURLImageTests {
     /// What 8 × 8 pixels cost the image cache.
     private let pictureBytes = 8 * 8 * 4
 
+    /// Far past the default 30 s: the server holds each request open until the
+    /// rest arrive, and a full suite's stalls (up to 140 s) outlast 30 s; see
+    /// `URLImageHTTPFailureTests.timeout`. A passing run never reaches it.
+    private static let timeout: TimeInterval = 300
+
     private func asyncImage(_ address: String) -> some View {
         AsyncImage(url: URL(string: address)) { $0.frame(width: 4, height: 2) } placeholder: { Text("waiting") }
+            .imageURLTimeout(Self.timeout)
     }
 
     private func image(_ address: String) -> some View {
-        Image(.url(address)).frame(width: 4, height: 2)
+        Image(.url(address)).frame(width: 4, height: 2).imageURLTimeout(Self.timeout)
     }
 
     /// Draws `view` once, which starts its loads, then lets them land with no
