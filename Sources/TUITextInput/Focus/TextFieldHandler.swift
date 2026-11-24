@@ -1274,7 +1274,7 @@ extension TextFieldHandler: AppUndoableText {
         guard let previous = undoHistory.undo(from: (text.wrappedValue, cursorPosition), mark: mark) else {
             return false
         }
-        restore(previous)
+        restore((previous.text, previous.caret))
         return true
     }
 
@@ -1283,7 +1283,7 @@ extension TextFieldHandler: AppUndoableText {
         guard let next = undoHistory.redo(from: (text.wrappedValue, cursorPosition), mark: mark) else {
             return false
         }
-        restore(next)
+        restore((next.text, next.caret))
         return true
     }
 }

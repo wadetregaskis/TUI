@@ -20,7 +20,8 @@ protocol EditorHighlightFeed: AnyObject, Sendable {
     /// because they left the window.
     func textChanged(to string: String, lineCount: Int, by edit: EditorHighlightEdit?) -> [Int]
     /// The text is now `string`, whose lines start at `lineStarts`, written
-    /// whole (the app's write, an undo, a redo): told as an edit of the text
+    /// whole (the app's write, an attributed editor's undo or redo, a
+    /// mixed-ending text's): told as an edit of the text
     /// before, found from the bytes the two share (B-ATTRED-58). Returns the
     /// lines whose tokens went because they left the window.
     func textWritten(to string: String, lineStarts: [Int]) -> [Int]

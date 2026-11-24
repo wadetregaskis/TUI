@@ -1219,7 +1219,10 @@ the earlier, as a later modifier is. What the design left open was decided as fo
   they were carried to, as H6′'s session belongs to its `syncedLayout`: a text the editor did not edit into the one
   it has (the app's own, or one the editor wrote whole: an undo, a redo, Replace All, a mixed-ending text's join)
   hides them until they are stated again. Carrying an undo would mean diffing two whole texts, and the app restates
-  marks after its next parse anyway.
+  marks after its next parse anyway. (Since H-87, 2026-11-24, it does not: the history keeps each step as its byte
+  edit, so a `String` editor's undo and redo are spliced in as a key's edit is, and carry the marks, the find bar's
+  matches and the highlighting with them. An `AttributedString` editor's, whose steps keep the value whole, and a
+  mixed-ending text's are still written whole. Replace All has been the editor's own edit since H-17.)
 - **B-ATTRED-47. A mark's ends do not take in text put where they stand; a mark an edit takes whole goes.** As
   CodeMirror's marks by default: text typed at a mark's start goes before it, at its end after it, so typing next to
   a parse error's underline does not lengthen it. A range around an edit grows or shrinks with it; an end in text
@@ -1380,7 +1383,7 @@ editor's (38.5%), each a case-insensitive search of the whole document. So the m
   match, the breaks included). A query with a break in it is searched for whole after each edit. A differential test
   (`FindMatchSetTests`) holds carried matches equal to a fresh search over random texts and edits, under every
   option. So a key costs the edited lines' search and a pass over the matches' offsets, not the document; only a new
-  query, new options, or a text the editor did not write (the app's own, an undo, a redo) is searched whole, once.
+  query, new options, or a text the editor did not write (the app's own, an attributed editor's undo or redo) is searched whole, once.
 - **B-ATTRED-56. The store draws the bar's matches by searching them, not as marks.** `EditorMarkStore` keeps the set
   it was last given, with the layout whose text it is of, and finds a drawn line's matches among them by a binary
   search of the line's bytes: no table of every line's marks is built, which for 40,000 matches was itself a cost per
@@ -1452,7 +1455,7 @@ work round, each item pinned by a test of its own (tuitree's `TUI-FEEDBACK.md`, 
   promises nothing (A-ATTRED-10); keeping the `Bool` and adding a second method would have left two answers to
   read.
 - **B-ATTRED-58. A text written whole is told as the edit it is of the last, by whole lines** (item 2). The app's
-  writes, and the editor's own undo and redo (TEXTIN-8: still written whole), came as an update with no change, and
+  writes, and the editor's own undo and redo (TEXTIN-8: written whole until H-87, 2026-11-24; a `String` editor's are now spliced in as a key's edit), came as an update with no change, and
   the session forgot every line's tokens: the pane drew plain until the highlighter answered (a parse from nothing,
   215 ms at 3.3 MB, unless it diffed the texts itself, as tuitree's adapter did), and a tree styler had no edit to
   re-parse from. In tuitree whole writes are the common case: every edit in its tree prints the tree into the pane.

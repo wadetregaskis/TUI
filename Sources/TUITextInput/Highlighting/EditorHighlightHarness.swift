@@ -76,7 +76,8 @@ package final class EditorHighlightHarness<Token: Hashable & Sendable> {
         layout = after
     }
 
-    /// Writes `text` whole, as an app's write or an undo does.
+    /// Writes `text` whole, as an app's write or an attributed editor's undo
+    /// does.
     package func write(_ text: String) {
         let written = EditorLayout(text: text)
         _ = session.textWritten(to: written.text, lineStarts: written.lineStarts)

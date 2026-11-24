@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An undo or a redo in a large `TextEditor` costs what it changes, not the document.** Each wrote the text back
+whole, so the next frame split every line again and wrapped it: about 20 ms a step in 40,000 lines, sixteen times a
+key's cost. An undo or redo of a `String` is now spliced in as the edit it is, as a key's is, keeping the rows,
+highlighting, marks and find bar's matches of the lines it did not touch. An `AttributedString`'s, and one in a
+text that mixes kinds of line break, are still written whole.
+
 **A `NavigationSplitView` that collapses keeps the state of the columns ahead of the one on top.** Narrowed into
 its stack with the sidebar on top, for a moment or under a compact size class, a split forgot its content and detail
 columns' `@State`, so they started over when it widened again. They are kept, not drawn, as a tab view keeps its

@@ -160,11 +160,20 @@ extension TextEditorHandler {
     }
 
     /// Restores `state`, as an undo or a redo does: the text alone, off the
-    /// screen, where no caret is drawn and laying the text out would cost the
-    /// whole document.
-    private func restore(_ state: (text: EditorUndoText, caret: TextEditorPosition)) {
+    /// screen, where no caret is drawn.
+    ///
+    /// A `String`'s text is the step's edit spliced into the layout, as a
+    /// key's edit is (``writeStep(_:leaving:)``), so it costs the lines the
+    /// step changed: written whole, as every undo was until H-87, the next
+    /// frame laid the whole document out and wrapped it again. Written whole
+    /// still where it cannot be spliced — no layout kept of the text, or line
+    /// breaks of more than one kind — and an `AttributedString`'s, whose step
+    /// keeps the value whole.
+    private func restore(_ state: (text: EditorUndoText, caret: TextEditorPosition, edit: EditorUndoEdit)) {
         switch state.text {
-        case .plain(let text): write(text)
+        case .plain(let text):
+            let spliced = if case .plain(let step) = state.edit { writeStep(step, leaving: text) } else { false }
+            if !spliced { write(text) }
         // The value the step kept, its attributes with it.
         case .attributed(let value):
             attributedSource?.stageWhole(value)

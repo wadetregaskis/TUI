@@ -80,6 +80,14 @@ enum EditorUndoEdit: UndoableTextEdit {
         }
     }
 
+    var reversed: Self {
+        switch self {
+        case .plain(let edit): .plain(edit.reversed)
+        case .attributed(let before, let after): .attributed(before: after, after: before)
+        case .none: .none
+        }
+    }
+
     var changesNothing: Bool {
         switch self {
         case .plain(let edit): edit.changesNothing

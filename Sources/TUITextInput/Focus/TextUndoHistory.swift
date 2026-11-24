@@ -241,9 +241,13 @@ struct TextUndoHistory<Text: UndoableText, Caret: Equatable> {
     /// left; one that does not hold the bytes the edit put there was not
     /// produced by this history, and it forgets itself and answers `nil`
     /// rather than splice into it.
+    ///
+    /// - Returns: The state, and the edit that turns `current`'s text into
+    ///   its text: what an editor splices into its layout, as a key's edit
+    ///   (H-87).
     mutating func undo(
         from current: (text: Text, caret: Caret), mark: TextUndoMark? = nil
-    ) -> (text: Text, caret: Caret)? {
+    ) -> (text: Text, caret: Caret, edit: Text.UndoEdit)? {
         guard let previous = states.last, mark.map({ $0 === previous.mark }) ?? true else { return nil }
         let edit: Text.UndoEdit
         let before: Text
@@ -262,15 +266,15 @@ struct TextUndoHistory<Text: UndoableText, Caret: Equatable> {
         typingRun = nil
         states.removeLast()
         redoStates.append(Entry(kept: .edit(edit), caret: current.caret, mark: previous.mark))
-        return (before, previous.caret)
+        return (before, previous.caret, edit.reversed)
     }
 
     /// Takes the newest undone state back for a redo, keeping `current` for
     /// undo again under the same mark; `nil` when there is nothing to redo.
-    /// `mark` as for ``undo(from:mark:)``.
+    /// `mark`, and what it returns, as for ``undo(from:mark:)``.
     mutating func redo(
         from current: (text: Text, caret: Caret), mark: TextUndoMark? = nil
-    ) -> (text: Text, caret: Caret)? {
+    ) -> (text: Text, caret: Caret, edit: Text.UndoEdit)? {
         guard let next = redoStates.last, mark.map({ $0 === next.mark }) ?? true,
             case .edit(let edit) = next.kept
         else { return nil }
@@ -281,7 +285,7 @@ struct TextUndoHistory<Text: UndoableText, Caret: Equatable> {
         typingRun = nil
         redoStates.removeLast()
         append(Entry(kept: .edit(edit), caret: current.caret, mark: next.mark))
-        return (redone, next.caret)
+        return (redone, next.caret, edit)
     }
 
     /// The marks of the states let go of since the last call — dropped past
@@ -354,6 +358,10 @@ protocol UndoableTextEdit {
     /// text the edit was made to.
     func applied(_ before: Text) -> Text?
 
+    /// The edit the other way: from the text this one leaves to the text it
+    /// was made to.
+    var reversed: Self { get }
+
     /// Whether the edit leaves its text as it was.
     var changesNothing: Bool { get }
 
@@ -370,6 +378,8 @@ extension String: UndoableText {
 }
 
 extension TextEdit: UndoableTextEdit {
+    var reversed: TextEdit { TextEdit(offset: offset, removed: inserted, inserted: removed) }
+
     var changesNothing: Bool { removed == inserted }
 
     var keptBytes: Int { removed.count + inserted.count }
@@ -407,6 +417,11 @@ struct TextEdit: Equatable {
                 new.withUTF8 { newBytes in unsafe Self.difference(oldBytes, newBytes) }
             }
         (offset, removed, inserted) = edit
+    }
+
+    /// The edit at `offset` of `removed` to `inserted`.
+    init(offset: Int, removed: [UInt8], inserted: [UInt8]) {
+        (self.offset, self.removed, self.inserted) = (offset, removed, inserted)
     }
 
     /// Where `old` and `new` differ: the common start's length, and the bytes

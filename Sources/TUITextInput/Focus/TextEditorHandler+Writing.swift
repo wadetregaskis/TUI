@@ -14,8 +14,9 @@ extension TextEditorHandler {
     /// Makes `replacements`, in order, each on the lines the one before it
     /// left, and writes the lines they leave. Every edit the editor makes to
     /// its text is made here, as the ranges it replaces
-    /// (``TextEditorReplacement``), except an undo or a redo, which replace
-    /// the text whole through ``write(_:)``.
+    /// (``TextEditorReplacement``), except an undo or a redo, which is a byte
+    /// edit of the text spliced in the same way (``writeStep(_:leaving:)``),
+    /// or written whole through ``write(_:)`` where it cannot be.
     ///
     /// The replacements are made in an ``EditedLines`` over the layout's
     /// lines, not in a copy of them: the lines they reach are all an edit
@@ -36,6 +37,38 @@ extension TextEditorHandler {
             writeJoined(lines, ending: layout().lineEnding)
             return EditedLines(lines)
         }
+    }
+
+    /// Writes `result`, an undo's or a redo's text of a `String`, as the edit
+    /// `step` makes of the text the binding holds: its lines spliced into the
+    /// layout as a key's are (``EditorLayout/lines(after:)``,
+    /// ``writeSpliced(_:)``), so the lines it reached are laid out and
+    /// wrapped again and the rest kept, and the highlighting, the marks and
+    /// the find bar's matches are carried through it as through a key.
+    ///
+    /// - Returns: Whether it wrote: not without a layout kept of the text the
+    ///   binding holds (one would cost the document laid out, which writing
+    ///   the text whole leaves to the next frame, if there is one), nor where
+    ///   the step's lines cannot be spliced, or the splice is not `result`
+    ///   byte for byte. The caller writes those whole.
+    func writeStep(_ step: TextEdit, leaving result: String) -> Bool {
+        guard let edit = edit(of: step, leaving: result) else { return false }
+        _ = writeSpliced(edit)
+        return true
+    }
+
+    /// The edit of the kept layout's lines that `step` makes, where it leaves
+    /// `result`. A function of its own for the reason
+    /// ``edit(making:beforeWriting:)`` is one: the lines, which share the
+    /// layout's array, are let go when it returns.
+    private func edit(of step: TextEdit, leaving result: String) -> EditorLayout.Edit? {
+        guard let layout = cachedLayout, TextEdit.sameBytes(layout.text, text.wrappedValue),
+            let lines = layout.lines(after: step), let edit = layout.replacing(lines),
+            // A memcmp of the text, against laying it out: the splice must be
+            // the step's text exactly, as writing that text whole made it.
+            TextEdit.sameBytes(edit.text, result)
+        else { return nil }
+        return edit
     }
 
     /// An edit as it is written: spliced into the text's bytes
