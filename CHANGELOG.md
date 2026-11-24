@@ -86,6 +86,12 @@ views' state starts afresh once, the first time an app runs on this version. A s
 `scrollTargetLayout()`, holds a section beside the loop or sits in a scroll view with a `.scrollPosition` binding or
 an `onScrollTargetVisibilityChange`, and a lazy stack's own `Section` around a loop, still change at 256.
 
+**A tag, a badge, a z-index or a layout priority written inside `.overlay { }`, `.background { }`, `.contextMenu
+{ }`, `.clipped()`, `.clipShape(_:)` or `.mask { }` is the view's.** Each of these stopped the container that
+reads one, so `Text(name).tag(id).contextMenu { … }` on a static `List` row or a `Picker` option lost its tag and
+fell back on its position, `.badge(7).contextMenu { … }` drew no badge, and `ZStack { a.zIndex(1).overlay { … }; b
+}` drew `b` on top. They are read through now, as SwiftUI reads them (measured), and so is a spacing preference.
+
 **A soft hyphen in a `Text` is one cell wide.** U+00AD was measured as taking no cell, but terminals give it one
 (Ghostty and Apple's Terminal, measured), so a line holding one drew a cell wider than it was laid out, and pushed a
 border or the next column a cell to the right. It is now measured at the one cell it takes.

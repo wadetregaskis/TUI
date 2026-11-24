@@ -129,3 +129,13 @@ extension FrameBuffer {
         measureChild(content, proposal: proposal, context: context)
     }
 }
+
+/// The content's traits are the clipped view's, through `.clipShape(_:style:)`
+/// as through `.clipped()` (whose conformance says why; measured,
+/// `Tools/SwiftUIProbes/Traits through layers and menus (H-63)/traits.out`).
+@MainActor extension _ShapeClip: SingleContentWrapper {
+    var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}

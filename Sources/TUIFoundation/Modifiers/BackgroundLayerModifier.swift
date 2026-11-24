@@ -81,6 +81,18 @@ extension View {
     }
 }
 
+/// The base's traits are the view's, through `.background { }` as through
+/// `.overlay { }` (``OverlayModifier``'s conformance says why; measured,
+/// `Tools/SwiftUIProbes/Traits through layers and menus (H-63)/traits.out`).
+/// The layout priority the hunt sourced first: `Tools/SwiftUIProbes/Layout
+/// priority/priority.out`, `after-background`.
+@MainActor extension BackgroundLayerModifier: SingleContentWrapper {
+    var wrappedContent: Base { base }
+
+    /// Its base is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}
+
 /// A background written on a form row goes behind the row the form lays out,
 /// which keeps its place, as SwiftUI's does (measured).
 @MainActor extension BackgroundLayerModifier: FormRowRewrapping {

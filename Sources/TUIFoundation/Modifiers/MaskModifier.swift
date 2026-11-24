@@ -93,6 +93,17 @@ nonisolated struct _MaskView<Content: View, Mask: View>: View {
     }
 }
 
+/// The content's traits are the masked view's, through `.mask { }` as through
+/// `.clipped()` (whose conformance says why, and which a mask's content is
+/// wrapped in first; measured, `Tools/SwiftUIProbes/Traits through layers and
+/// menus (H-63)/traits.out`).
+@MainActor extension _MaskView: SingleContentWrapper {
+    var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}
+
 /// Which cells of a `columns` × `rows` frame a mask drawn at `offset` in it
 /// keeps, and at what alpha.
 private struct MaskCoverage {

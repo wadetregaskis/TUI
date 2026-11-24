@@ -1584,7 +1584,14 @@ z-index is dimension-INDEPENDENT while a guide is a closure evaluated against
 the dimensions the view laid out at, so a wrapper passes a guide only by
 translating it (padding, frame, border, position) or by stating that it keeps
 its content's geometry (`SingleContentWrapper._keepsContentGeometry`, or a
-`DrawsContentUnchanged` wrapper). The judgement per wrapper is not
+`DrawsContentUnchanged` wrapper). It holds for the layers and cuts too since
+2026-11-23 (hunt H-63): `.overlay { }`, `.background { }`, `.contextMenu { }`,
+`.clipped()`, `.clipShape(_:)` and `.mask { }` are single-content wrappers, read
+through and never handed to each member, so a z-index, a tag, a row badge, a
+layout priority and a spacing preference written inside one are the view's, as
+SwiftUI keeps them (measured, `Tools/SwiftUIProbes/Traits through layers and
+menus (H-63)/traits.out`); before, `Text(x).tag(x).contextMenu { … }` on a
+static `List` row lost its tag. The judgement per wrapper is not
 only about effects: `presentationDetents(_:)` and the other presentation traits
 are deliberately read through a wrapper list of their own, and a trait must not
 be handed to each member of a group.

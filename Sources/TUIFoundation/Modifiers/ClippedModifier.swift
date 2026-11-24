@@ -70,3 +70,17 @@ nonisolated struct _ClippedView<Content: View>: View {
         measureChild(content, proposal: proposal, context: context)
     }
 }
+
+/// The content's traits are the clipped view's: a z-index, a tag, a row badge,
+/// a layout priority and a spacing preference written before `.clipped()`
+/// reach the container that reads them, as SwiftUI's do (measured,
+/// `Tools/SwiftUIProbes/Traits through layers and menus (H-63)/traits.out`;
+/// hunt H-63). Read-only: not ``ContentRewrapping``, so a clip round several
+/// views is one clip. ``SingleContentWrapper/_keepsContentGeometry`` stays
+/// `false`, so a guide inside stops here, as before.
+@MainActor extension _ClippedView: SingleContentWrapper {
+    var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}

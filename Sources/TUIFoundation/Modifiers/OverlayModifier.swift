@@ -48,6 +48,25 @@ nonisolated package struct OverlayModifier<Base: View, Overlay: View>: View {
     }
 }
 
+// MARK: - Seeing Through the Wrapper
+
+/// The base's traits are the overlaid view's: a z-index, a tag, a row badge, a
+/// layout priority and a spacing preference written on the base reach the
+/// container that reads them through `.overlay { }`, as SwiftUI's do (measured,
+/// `Tools/SwiftUIProbes/Traits through layers and menus (H-63)/traits.out`;
+/// hunt H-63). Read-only, as `OnHoverModifier`'s is: not ``ContentRewrapping``,
+/// so an overlay on several views is still drawn once round them all.
+///
+/// ``SingleContentWrapper/_keepsContentGeometry`` stays `false`: an overlay
+/// answers the guide query itself, with its base's guide
+/// (`WrapperGuidePropagation.swift`).
+@MainActor extension OverlayModifier: SingleContentWrapper {
+    package var wrappedContent: Base { base }
+
+    /// Its base is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    package func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}
+
 // MARK: - Equatable Conformance
 
 extension OverlayModifier: Equatable where Base: Equatable, Overlay: Equatable {

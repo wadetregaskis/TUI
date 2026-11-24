@@ -381,10 +381,38 @@ private enum ContextMenuKeyRegistrar {
     /// the content — and forwarding keeps the focus-section / trigger side effects
     /// on the render pass, never a measure.
     package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        // One environment application deeper, as `publishIsFocused` makes the
-        // render walk's — by hand, because a measure must not note.
+        measureChild(content, proposal: proposal, context: contentMeasureContext(context))
+    }
+
+    /// The context the content is measured in: at its own child identity, as
+    /// the render walk draws it, and one environment application deeper, as
+    /// `publishIsFocused` makes the render walk's — by hand, because a measure
+    /// must not note.
+    fileprivate func contentMeasureContext(_ context: RenderContext) -> RenderContext {
         var contentContext = context.withChildIdentity(type: Content.self, index: 0)
         contentContext.environmentApplicationDepth += 1
-        return measureChild(content, proposal: proposal, context: contentContext)
+        return contentContext
+    }
+}
+
+// MARK: - Seeing Through the Wrapper
+
+/// The content's traits are the view's: a z-index, a tag, a row badge, a
+/// layout priority and a spacing preference written inside `.contextMenu { }`
+/// reach the container that reads them — `Text(x).tag(x).contextMenu { … }` is
+/// a static `List` row's tag, and `.badge(n).contextMenu { … }` its badge — as
+/// SwiftUI's do (measured, `Tools/SwiftUIProbes/Traits through layers and menus
+/// (H-63)/traits.out`; hunt H-63). Read-only: not ``ContentRewrapping``, so the
+/// menu is one menu round several views, never one each.
+///
+/// ``SingleContentWrapper/_keepsContentGeometry`` stays `false`: the content
+/// is drawn at a child identity of its own, and a guide inside a menu stops at
+/// it, as before.
+@MainActor extension ContextMenuModifier: SingleContentWrapper {
+    package var wrappedContent: Content { content }
+
+    /// The context its measure hands its content (``SingleContentWrapper/wrappedContentContext(_:)``).
+    package func wrappedContentContext(_ context: RenderContext) -> RenderContext? {
+        contentMeasureContext(context)
     }
 }
