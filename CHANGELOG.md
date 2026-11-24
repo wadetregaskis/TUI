@@ -24,6 +24,12 @@ a list row's fill, a menu row's bar and a sheet's surface.
 `Color.blue.opacity(0.5)` multiplied into the blue at full strength, drawing black, where SwiftUI multiplies into
 the blue as it shows over the page, an olive.
 
+**A `PhaseAnimator` whose content does not animate steps at its animation's pace.** Over content with nothing to
+animate, such as `Text("P\(phase)")`, each step finished in the frame that drew it, so the phases strobed at the
+frame rate and the app drew sixty frames a second for as long as the animator was on screen. Each step now lasts its
+animation's duration whether or not anything moves, and a one-phase animator rests once it appears. SwiftUI stalls
+such an animator after its first step; TUI cycles it (a deliberate deviation, A11).
+
 **A soft hyphen in a `Text` is one cell wide.** U+00AD was measured as taking no cell, but terminals give it one
 (Ghostty and Apple's Terminal, measured), so a line holding one drew a cell wider than it was laid out, and pushed a
 border or the next column a cell to the right. It is now measured at the one cell it takes.

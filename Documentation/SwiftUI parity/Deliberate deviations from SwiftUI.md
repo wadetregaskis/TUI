@@ -2123,6 +2123,33 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [B-TR2PERF-2](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b-tr2perf-2-an-ifs-view-keeps-its-fade-out>).
   **Owner** (the fallback, 2026-10-14); **Lane** (the measurement).
 
+### A11. A phase animator steps at its animation's pace even where nothing animates
+
+- **SwiftUI (measured, macOS 15.8.3, 2026-11-23,
+  [`Tools/SwiftUIProbes/Animation curves, springs and keyframes/p12.out`](<../../Tools/SwiftUIProbes/Animation curves, springs and keyframes/p12.out>)):**
+  a step whose content has nothing to animate is not paced by its animation.
+  `PhaseAnimator([0, 1, 2]) { Text("P\($0)") } animation: { _ in
+  .linear(duration: 0.5) }` steps once, to P1, and then never again; so does
+  `.easeInOut(duration: 0.5)`, and a `Color` whose width changes with
+  animations disabled. With a spring the same `Text` steps every 0.8 s. Where
+  the content animates (p9's opacity), each step takes its animation's 0.5 s.
+  A one-phase animator rests once it appears, and never asks for its
+  animation.
+- **TUI:** each step lasts its animation's `logicalCompletionDuration` on the
+  frame clock whether or not anything in the content animated, so the same
+  `Text` animator steps every 0.5 s, round and round; content that animates
+  keeps its pace (`PhaseStepPacing` in `PhaseAnimator.swift`;
+  `AnimatorViewTests.stillContentIsPaced`, `fadingContentIsPaced`). A step
+  whose animation is `nil` is still taken at once, and a round of them still
+  rests. A one-phase animator rests, as SwiftUI's does (`onePhaseRests`). A
+  SwiftUI program whose animator froze there cycles here instead.
+- **Why:** the owner: "Whether or not there's an actual effect shown for the
+  animation, it should run at the same speed. It definitely shouldn't
+  freeze." Before, such a step completed in the frame that drew it, so the
+  phases strobed at the frame rate and the app drew sixty frames a second for
+  as long as the animator was on screen (hunt H-66).
+- **Decided:** owner 2026-11-23 (H66-PACE (a)). **Owner**.
+
 ---
 
 ## Scrolling

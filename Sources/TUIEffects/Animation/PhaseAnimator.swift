@@ -32,11 +32,22 @@ import TUIFoundation
 /// steps INTO, and the next step starts when that animation is logically
 /// complete. A step whose animation is `nil` is taken at once; a cycle of the
 /// trigger-less form in which no step was animated stops at the first phase,
-/// as SwiftUI's does, rather than spinning.
+/// as SwiftUI's does, rather than spinning. A trigger-less animator of one
+/// phase rests at it once it appears, as SwiftUI's does, and never asks for
+/// its animation.
+///
+/// A step lasts its animation's ``Animation/logicalCompletionDuration`` on the
+/// frame clock whether or not anything in the content animates: a `Text`
+/// whose string is the phase steps at the animation's pace, as a fade does.
+/// This is a deliberate deviation from SwiftUI, which stalls such an animator
+/// after its first step (measured on macOS 15.8, probe p12): "Whether or not
+/// there's an actual effect shown for the animation, it should run at the
+/// same speed. It definitely shouldn't freeze." (the owner, 2026-11-23,
+/// H66-PACE (a); deliberate deviations A11). A SwiftUI program's animator
+/// cycles here instead of freezing.
 ///
 /// While it runs the content is drawn every frame its animations draw, as for
-/// any running animation; a trigger-less animator therefore draws every frame
-/// for as long as it is on screen.
+/// any running animation; content that does not animate is drawn once a step.
 public struct PhaseAnimator<Phase: Equatable, Content: View> {
     private let phases: [Phase]
     private let trigger: AnyEquatableBox?
@@ -90,6 +101,7 @@ public struct PhaseAnimator<Phase: Equatable, Content: View> {
         // warning in its place; here it draws nothing.
         if !phases.isEmpty {
             content(phases[min(index, phases.count - 1)])
+                .modifier(PhaseStepPacing(run: run))
                 .onAppear {
                     run.isShown = true
                     if trigger == nil { advance() }
@@ -113,13 +125,19 @@ public struct PhaseAnimator<Phase: Equatable, Content: View> {
         let next: Int
         if !run.queue.isEmpty {
             next = run.queue.removeFirst()
-        } else if trigger == nil {
+        } else if trigger == nil, phases.count > 1 {
             next = (index + 1) % phases.count
         } else {
+            // A run's end, or one phase with nowhere to step: at rest. One
+            // phase stepping into itself still claimed its completion (a
+            // state write is not compared with what it replaces), which fired
+            // at the end of every frame and asked for the next.
             return
         }
         let stepAnimation = animation(phases[next])
         if stepAnimation != nil { run.animatedThisCycle = true }
+        run.unplacedPace = stepAnimation
+        run.paceDeadline = nil
         run.isStepping = true
         run.isInsideStep = true
         defer { run.isInsideStep = false }
@@ -170,6 +188,53 @@ private final class PhaseRun {
     var animatedThisCycle = false
     /// Whether the animator is drawn: one that is not steps no further.
     var isShown = false
+    /// The animation of the step just taken, until the frame that draws it
+    /// times the step by it (``PhaseStepPacing``).
+    var unplacedPace: Animation?
+    /// When that step is logically complete, on the frame clock: the wake the
+    /// frames before it ask for. `nil` once reached, or for a step that never
+    /// completes.
+    var paceDeadline: Int64?
+}
+
+/// Times each step of a ``PhaseAnimator`` by its animation, whether or not
+/// anything in the content animated (H66-PACE (a), deliberate deviations A11).
+///
+/// A step's completion fires when the animations the frame drawing it started
+/// are logically complete, and at the end of that frame if it started none
+/// (`AnimationCompletionTracker`). A `Text` whose string is the phase starts
+/// none, so the next step was drawn on the next frame: sixty steps a second,
+/// and the app drew at its full rate for as long as the animator was on
+/// screen. This reports the step's animation as started by the frame that
+/// draws it, as a content dissolve or a scroll glide reports its own, so the
+/// completion waits for the animation's logical completion; and it asks for a
+/// frame at that instant, as nothing else may. Content that does animate
+/// started the same animation in the same frame, so its pace is unchanged.
+private struct PhaseStepPacing: BufferModifier {
+    let run: PhaseRun
+
+    func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        guard !context.isMeasuring else { return buffer }
+        let now = context.environment.frameNowNanos
+        if let pace = run.unplacedPace {
+            run.unplacedPace = nil
+            context.stateStorage?.animationCompletions.noteStarted(pace, at: now, key: nil)
+            // A repeating animation never completes logically: no wake, as
+            // its completion never fires.
+            run.paceDeadline = pace.logicalCompletionDuration.flatMap {
+                $0.isFinite ? AnimationClock.deadline($0, after: now, rounding: .up) : nil
+            }
+        }
+        if let deadline = run.paceDeadline {
+            if now < deadline {
+                // Asked again by every frame before it, as a wake must be.
+                context.requestWake(token: "phase-step-\(context.identity.path)", atNanos: deadline)
+            } else {
+                run.paceDeadline = nil
+            }
+        }
+        return buffer
+    }
 }
 
 // MARK: - Modifiers

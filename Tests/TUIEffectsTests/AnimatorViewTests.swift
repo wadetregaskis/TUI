@@ -63,6 +63,26 @@ private struct CyclingApp: App {
     }
 }
 
+/// Hunt H-66: a `Text`'s string does not animate, so nothing in a step moves
+/// and only the pacing makes it last (H66-PACE (a)).
+private struct StillContentApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { PhaseAnimator([0, 1, 2]) { Text("P\($0)") } animation: { _ in .linear(duration: 0.5) } }
+    }
+}
+
+/// The same phases over content that animates: its opacity moves each step.
+private struct FadingContentApp: App {
+    static var animation: Animation = .linear(duration: 0.5)
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            PhaseAnimator([0, 1, 2]) { Text("P\($0)").opacity(1 - Double($0) * 0.3) } animation: { _ in Self.animation }
+        }
+    }
+}
+
 private struct UnanimatedApp: App {
     init() {}
     var body: some Scene {
@@ -165,16 +185,32 @@ private final class Driver<A: App> {
 
     /// The numbers after `prefix` drawn so far, each change once.
     private(set) var seen: [Int] = []
+    /// The frame, counted from 1, each of `seen` was first drawn at.
+    private(set) var seenAtFrame: [Int] = []
+    private var frameCount = 0
+
+    /// The frames between one change drawn and the next.
+    var gaps: [Int] { zip(seenAtFrame.dropFirst(), seenAtFrame).map { $0 - $1 } }
+
+    /// The frames after which the app asked for the next one: a state change
+    /// waiting to be drawn, or a wake due before the next frame's instant.
+    /// The driver draws every frame whether asked or not, so this is what a
+    /// running app would have drawn.
+    private(set) var framesAsked = 0
 
     func frames(_ count: Int, prefix: Character) {
         for _ in 0..<count {
             nanos += 16_666_667
+            frameCount += 1
             app.frame(atNanos: nanos, date: base.addingTimeInterval(Double(nanos) / 1_000_000_000))
+            let wakesSoon = app.headless.nextWake(after: nanos).map { $0 <= nanos + 16_666_667 } ?? false
+            if app.headless.takeFrameRequest() || wakesSoon { framesAsked += 1 }
             let screen = app.screen.lines.joined()
             if let match = screen.firstMatch(of: /[PV](\d+)/),
                 screen[match.range].first == prefix, let number = Int(match.1), seen.last != number
             {
                 seen.append(number)
+                seenAtFrame.append(frameCount)
             }
         }
     }
@@ -215,6 +251,64 @@ struct AnimatorViewTests {
         driver.frames(40, prefix: "P")
         // The first step is in the first frame written, as `cycles` says.
         #expect(driver.seen == [1, 2, 0], "\(driver.seen)")
+    }
+
+    @Test("A step whose content does not animate still lasts its animation, rather than one frame (H66-PACE (a))")
+    func stillContentIsPaced() {
+        let driver = Driver(StillContentApp())
+        driver.frames(60, prefix: "P")
+        // Before: a step a frame, some sixty changes in a second.
+        #expect(driver.seen.count - 1 <= 3, "\(driver.seen.count - 1) changes in 60 frames: \(driver.seen)")
+        driver.frames(60, prefix: "P")
+        #expect(Array(driver.seen.prefix(4)) == [1, 2, 0, 1], "cycling, not stalled: \(driver.seen)")
+        // 0.5 s is 30 frames, and the frame after it draws the next step.
+        #expect(!driver.gaps.isEmpty && driver.gaps.allSatisfy { (30...32).contains($0) }, "\(driver.gaps)")
+    }
+
+    @Test("A step over content that animates is paced by its animation, as before")
+    func fadingContentIsPaced() {
+        FadingContentApp.animation = .linear(duration: 0.5)
+        let linear = Driver(FadingContentApp())
+        linear.frames(120, prefix: "P")
+        #expect(linear.gaps.count >= 2 && linear.gaps.allSatisfy { (30...32).contains($0) }, "\(linear.gaps)")
+
+        FadingContentApp.animation = .default
+        let spring = Driver(FadingContentApp())
+        spring.frames(120, prefix: "P")
+        // The default spring's pace (`logicalCompletionDuration`), not its settle.
+        let pace = Animation.default.logicalCompletionDuration ?? 0
+        let frames = Int((pace * 60).rounded(.up))
+        #expect(
+            spring.gaps.count >= 2 && spring.gaps.allSatisfy { (frames...(frames + 2)).contains($0) },
+            "\(spring.gaps), pace \(pace) s")
+    }
+
+    @Test("A cycling animator whose content does not animate draws a frame or two a step, not sixty a second")
+    func stillContentRestsBetweenSteps() {
+        let driver = Driver(StillContentApp())
+        driver.frames(120, prefix: "P")
+        // Four steps in two seconds, each asking for the frame that finishes it
+        // and the one that draws the next. Before: every frame asked for the next.
+        #expect(driver.framesAsked <= 12, "\(driver.framesAsked) of 120 frames asked for the next")
+    }
+
+    @Test("A one-phase animator rests once it appears, as SwiftUI's does")
+    func onePhaseRests() {
+        var asked = 0
+        let app = TestApp(width: 20, height: 3) {
+            PhaseAnimator([0]) { Text("P\($0)") } animation: { _ in
+                asked += 1
+                return .linear(duration: 0.5)
+            }
+        }
+        app.advance(by: .milliseconds(100))
+        #expect(app.screen.contains("P0"), "\(app.screen.lines)")
+        let drawn = app.headless.framesDrawn
+        app.advance(by: .seconds(10))
+        // Before: `index = 0` over 0 still claimed the completion, which fired
+        // at the end of every frame and asked for the next.
+        #expect(app.headless.framesDrawn - drawn <= 1, "\(app.headless.framesDrawn - drawn) frames at rest")
+        #expect(asked == 0, "SwiftUI never asks for the animation of a one-phase animator: asked \(asked)")
     }
 
     @Test("The modifier's placeholder draws the view it is on, beside the phase")
