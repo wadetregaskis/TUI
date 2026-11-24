@@ -59,6 +59,11 @@ hands the terminal back (or, after an external stop, as it takes it back) and se
 first frame after, at the cost of one transmission a picture. On iTerm2, whose one image store serves both screens,
 the pictures no longer stay in the terminal while the shell or the other program has it.
 
+**Shift-Return, Ctrl-Return, Ctrl-Tab and Shift-Space work under tmux's `extended-keys always` and xterm's
+`modifyOtherKeys`.** Both re-code a modified key, as `ESC[27;2;13~` or `ESC[13;2u`, for a program that never asked,
+and TUI dropped either spelling whole: those keys did nothing, and under xterm's level 2 no Control chord arrived,
+⌃Q included. Both now read as the chord, the same key the kitty keyboard protocol reports for it.
+
 **On Windows, closing the app's window or tab quits it in order.** Closing conhost's window or Windows Terminal's
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.

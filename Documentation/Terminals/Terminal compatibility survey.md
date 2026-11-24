@@ -7018,9 +7018,21 @@ below for them, and the Linux console's, are from documentation.
 | Linux console | F6 up, Home, End, the arrows | xterm's: `ESC [ 17 ~`…, `ESC [ 1 ~`, `ESC [ 4 ~`, `ESC [ A`… | terminfo `linux` |
 | Linux console | ⇧⇥ | `ESC TAB` (ncurses 6.6; `ESC [ Z` in macOS's 6.0) | terminfo `linux`: `kcbt` |
 
-Until 2026-11-23 TUI's legacy parser dropped both extended spellings whole, so
-under tmux's `always` ⇧↩, ⌃↩, ⌃⇥ and ⇧␣ did nothing, and under xterm's level 2
-neither did any Control chord, ⌃Q included. On the Linux console F1 to F5 typed
+**What TUI reads, since 2026-11-23:**
+
+- Both extended spellings, in the legacy parser (`KeyEvent.parseModifiedOtherKey`),
+  as the key the kitty protocol's decoder makes of the same code and modifiers
+  in a report with no text, Meta read as Option as in every legacy CSI key: ⇧↩
+  is Return with Shift, ⌃Q the `q` with Control, ⌃⇧A an `A` with both. A chord
+  nothing binds goes round as it does under that protocol: ⌃↩ as Return, ⌃H as
+  Backspace. The modifier code must be 1 to 16, and a code point a control
+  character other than the four keys' (Return, Tab, Escape, Backspace), or in
+  the private-use area where the protocol numbers its other keys, is dropped.
+  Before, both spellings were dropped whole, so under tmux's `always` ⇧↩, ⌃↩,
+  ⌃⇥ and ⇧␣ did nothing, and under xterm's level 2 neither did any Control
+  chord, ⌃Q included.
+
+Until 2026-11-23, on the Linux console F1 to F5 typed
 the letters A to E. Under rxvt Home and End did nothing, and a Control-arrow
 typed `a` to `d` after an Alt-Shift-O. The console's `ESC TAB` is read as ⌥⇥,
 not as ⇧⇥, on purpose (`escTabIsAltTab`: it is what a meta-sending terminal

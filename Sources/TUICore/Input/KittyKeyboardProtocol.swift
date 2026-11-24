@@ -365,7 +365,12 @@ package enum KittyKeyDecoder {
     /// The shifted key when Shift is held, so Ctrl-Shift-Z is `Z`; the
     /// base-layout key for a chord on a non-Latin layout, so Ctrl-С is Ctrl-C
     /// as its bytes are, and ⌘С is ⌘C, as macOS matches a key equivalent.
-    private static func chordKey(code: Int, shifted: Int?, base: Int?, bits: Int) -> (code: Int, bits: Int) {
+    ///
+    /// The legacy parser reads a key re-coded by a scheme the app never asked
+    /// for (tmux's `extended-keys`, xterm's `modifyOtherKeys`) through this
+    /// too, so the same chord is one key in either encoding
+    /// (`KeyEvent.parseModifiedOtherKey(_:)`).
+    static func chordKey(code: Int, shifted: Int?, base: Int?, bits: Int) -> (code: Int, bits: Int) {
         if bits & shiftBit != 0, let shifted {
             // The shifted character says what Shift did, so Shift is its
             // case, as on a key that typed text (see ``decode(_:)``).
@@ -469,7 +474,8 @@ package enum KittyKeyDecoder {
 
     /// The key a code point that typed no text stands for: the four control
     /// keys the protocol reports by their C0 numbers, Space, or the character.
-    private static func textKey(_ code: Int) -> Key? {
+    /// Shared with the legacy parser, as ``chordKey(code:shifted:base:bits:)`` is.
+    static func textKey(_ code: Int) -> Key? {
         switch code {
         case 27: return .escape
         case 13: return .enter

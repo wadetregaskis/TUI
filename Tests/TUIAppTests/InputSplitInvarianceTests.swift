@@ -209,4 +209,36 @@ struct InputSplitInvarianceTests {
         }
         #expect(reports.isEmpty, "\(reports.count) divergences: \(reports.prefix(10))")
     }
+
+    /// Keys in the spellings beside the xterm family's legacy ones (hunt
+    /// H-60), whole and split at every byte: each its key and only its key.
+    @Test("Every other dialect's key decodes to its key, split at every byte")
+    func dialectSplitInvariance() {
+        let esc: [UInt8] = [0x1B]
+        let cases: [(String, [UInt8], [TerminalInput])] = [
+            ("shift-return-modify", esc + Array("[27;2;13~".utf8), [.key(KeyEvent(key: .enter, shift: true))]),
+            ("ctrl-return-csi-u", esc + Array("[13;5u".utf8), [.key(KeyEvent(key: .enter, ctrl: true))]),
+            ("ctrl-tab-modify", esc + Array("[27;5;9~".utf8), [.key(KeyEvent(key: .tab, ctrl: true))]),
+            ("shift-space-csi-u-then-text", esc + Array("[32;2ux".utf8),
+             [.key(KeyEvent(key: .space, shift: true)), .key(KeyEvent(character: "x"))]),
+        ]
+        var reports: [String] = []
+        for (name, bytes, expected) in cases {
+            let (wholeTerminal, wholeStage) = makeTerminal()
+            wholeStage(bytes)
+            let whole = drain(wholeTerminal)
+            if whole != expected { reports.append("\(name) whole: \(whole), expected \(expected)") }
+
+            for splitAt in 1..<bytes.count {
+                let (terminal, stage) = makeTerminal()
+                stage(Array(bytes[..<splitAt]))
+                var events: [TerminalInput] = []
+                if let event = terminal.readEvent() { events.append(event) }
+                stage(Array(bytes[splitAt...]))
+                events.append(contentsOf: drain(terminal))
+                if events != expected { reports.append("\(name) split@\(splitAt): \(events)") }
+            }
+        }
+        #expect(reports.isEmpty, "\(reports.count) divergences: \(reports.prefix(10))")
+    }
 }

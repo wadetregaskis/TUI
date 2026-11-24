@@ -59,9 +59,20 @@ struct KittyKeyboardInputTests {
             ])
     }
 
-    @Test("Off, a CSI u report decodes to nothing, as it always did")
-    func legacyIgnoresReports() {
-        #expect(events(terminal("\u{1B}[104;5ux", enhanced: false)) == [.key(KeyEvent(character: "x"))])
+    /// Off, `CSI code ; mods u` is the spelling tmux's `extended-keys` and
+    /// xterm's `modifyOtherKeys` re-code a key in for an app that never asked
+    /// (hunt H-60): read in the legacy grammar, as the chord, with no
+    /// modifier state, and bit 8 as Option. It was dropped until 2026-11-23.
+    @Test("Off, a CSI u report is read in the legacy grammar: the chord, no modifier state, bit 8 Option")
+    func legacyReadsReportsAsChords() {
+        #expect(
+            events(terminal("\u{1B}[104;5ux", enhanced: false))
+                == [.key(KeyEvent(key: .character("h"), ctrl: true)), .key(KeyEvent(character: "x"))])
+        #expect(
+            events(terminal("\u{1B}[104;9u", enhanced: false)) == [.key(KeyEvent(key: .character("h"), alt: true))])
+        // A report only the protocol sends (an event type, text) is still not
+        // a key there.
+        #expect(events(terminal("\u{1B}[104;5:3ux", enhanced: false)) == [.key(KeyEvent(character: "x"))])
     }
 
     @Test("Off, bit 8 of a legacy modifier is still Option; on, it is ⌘")

@@ -598,7 +598,12 @@ extension KeyEvent {
         case ASCIIByte.end:
             return KeyEvent(key: .end, ctrl: modifiers.ctrl, alt: modifiers.alt, shift: modifiers.shift)
         case ASCIIByte.tilde:
+            // `CSI 27 ; mods ; code ~`: xterm's modifyOtherKeys spelling,
+            // whose first number names no key of its own.
+            if params.starts(with: [0x32, 0x37, 0x3B]) { return parseModifiedOtherKey(params) }
             return parseExtendedKey(params, modifiers: modifiers)
+        case 0x75:  // 'u': `CSI code ; mods u`, the other spelling
+            return parseModifiedOtherKey(params)
         case ASCIIByte.shiftTab:
             // Shift+Tab: ESC [ Z (CSI Z / backtab)
             return KeyEvent(key: .tab, shift: true)
@@ -687,7 +692,7 @@ extension KeyEvent {
 
     /// The modifiers an xterm modifier code stands for: the code is `1 +` a
     /// bitfield, see ``extractModifiers(from:)``.
-    private static func decodeModifierCode(_ modifier: Int) -> (shift: Bool, alt: Bool, ctrl: Bool) {
+    static func decodeModifierCode(_ modifier: Int) -> (shift: Bool, alt: Bool, ctrl: Bool) {
         // Decode modifier bits (modifier - 1 gives the bit flags)
         // Bit 0 = Shift, Bit 1 = Alt, Bit 2 = Ctrl, Bit 3 = Meta (read as Alt)
         let bits = modifier - 1
