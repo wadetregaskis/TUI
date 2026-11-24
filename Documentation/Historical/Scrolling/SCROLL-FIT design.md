@@ -2397,3 +2397,7 @@ and grows 250 → 260, sections of a row, in all eight shapes, scrolled to the t
 the new count scrolled there afresh, then End and Home on both, and checks that every header drawn has its row below.
 Before the fix it failed in the four shapes at spacing 1 cut 260 → 250: under a title, headers and no rows; without
 one, the fresh stack's Home after End landed mid-list (section 122 of 250).
+
+*Found, not fixed* (before the fix too): 250 sections of a row at spacing 1, scrolled to the end, draw their end two
+lines up after a `@State` write that changes nothing they draw — the last header on the bottom line, its row gone —
+until the next End; spacing 0 keeps it. Marked a known issue in `SectionLoopCrossingTests.writeAtTheEndKeepsTheEnd`.

@@ -300,6 +300,8 @@ struct SectionLoopCrossingTests {
             let fresh = TestApp(width: 40, height: 12) {
                 Counted(shape: shape, from: counts.to, to: counts.to, perSection: 1)
             }
+            // Scrolled there, and nothing written: a write at the end is
+            // `writeAtTheEndKeepsTheEnd`'s.
             place.scroll(fresh)
             func check(_ step: String) {
                 #expect(
@@ -321,6 +323,25 @@ struct SectionLoopCrossingTests {
             check("end")
             for app in [moved, fresh] { _ = app.press(.home) }
             check("home")
+        }
+    }
+
+    /// Found by H-71d, not fixed (and so before it): 250 sections of a row at
+    /// spacing 1, scrolled to the end, draw their end two lines up after a
+    /// `@State` write that changes nothing they draw, the last header on the
+    /// bottom line and its row gone, until the next End. Spacing 0 keeps it.
+    @Test("A write at the end of a stack of sections keeps the end", arguments: Shape.allCases)
+    func writeAtTheEndKeepsTheEnd(_ shape: Shape) {
+        let app = TestApp(width: 40, height: 12) {
+            Counted(shape: shape, from: 250, to: 250, perSection: 1)
+        }
+        Place.end.scroll(app)
+        let before = app.screen.lines
+        app.type("+")
+        withKnownIssue("a write at the end at spacing 1 draws the end two lines up") {
+            #expect(app.screen.lines == before, "\(shape):\n\(app.screen)")
+        } when: {
+            shape.spacing == 1
         }
     }
 }
