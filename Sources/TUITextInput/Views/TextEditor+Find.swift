@@ -110,7 +110,12 @@ enum FindMatches {
 /// asked afresh in this body and the editor's on every evaluation, a key
 /// with the bar up searched the whole document two or three times (TEXTIN-1).
 struct _FindBar: View {
+    /// The text, written by Replace before the editor has drawn.
     let text: Binding<String>
+    /// The text as the matches are found in: the editor's
+    /// (`TextEditor.searchedText()`), the same `String` while it is unchanged,
+    /// which the cache knows at once.
+    let searched: () -> String
     @Binding var query: String
     @Binding var replacement: String
     @Binding var current: Int
@@ -127,7 +132,7 @@ struct _FindBar: View {
     private var handler: TextEditorHandler? { menuTarget?.handler as? TextEditorHandler }
 
     private func found(_ query: String, options: FindOptions) -> FindMatchSet {
-        cache.matches(of: query, options: options, in: text.wrappedValue)
+        cache.matches(of: query, options: options, in: searched())
     }
 
     @FocusState private var isQueryFocused: Bool

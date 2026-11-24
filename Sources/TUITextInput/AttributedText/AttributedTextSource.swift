@@ -324,8 +324,15 @@ final class AttributedTextSource {
     /// of its storage at a time: 0.45 ms for 2.4 MB, where `String(text.characters)`
     /// reads it a character at a time, 312 ms (macOS 15.8.3, -O).
     static func characters(of text: AttributedString) -> String {
-        String(text.characters[...])
+        readReporter?()
+        return String(text.characters[...])
     }
+
+    /// Told of every value whose characters are read whole
+    /// (``characters(of:)``), while a task binds it: the test seam that counts
+    /// how often a frame reads a document, as `EditorLayout.buildReporter`
+    /// counts how often it lays one out.
+    @TaskLocal static var readReporter: TaskLocalReporter<Void>?
 
     /// Whether `a` and `b` are the one value in the one storage.
     ///

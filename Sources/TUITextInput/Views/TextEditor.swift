@@ -240,7 +240,8 @@ public struct TextEditor {
             VStack(alignment: .leading, spacing: 0) {
                 if presented {
                     _FindBar(
-                        text: text, query: $findQuery, replacement: $findReplacement, current: $findMatch,
+                        text: text, searched: { searchedText() }, query: $findQuery,
+                        replacement: $findReplacement, current: $findMatch,
                         options: $findOptions, supportsReplace: !find.isReplaceDisabled && !isDisabled,
                         menuTarget: menuTarget, cache: findCache,
                         select: { selectMatch($1, of: $0) }, close: { setFindPresented(false) })
@@ -319,6 +320,22 @@ extension TextEditor: View {}
         }
     }
 
+    /// The text the find bar and Ctrl-G search: the app's. An attributed
+    /// editor's is read through its handler's source, which keeps the
+    /// characters of the value it last took or wrote, the very `String` its
+    /// layout and the matches are of, and gives it again while the app's
+    /// value is that one, in the same storage. Read through ``text``, it is a
+    /// new `String` made of the whole value, which the matches' cache then
+    /// told from its own byte for byte: two passes over the document on every
+    /// evaluation of the bar (H-80). Read as the core's `layout(context:)`
+    /// reads it for a measure. Before the editor has drawn, ``text``.
+    private func searchedText() -> String {
+        if let attributed, let source = (menuTarget.handler as? TextEditorHandler)?.attributedSource {
+            return source.string(for: attributed.text.wrappedValue)
+        }
+        return text.wrappedValue
+    }
+
     /// Whether an app shortcut is on `press`'s chord, and takes it from the
     /// find bar: Ctrl-F and Ctrl-G are ⌘F's and ⌘G's Control chords, and an
     /// app's own Find wins over the editor's, as a menu's key equivalent does
@@ -339,7 +356,7 @@ extension TextEditor: View {}
     /// Selects the next (`delta` 1) or previous (-1) match of the query, wrapping:
     /// Ctrl-G's, with the bar up or not.
     private func stepFind(by delta: Int) {
-        let matches = findCache.matches(of: findQuery, options: findOptions, in: text.wrappedValue)
+        let matches = findCache.matches(of: findQuery, options: findOptions, in: searchedText())
         guard !matches.isEmpty else { return }
         findMatch = FindMatches.index(from: findMatch, by: delta, among: matches.count)
         selectMatch(findMatch, of: matches)

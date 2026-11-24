@@ -377,4 +377,79 @@ struct FindNavigatorTests {
             #expect(model.text == "one two one")
         }
     }
+
+    // MARK: - The count, kept
+
+    /// The bar's counter on `lines`, `3/7`, or `nil` where none is drawn.
+    private static func counter(_ lines: [String]) -> String? {
+        guard let row = lines.first(where: { $0.contains("Done") }) else { return nil }
+        return row.split(separator: " ").first { word in
+            word.contains("/") && word.allSatisfy { $0.isNumber || $0 == "/" }
+        }.map(String.init)
+    }
+
+    @Test(
+        "The bar's count and current match follow the app's edit, the editor's, a new query and new options",
+        arguments: [false, true])
+    func countFollowsEditsQueryAndOptions(attributed: Bool) {
+        let plain = FindMatchSetTests.Box("One one bone\none_two ONE")
+        let rich = FindMatchSetTests.Box(AttributedString(plain.value))
+        let harness = InputChainHarness(width: 60, height: 10)
+        @ViewBuilder func view() -> some View {
+            if attributed {
+                TextEditor(text: rich.binding).findNavigator(isPresented: .constant(true))
+            } else {
+                TextEditor(text: plain.binding).findNavigator(isPresented: .constant(true))
+            }
+        }
+        func count() -> String? { Self.counter(harness.frame(view()).lines.map(\.stripped)) }
+        func press(_ key: KeyEvent) {
+            harness.press(key)
+            harness.frame(view())
+        }
+        harness.frame(view())
+        harness.frame(view())
+        guard let handler = harness.focusManager.activeSection?.focusables.compactMap({ $0 as? TextEditorHandler }).first
+        else {
+            Issue.record("the editor has no handler")
+            return
+        }
+        // The selection: its anchor's line and column, then the caret's.
+        func selected() -> [Int] {
+            [handler.selectionAnchor?.line ?? -1, handler.selectionAnchor?.column ?? -1, handler.cursorLine, handler.cursorColumn]
+        }
+        for character in "one" { press(KeyEvent(character: character)) }
+        // One, one, b-one, one_two, ONE.
+        #expect(count() == "1/5")
+        #expect(selected() == [0, 0, 0, 3])
+        press(KeyEvent(key: .enter))
+        #expect(count() == "2/5")
+        #expect(selected() == [0, 4, 0, 7])
+        // A new query starts from the first match again.
+        press(KeyEvent(key: .backspace))
+        #expect(count() == "1/5")
+        #expect(selected() == [0, 0, 0, 2])
+        press(KeyEvent(character: "e"))
+        // The app's edit: a match added at the end.
+        if attributed { rich.value.append(AttributedString(" one")) } else { plain.value += " one" }
+        #expect(count() == "1/6")
+        // The editor's: another, typed at the end.
+        handler.moveCursor(toLine: 1, column: 15)
+        handler.selectionAnchor = nil
+        for character in " one" { _ = handler.handleKeyEvent(KeyEvent(key: .character(character))) }
+        #expect(count() == "1/7")
+        // Case: Tab past the arrows and Done to the toggle. one, bone,
+        // one_two and the two added; the first selected.
+        for _ in 0..<4 { press(KeyEvent(key: .tab)) }
+        press(KeyEvent(key: .space))
+        #expect(count() == "1/5")
+        #expect(selected() == [0, 4, 0, 7])
+        // A word's start: bone's is not; then a whole word: one_two is not.
+        press(KeyEvent(key: .tab))
+        press(KeyEvent(key: .space))
+        #expect(count() == "1/4")
+        press(KeyEvent(key: .space))
+        #expect(count() == "1/3")
+        #expect(selected() == [0, 4, 0, 7])
+    }
 }

@@ -176,6 +176,61 @@ struct FindMatchSetTests {
         #expect(handler.findColumns(ofLine: 101) == [0..<3])
     }
 
+    @Test("Ten keys in an attributed editor with the bar up neither search nor read the whole value")
+    func attributedKeysWithTheBarUpDoNotReadTheValue() {
+        let text = Box(AttributedString(String(repeating: "one two three\n", count: 200)))
+        let harness = InputChainHarness(width: 50, height: 12)
+        func view() -> some View { TextEditor(text: text.binding).findNavigator(isPresented: .constant(true)) }
+        harness.frame(view())
+        harness.frame(view())
+        for character in "two" {
+            harness.press(KeyEvent(character: character))
+            harness.frame(view())
+        }
+        guard let handler = harness.focusManager.activeSection?.focusables.compactMap({ $0 as? TextEditorHandler }).first,
+            let cache = handler.findCache
+        else {
+            Issue.record("the editor has no handler, or no find cache while the bar is up")
+            return
+        }
+        let searches = cache.searches
+        handler.moveCursor(toLine: 100, column: 4)
+        handler.selectionAnchor = nil
+        // Each whole read of the value's characters: the bar used to make a
+        // `String` of it on every evaluation, and compare it with the
+        // matches' text byte for byte (H-80).
+        let reads = Mutex(0)
+        AttributedTextSource.$readReporter.withValue(TaskLocalReporter { reads.withLock { $0 += 1 } }) {
+            for character in "xtwo two " {
+                _ = handler.handleKeyEvent(KeyEvent(key: .character(character)))
+                harness.frame(view())
+            }
+            _ = handler.handleKeyEvent(KeyEvent(key: .enter))
+            harness.frame(view())
+        }
+        #expect(reads.withLock { $0 } == 0, "the value's characters read whole \(reads.withLock { $0 }) times in ten keys")
+        #expect(cache.searches == searches, "\(cache.searches - searches) whole searches for ten keys")
+        let characters = String(text.value.characters[...])
+        let found = cache.matches(of: "two", options: FindOptions(), in: characters)
+        #expect(found.utf8 == FindMatchSet(query: "two", options: FindOptions(), text: characters).utf8)
+        #expect(found.count == 202, "the 200 lines' and the two typed")
+        #expect(handler.findColumns(ofLine: 100) == [5..<8, 9..<12])
+        #expect(handler.findColumns(ofLine: 101) == [0..<3])
+        // The app's own value, written whole, is searched once, and read by
+        // the editor's source as it takes it and twice by the undo history
+        // telling it from the text it last wrote (`EditorUndoText.sameContent`):
+        // not by the bar as well, which read it twice more, once in its body and
+        // once again after the walk (`BindingReads`).
+        text.value = AttributedString("two\n" + characters)
+        reads.withLock { $0 = 0 }
+        AttributedTextSource.$readReporter.withValue(TaskLocalReporter { reads.withLock { $0 += 1 } }) {
+            harness.frame(view())
+        }
+        #expect(reads.withLock { $0 } == 3, "the app's value read \(reads.withLock { $0 }) times")
+        #expect(cache.searches == searches + 1)
+        #expect(cache.current?.count == 203)
+    }
+
     // MARK: - Replacing
 
     @Test("Replace All in one pass makes the text a match at a time would")

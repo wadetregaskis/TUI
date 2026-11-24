@@ -52,6 +52,12 @@ processes, cannot take such a key, and the notification that can is not posted f
 no run loop. Off Apple platforms a suite is a file of TUI's own, and every write to it in the process goes through a
 store, which was already heard.
 
+**Typing in an attributed `TextEditor` with the find bar up no longer reads the whole document a key.** In an editor
+bound to an `AttributedString`, the bar made a `String` of the value's characters every time its view was evaluated,
+several times a frame, and compared it with the text its matches were of: 12.4 ms a key in a 3.2 MB document, against
+1.3 ms with the bar down. It now reads the characters the editor keeps for the value, which cost nothing while the
+value is unchanged, and a key costs 2.3 ms.
+
 **Content blended over its own background blends with the background.** `Text("Hi").foregroundStyle(.cyan)
 .blendMode(.multiply).background(.yellow)` drew cyan letters on yellow, and over another view multiplied the
 yellow into that view; it now draws green letters on an unblended yellow, as SwiftUI does. The same holds inside

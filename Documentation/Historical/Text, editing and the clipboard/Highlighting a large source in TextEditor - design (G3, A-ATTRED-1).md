@@ -1386,6 +1386,25 @@ editor's (38.5%), each a case-insensitive search of the whole document. So the m
   search of the line's bytes: no table of every line's marks is built, which for 40,000 matches was itself a cost per
   key. The app's marks are unchanged (B-ATTRED-46 to 49), and `EditorMarkStatement` is the app's alone.
 
+An attributed editor's bar (2026-11-24, H-80) still read the whole document on every evaluation: the bar and Ctrl-G
+asked the cache about `TextEditor.text`, which for an editor bound to an `AttributedString` is a binding whose read
+makes a `String` of the value's characters, and the cache then told that new `String` from its own byte for byte
+(B-ATTRED-49's test, equal lengths and different storage). The bar's body is evaluated several times a frame, so
+Stress `bigtext-rich-find` (the 3.2 MB of `bigtext-rich` with the bar up on `ok`) took 12.4 ms a typed key against
+`bigtext-rich`'s 1.3 ms, 72% of it in `AttributedTextSource.characters(of:)`, half of that the frame's replay of the
+bar's binding read after the walk (`BindingReads`). The bar now reads the text as the core's measure does: through the handler's
+`AttributedTextSource`, which gives the `String` it keeps, the one the layout and the matches are of, while the app's
+value is the one it last took or wrote in the same storage, and the binding it reads is of the `AttributedString`,
+which costs nothing to replay. A value the app writes is read once a frame, by whichever asks first. A key is 2.3 ms.
+
+The search itself is still Foundation's `range(of:options:range:)`, once a match. On macOS that is
+swift-foundation's own (`_StringCompareOptionsIterable._range`, in the profiles above). On Linux it is not: in the
+6.4.2 static Linux SDK, `StringProtocol.range(of:options:range:locale:)` is swift-corelibs-foundation's, and its
+calls (read from `libFoundation.a`'s relocations) are `_ns`, which bridges the whole string to an `NSString`
+(`String._bridgeToObjectiveC()`), `_toUTF16Offsets` and `NSString.range(of:options:range:locale:)`. So every call
+there goes through an `NSString` of the whole document, even the search of one edited line. What one such call costs
+on a 3.2 MB text, and so whether a key with the bar up is O(document) on Linux, has not been measured.
+
 
 Replace All and Replace are the editor's own edit now, one `TextEditorReplacement` per match through
 `writeReplacing`, last first, made in one pass (`EditedLines.apply(descending:)`, and in an attributed editor's value
