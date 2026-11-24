@@ -46,6 +46,9 @@ struct ScrollbarMemoTests {
         /// Whether the content is wide as well as tall, and scrolls both ways.
         var twoAxis = false
 
+        /// The clock the focus breath reads, or none: the step is then 0.
+        var timer: CursorTimer?
+
         func frame(palette: any Palette = SystemPalette(.green)) -> FrameBuffer {
             let rows = VStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<60, id: \.self) { index in
@@ -57,6 +60,7 @@ struct ScrollbarMemoTests {
             environment.focusManager = focusManager
             environment.applyRuntimeServices(from: tui)
             environment.palette = palette
+            if let timer { environment.cursorTimer = timer }
             // Beside the content: these frames compare the bar the first frame
             // draws, which the default (.overContent) draws only for the
             // pointer or the focus, and so not before the view takes the focus.
@@ -139,6 +143,40 @@ struct ScrollbarMemoTests {
         let scrolled = harness.frame()
         #expect(handler.horizontalScrollbarMemoHits == hitsBefore, "moved inputs were served")
         #expect(first.lines.last?.stripped != scrolled.lines.last?.stripped, "the bar did not move")
+    }
+
+    @Test("A focused scroll view's two bars are served 200 ms on, each showing the frame its clock is on")
+    func barsServedAcrossClockSteps() {
+        // H-82's measurement, through the view rather than the memo function:
+        // the key held the breath's raw clock step, so a focused scroll view
+        // re-rendered more than 50 ms after its last render drew both bars
+        // and their sixteen frames again (FREND-1). The first frame takes the
+        // focus; the next two are 200 ms apart, four steps of the breath.
+        let timer = CursorTimer(renderNotifier: AppState())
+        var harness = Harness()
+        harness.twoAxis = true
+        harness.timer = timer
+        withColorDepth(.truecolor) {
+            timer.observe(nowNanos: 1_000_000_000)
+            _ = harness.frame()
+            let before = harness.frame()
+            guard let handler = harness.handler else {
+                Issue.record("no scroll handler registered")
+                return
+            }
+            let hits = (handler.verticalScrollbarMemoHits, handler.horizontalScrollbarMemoHits)
+            timer.observe(nowNanos: 1_200_000_000)
+            let after = harness.frame()
+            var fresh = Harness()
+            fresh.twoAxis = true
+            fresh.timer = timer
+            _ = fresh.frame()
+            let drawn = fresh.frame()
+            #expect(before.lines != after.lines, "precondition: the breath moved in 200 ms")
+            #expect(handler.verticalScrollbarMemoHits > hits.0, "the vertical bar was drawn again")
+            #expect(handler.horizontalScrollbarMemoHits > hits.1, "the horizontal bar was drawn again")
+            #expect(after.lines == drawn.lines, "the served bars are not the ones drawn afresh at that instant")
+        }
     }
 
     @Test("A palette edited under the same id draws a new bar")
