@@ -91,6 +91,10 @@ final class FileBrowser {
     /// How many hidden items the folder holds, shown or not.
     private(set) var hiddenCount = 0
 
+    /// The order and hidden-files switch ``rows`` were arranged for; `nil`
+    /// while there are none.
+    @ObservationIgnored var rowsArrangement: Arrangement?
+
     /// What the panel shows of its folder.
     enum State: Equatable {
         /// The folder is being read.
@@ -137,6 +141,13 @@ final class FileBrowser {
     /// The "Loading…" rows of folders not read yet (``FileEntry/placeholder(in:)``),
     /// by URL: indexed, so the selection finds one dimmed and refuses it.
     @ObservationIgnored var placeholderIndex: [URL: FileEntry] = [:]
+
+    /// The order and hidden-files switch each of those folders' rows were
+    /// arranged for, by path: a folder arranged as the panel says now is not
+    /// arranged again. Each was, for every folder opened — the parent of
+    /// 50,000 items kept for the column view, a second's sort (release) —
+    /// before the folder opened could show.
+    @ObservationIgnored var folderArrangements: [String: Arrangement] = [:]
 
     /// The folders being read for ``loadFolder(_:)`` now, by path: each read's
     /// task, which every ask awaits, and the generation it began in.
@@ -209,6 +220,7 @@ final class FileBrowser {
             cancelLoadingPlaceholderTimer()
             listed = (folder, generation, read)
             rows = folderRows[folder.path] ?? []
+            rowsArrangement = folderArrangements[folder.path]
             rowIndex =
                 folderIndex[folder.path]
                 ?? Dictionary(
@@ -216,6 +228,7 @@ final class FileBrowser {
             state = .loaded
         } else {
             rows = []
+            rowsArrangement = nil
             state = .loading
             startLoadingPlaceholderTimer()
         }
@@ -258,6 +271,18 @@ final class FileBrowser {
         let generation: Int
         let showsHiddenFiles: Bool
         let sortOrder: [KeyPathComparator<FileEntry>]
+
+        /// The arrangement it asks for.
+        var arrangement: Arrangement {
+            Arrangement(showsHiddenFiles: showsHiddenFiles, sortOrder: sortOrder)
+        }
+    }
+
+    /// What a folder's rows are arranged by: the hidden-files switch and the
+    /// order.
+    struct Arrangement: Equatable {
+        let showsHiddenFiles: Bool
+        let sortOrder: [KeyPathComparator<FileEntry>]
     }
 
     /// The panel's `.task(id:)` key.
@@ -287,6 +312,7 @@ final class FileBrowser {
                 cancelLoadingPlaceholderTimer()
                 listed = nil
                 rows = []
+                rowsArrangement = nil
                 rowIndex = [:]
                 hiddenCount = 0
                 state = .failed(failure)
@@ -305,6 +331,7 @@ final class FileBrowser {
         rows = branches(for: arranged.rows)
         rowIndex = arranged.rowIndex
         hiddenCount = arranged.hiddenCount
+        rowsArrangement = key.arrangement
         state = .loaded
         let toLoad = openBranches.filter { folderListings[$0.panelStandardized.path] == nil }
         if !toLoad.isEmpty {
@@ -324,6 +351,7 @@ final class FileBrowser {
     nonisolated static func arrange(
         _ entries: [FileEntry], showsHiddenFiles: Bool, sortOrder: [KeyPathComparator<FileEntry>]
     ) async -> (rows: [FileEntry], rowIndex: [URL: Int], hiddenCount: Int) {
+        if let watch = FileArrangementWatch.current { await watch.heard(entries) }
         let hiddenCount = entries.count { $0.isHidden }
         let shown = showsHiddenFiles ? entries : entries.filter { !$0.isHidden }
         let rows = shown.sorted { lhs, rhs in
@@ -378,4 +406,19 @@ final class FileBrowser {
         }
         return shown.sorted().map { rows[$0] } + beneath.sorted { $0.url.path < $1.url.path }
     }
+}
+
+/// What a test hears of each arrangement ``FileBrowser`` makes
+/// (``FileBrowser/arrange(_:showsHiddenFiles:sortOrder:)``), the entries it
+/// is given, before it sorts them: a test counts them, or looks at what the
+/// panel shows while one waits. An arrangement of 50,000 items by name takes
+/// a second (release, macOS 26), so which folders are arranged, and when,
+/// is what a panel's wait is made of.
+struct FileArrangementWatch: Sendable {
+    /// The watch, while a test's task binds it; `nil`, and nothing heard,
+    /// everywhere else.
+    @TaskLocal static var current: Self?
+
+    /// Hears the entries of one arrangement, which waits for it.
+    let heard: @Sendable ([FileEntry]) async -> Void
 }

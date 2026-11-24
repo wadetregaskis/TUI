@@ -84,30 +84,37 @@ extension FileBrowser {
         folderFailures[path] = failure
         folderRows[path] = arranged.rows
         folderIndex[path] = arranged.rowIndex
+        folderArrangements[path] = Arrangement(showsHiddenFiles: hidden, sortOrder: order)
         attachBranches()
     }
 
     /// The folders read, arranged again as `key` says: after the folder shown
-    /// is, for a new order or the hidden-files switch.
+    /// is, for a new order or the hidden-files switch. Only those arranged
+    /// otherwise (``folderArrangements``): opening a folder changes no other
+    /// folder's order, and sorted again, a kept parent of 50,000 items held
+    /// the folder opened blank for a second (release).
     ///
     /// A folder read while they are arranged is arranged too, as the rest
     /// are. The rows were replaced by those of the folders there were when
     /// this began, which dropped such a folder's rows while its listing
     /// stayed — so nothing read it again, and its column drew "Loading…".
     func arrangeFolders(as key: RefreshKey) async {
-        guard !folderListings.isEmpty else { return }
-        var pending = folderListings
-        var arranged: [String: (rows: [FileEntry], rowIndex: [URL: Int], hiddenCount: Int)] = [:]
+        let arrangement = key.arrangement
+        var pending = folderListings.filter { folderArrangements[$0.key] != arrangement }
         while !pending.isEmpty {
+            var arranged: [String: (rows: [FileEntry], rowIndex: [URL: Int], hiddenCount: Int)] = [:]
             for (path, read) in pending {
                 arranged[path] =
                     await Self.arrange(read, showsHiddenFiles: key.showsHiddenFiles, sortOrder: key.sortOrder)
             }
             guard !Task.isCancelled, refreshKey == key else { return }
-            pending = folderListings.filter { arranged[$0.key] == nil }
+            for (path, result) in arranged {
+                folderRows[path] = result.rows
+                folderIndex[path] = result.rowIndex
+                folderArrangements[path] = arrangement
+            }
+            pending = folderListings.filter { folderArrangements[$0.key] != arrangement }
         }
-        folderRows = arranged.mapValues(\.rows)
-        folderIndex = arranged.mapValues(\.rowIndex)
     }
 
     /// Attaches the read folders to `rows` all the way down, as the
@@ -186,6 +193,7 @@ extension FileBrowser {
             folderListings[directory.path] = listed.entries
             folderRows[directory.path] = rows
             folderIndex[directory.path] = rowIndex
+            folderArrangements[directory.path] = rowsArrangement
         }
         let target = folder.panelStandardized.path
         let inside = FolderPath.withSlash(target)
@@ -196,6 +204,7 @@ extension FileBrowser {
         folderFailures = folderFailures.filter { isKeptPath($0.key) }
         folderRows = folderRows.filter { isKeptPath($0.key) }
         folderIndex = folderIndex.filter { isKeptPath($0.key) }
+        folderArrangements = folderArrangements.filter { isKeptPath($0.key) }
         placeholderIndex = placeholderIndex.filter { isKeptPath($0.value.placeholderFolder.panelStandardized.path) }
         for (path, timer) in folderLoadingTimers where !isKeptPath(path) {
             timer.cancel()
@@ -214,6 +223,7 @@ extension FileBrowser {
         folderFailures = [:]
         folderRows = [:]
         folderIndex = [:]
+        folderArrangements = [:]
         placeholderIndex = [:]
     }
 }
