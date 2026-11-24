@@ -2372,7 +2372,28 @@ before the step; `section-loop`, `one-section`, `outline`, `megalist`, `kitchens
 the plant and the drawing twins pass. A section written out (H-71b) takes the same path, its small loop no longer a
 lazy stack either.
 
-*Found, not fixed* (on 4cfb53cd4 too, so not the step's): 260 sections of a row cut to 250 under a title at spacing 1,
-pinned or not, draws the sections' headers and none of their rows until the next change — the frame on which the
-sections' loops together pass the threshold again after one past it. Marked a known issue in `SectionLoopCrossingTests`
+*Found* (on 4cfb53cd4 too, so not the step's): 260 sections of a row cut to 250 under a title at spacing 1, pinned or
+not, drew the sections' headers and none of their rows until the next change — the frame on which the sections' loops
+together pass the threshold again after one past it. Marked a known issue in `SectionLoopCrossingTests`
 (`changedCountDrawsAfresh`, and the sections' crossing's row check).
+
+**H-71d, that found issue: a sample of every row took the last gap off twice** (2026-11-24,
+`StackAnchoredMeasure.swift`'s `sampledRows`). Past the threshold again, each section's loop is a lazy stack that
+estimates its rows whatever their count (`windowsAnyCount`), and one that has drawn no row yet answers its measure
+from its sample: the first sixteen rows measured, the pitch averaged over them, the total `count × pitch` less the
+last gap. The sample counted each row with the gap below it but the last, which has none to draw — and the total took
+that gap off again. Past sixteen rows the last row is never in the sample, so only a loop of sixteen rows or fewer
+lost it, the stack's spacing short: one one-line row at spacing 1 averaged 1 and measured `1 × 1 − 1`, no lines, so
+each section drew its header, its gap and nothing, until a render had measured a row and the running pitch, which
+counts the last row's gap too (S10, `AnchoredWindowFrame.pitch`), took over. At 260 (S7) the loops are taken apart,
+so on the cut's frame their lazy stacks are new, with no running pitch. The same convention S10 set for the running
+pitch, at a site it left: now the sample counts every row with its gap. Not the 140-rows issue itself, which S10 fixed
+(2ec624395) in `enter(edgeOf:)` and the running pitch; the same arithmetic, in the measure. `PulledColumnFrame.height(of:)`
+still records a pulled column's last row without its gap; counting it was tried and changed nothing measured here, so
+it is left.
+
+`SectionLoopCrossingTests`' known issues are gone; `changedCountScrolledDrawsAfresh` (new) cuts 260 → 250 and 300 → 100
+and grows 250 → 260, sections of a row, in all eight shapes, scrolled to the top, five pages down and the end, against
+the new count scrolled there afresh, then End and Home on both, and checks that every header drawn has its row below.
+Before the fix it failed in the four shapes at spacing 1 cut 260 → 250: under a title, headers and no rows; without
+one, the fresh stack's Home after End landed mid-list (section 122 of 250).

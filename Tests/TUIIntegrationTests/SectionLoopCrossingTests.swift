@@ -128,11 +128,7 @@ struct SectionLoopCrossingTests {
         for (step, key) in [("across", startsLong ? "-" : "+"), ("back", startsLong ? "+" : "-")] {
             app.type(key)
             #expect(app.focusedID == focused, "\(shape) \(step): \(app.focusedID ?? "nil") was \(focused ?? "nil")")
-            withKnownIssue("260 sections cut to 250 under a title at spacing 1 draw no rows (the probe below)") {
-                #expect(Self.pressed(app, 1) == row, "\(shape) \(step), the row's state:\n\(app.screen)")
-            } when: {
-                Self.cutUnderTitleDropsRows(shape, manySections && startsLong && step == "across")
-            }
+            #expect(Self.pressed(app, 1) == row, "\(shape) \(step), the row's state:\n\(app.screen)")
         }
         // The focus still on the row: pressing bumps it again.
         _ = app.press(.enter)
@@ -209,16 +205,6 @@ struct SectionLoopCrossingTests {
 
     // MARK: - A changed count draws as the new count drawn afresh
 
-    /// Whether `shape` is one where cutting 260 sections of a row to 250
-    /// draws the sections' headers and none of their rows, until the next
-    /// change: under a title at spacing 1, pinned or not. On the base
-    /// (4cfb53cd4) too, so not the column's: the stack's sections' loops
-    /// passing the threshold again (`PinnedSectionScope.windowsSectionLoops`)
-    /// after a frame past it.
-    fileprivate static func cutUnderTitleDropsRows(_ shape: Shape, _ cut: Bool) -> Bool {
-        cut && shape.titled && shape.spacing == 1
-    }
-
     /// `from` sections of `perSection` rows until `+` makes them `to`.
     private struct Counted: View {
         let shape: Shape
@@ -271,12 +257,70 @@ struct SectionLoopCrossingTests {
         }
         _ = fresh.press(.tab)
         fresh.type("+")
-        withKnownIssue("260 sections cut to 250 under a title at spacing 1 draw no rows") {
-            #expect(moved.screen.contains("g0 r0"), "\(shape) \(counts) moved:\n\(moved.screen)")
-            #expect(
-                moved.screen.lines == fresh.screen.lines, "\(shape) \(counts):\n\(moved.screen)\n---\n\(fresh.screen)")
-        } when: {
-            Self.cutUnderTitleDropsRows(shape, counts.from == 260 && counts.to == 250)
+        #expect(moved.screen.contains("g0 r0"), "\(shape) \(counts) moved:\n\(moved.screen)")
+        #expect(
+            moved.screen.lines == fresh.screen.lines, "\(shape) \(counts):\n\(moved.screen)\n---\n\(fresh.screen)")
+    }
+
+    /// Where the stack is scrolled to before its count changes.
+    enum Place: String, CaseIterable, Sendable {
+        case top, middle, end
+
+        /// Scrolls `app` there (the scroll view focused first).
+        @MainActor func scroll(_ app: TestApp) {
+            _ = app.press(.tab)
+            switch self {
+            case .top: break
+            case .middle: for _ in 0..<5 { _ = app.press(.pageDown) }
+            case .end: _ = app.press(.end)
+            }
+        }
+    }
+
+    /// H-71d: 260 sections of a row cut to 250 under a title at spacing 1 drew
+    /// the headers and none of the rows, until the next change. Each section's
+    /// loop, a lazy stack once the sections' loops together pass the threshold,
+    /// measured its one row at no lines: its sample left the last row's gap
+    /// out and its total took it off again. Every shape, scrolled to the top,
+    /// the middle or the end, cut and grown, against the new count scrolled
+    /// there afresh; then End and Home on both. Grown at the end, the stack
+    /// keeps the row at its top, where the new count scrolled to its end is
+    /// further down, so that frame is not compared. Failed before the fix in
+    /// the four shapes at spacing 1, cut 260 → 250: under a title, headers
+    /// and no rows; without one, Home after End landed mid-list.
+    @Test("A changed count of sections, scrolled anywhere, draws what the new count draws afresh",
+          arguments: Shape.allCases, [(260, 250), (300, 100), (250, 260)])
+    func changedCountScrolledDrawsAfresh(_ shape: Shape, _ counts: (from: Int, to: Int)) {
+        for place in Place.allCases {
+            let moved = TestApp(width: 40, height: 12) {
+                Counted(shape: shape, from: counts.from, to: counts.to, perSection: 1)
+            }
+            place.scroll(moved)
+            moved.type("+")
+            let fresh = TestApp(width: 40, height: 12) {
+                Counted(shape: shape, from: counts.to, to: counts.to, perSection: 1)
+            }
+            place.scroll(fresh)
+            func check(_ step: String) {
+                #expect(
+                    moved.screen.lines == fresh.screen.lines,
+                    "\(shape) \(counts) \(place) \(step):\n\(moved.screen)\n---\n\(fresh.screen)")
+            }
+            // Every header drawn has its row below it, wherever the frame is
+            // (but one pinned over the top line, whose row may be off it).
+            let lines = moved.screen.lines.map { $0.trimmingCharacters(in: .whitespaces) }
+            for (index, line) in lines.enumerated().dropLast(2)
+            where line.hasPrefix("Group ") && !(shape.pinned && index == 0) {
+                let group = line.dropFirst(6).prefix { $0.isNumber }
+                #expect(
+                    lines[index + 1 + shape.spacing].hasPrefix("g\(group) r0"),
+                    "\(shape) \(counts) \(place), a header without its row:\n\(moved.screen)")
+            }
+            if !(place == .end && counts.to > counts.from) { check("changed") }
+            for app in [moved, fresh] { _ = app.press(.end) }
+            check("end")
+            for app in [moved, fresh] { _ = app.press(.home) }
+            check("home")
         }
     }
 }

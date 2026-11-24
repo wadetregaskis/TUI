@@ -188,12 +188,18 @@ import TUICore
         var sampleTotal = 0
         var sampled: [ViewSize] = []
         sampled.reserveCapacity(sample.count)
-        for (ordinal, child) in sample.enumerated() {
+        for child in sample {
             let size = child.measure(proposal: proposal, context: context)
             // Sample rows are measured but never rendered — keep their memo
             // entries alive (see `AnchoredWindowFrame.pitch`).
             context.renderCache?.markActive(child.identity(under: context))
-            sampleTotal += max(1, size.height) + (ordinal < count - 1 ? spacing : 0)
+            // Each row with the gap below it, the last too, as the running
+            // pitch counts it (`AnchoredWindowFrame.pitch`): the total below
+            // takes the last gap off once. Left out of the last row, a sample
+            // of every row took it off twice, so a loop of one one-line row at
+            // spacing 1 measured no lines, and a section drawing it drew only
+            // its header until a render measured the row (H-71d).
+            sampleTotal += max(1, size.height) + spacing
             sampled.append(size)
         }
         if state.measuredPitchCount < 1, !sample.isEmpty {

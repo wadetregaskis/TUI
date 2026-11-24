@@ -62,6 +62,12 @@ downloads, thirty decodes and thirty copies in memory. Loads of one URL, or of o
 cache now wait on the first, so it is one download, one decode and one picture. A view that goes while it waits
 leaves the load to the others; the load is abandoned only once every view waiting on it has gone.
 
+**A lazy stack's sections of a few rows draw their rows after the stack's count of sections changes.** In
+`LazyVStack(spacing: 1) { Text("Groups"); ForEach(groups) { group in Section(group.name) { ForEach(group.rows) { … } } }
+}`, cutting 260 groups of a row each to 250 drew every group's header and none of its rows until something else
+changed. A lazy stack measured by a sample of all its rows took the gap after the last one off twice, so a loop of
+sixteen rows or fewer at a spacing measured that much short, and one one-line row at spacing 1 measured nothing.
+
 **A `NavigationSplitView` that collapses keeps the state of the columns ahead of the one on top.** Narrowed into
 its stack with the sidebar on top, for a moment or under a compact size class, a split forgot its content and detail
 columns' `@State`, so they started over when it widened again. They are kept, not drawn, as a tab view keeps its
