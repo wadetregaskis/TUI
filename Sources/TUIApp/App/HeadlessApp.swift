@@ -151,7 +151,8 @@ package final class HeadlessApp {
             // running app sends itself, counted here. Without one, ⌃\ did
             // nothing at all.
             quitKey: { 0x1C }, onQuitKey: { quits.count += 1 },
-            quitPrompt: quitPrompt)
+            quitPrompt: quitPrompt,
+            onRedraw: { [appState = tuiContext.appState] in appState.setNeedsScreenRepaint() })
         // The last window closing asks the app to quit: counted, as the quit
         // key's quit is, rather than asked of the process's `AppState`.
         renderer.scenes.requestExit = { quits.count += 1 }

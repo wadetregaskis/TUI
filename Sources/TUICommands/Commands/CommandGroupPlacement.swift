@@ -40,6 +40,9 @@ public struct CommandGroupPlacement: Hashable, Sendable {
         case undoRedo, pasteboard, textEditing
         case textFormatting
         case toolbar, sidebar, accessibility
+        /// View ▸ Redraw: TUI's, at the View menu's foot, with no placement
+        /// of its own (``SceneOwnCommands``).
+        case redraw
         case windowSize, windowArrangement, windowList, singleWindowList
         case help
 
@@ -52,7 +55,7 @@ public struct CommandGroupPlacement: Hashable, Sendable {
             case .newItem, .saveItem, .importExport, .printItem: .file
             case .undoRedo, .pasteboard, .textEditing: .edit
             case .textFormatting: .format
-            case .toolbar, .sidebar, .accessibility: .view
+            case .toolbar, .sidebar, .accessibility, .redraw: .view
             case .windowSize, .windowArrangement, .windowList, .singleWindowList: .window
             case .help: .help
             }
@@ -179,7 +182,8 @@ public struct CommandGroupPlacement: Hashable, Sendable {
     /// is on. Choosing one turns it on or off for the rest of the run, over
     /// the system's setting, the user's `TUI_*` variable and the scene's own
     /// modifiers (`Scene.reduceMotion(_:)` and the like); nothing is saved.
-    /// The last group of the View menu. `CommandGroup(replacing:
+    /// The View menu's last group but TUI's Redraw (F5), which has no
+    /// placement of its own and follows it. `CommandGroup(replacing:
     /// .accessibility) {}` takes them away, as it does any group's.
     public static let accessibility = Self(.accessibility)
 

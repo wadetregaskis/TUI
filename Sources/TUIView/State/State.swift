@@ -43,6 +43,9 @@ package final class AppState: Sendable {
         var pendingCompletions: [AnimationCompletion] = []
         var pendingAnimationClocks: Set<AnimationClock> = []
         var needsCacheClear = false
+        /// Whether the next written frame rewrites every row
+        /// (``setNeedsScreenRepaint()``).
+        var needsScreenRepaint = false
         var shouldExit = false
         /// Whether a control ran its action since the run loop last asked
         /// (``noteControlActivated()``).
@@ -256,6 +259,27 @@ extension AppState {
             let value = state.needsCacheClear
             state.needsCacheClear = false
             return value
+        }
+    }
+
+    /// Asks the next frame written to rewrite every row of the screen, as
+    /// after a resize: the redraw (View ▸ Redraw, F5), for a screen something
+    /// else wrote over. The render loop throws its picture of the screen away
+    /// first (``consumeNeedsScreenRepaint()``).
+    ///
+    /// Thread-safe: can be called from any thread.
+    package func setNeedsScreenRepaint() {
+        lock.withLock { $0.needsScreenRepaint = true }
+        setNeedsRender()
+    }
+
+    /// Consumes and returns the screen-repaint flag
+    /// (``setNeedsScreenRepaint()``): asked by the render loop before a frame
+    /// it writes.
+    package func consumeNeedsScreenRepaint() -> Bool {
+        lock.withLock { state in
+            defer { state.needsScreenRepaint = false }
+            return state.needsScreenRepaint
         }
     }
 

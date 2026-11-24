@@ -179,6 +179,7 @@
   "menu.shortcutsShowTooltip": "ヘルプタグを表示",
   "menu.shortcutsContinued": "%@（続き）",
   "menu.keyboardShortcuts": "キーボードショートカット",
+  "menu.redraw": "再描画",
   "menu.settingsPanel": "設定",
   "menu.accessibility": "アクセシビリティ",
   "menu.palette": "パレット",

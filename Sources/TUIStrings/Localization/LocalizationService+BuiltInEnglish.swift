@@ -209,6 +209,7 @@ extension LocalizationService {
       "menu.shortcutsShowTooltip": "Show Tooltip",
       "menu.shortcutsContinued": "%@ (cont.)",
       "menu.keyboardShortcuts": "Keyboard Shortcuts",
+      "menu.redraw": "Redraw",
       "menu.settingsPanel": "Settings",
       "menu.accessibility": "Accessibility",
       "menu.palette": "Palette",

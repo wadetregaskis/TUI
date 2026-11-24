@@ -179,6 +179,7 @@
   "menu.shortcutsShowTooltip": "Mostrar descripción",
   "menu.shortcutsContinued": "%@ (cont.)",
   "menu.keyboardShortcuts": "Atajos de teclado",
+  "menu.redraw": "Redibujar",
   "menu.settingsPanel": "Ajustes",
   "menu.accessibility": "Accesibilidad",
   "menu.palette": "Paleta",

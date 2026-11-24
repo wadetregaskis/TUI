@@ -171,6 +171,11 @@ internal struct InputHandler {
     /// encoding; none under the kitty keyboard protocol. Asked for a ⌃\
     /// nothing took. Defaulted, as ``quitKey`` is.
     var quitByteAliasing: () -> TerminalClient.QuitByteAliases = { [] }
+
+    /// Asks for the whole screen to be written again by the next frame
+    /// (`ScreenRedraw`): F5, and the View menu's Redraw. Defaulted, as
+    /// ``quitKey`` is, for a test harness that does not exercise it.
+    var onRedraw: () -> Void = {}
 }
 
 // MARK: - Internal API
@@ -615,6 +620,7 @@ extension InputHandler {
             _ = handle(event)
         case .quit: quit()
         case .keyboardShortcutOverlay: showKeyboardShortcutOverlay()
+        case .redraw: onRedraw()
         }
     }
 
@@ -774,6 +780,13 @@ extension InputHandler {
         if runKeyboardShortcutOverlayKey(event, inputGrabbed: inputGrabbed) { return true }
         // F2, the settings panel, likewise (the owner, 2026-11-08).
         if runSettingsPanelKey(event, inputGrabbed: inputGrabbed) { return true }
+        // F5, the redraw (`ScreenRedraw`; the owner's O-15 (a), 2026-11-21),
+        // likewise, and behind a modal or an open drop-down too: it changes
+        // nothing but what is written to the terminal. A held key redraws once.
+        if event.key == ScreenRedraw.key, !event.shift {
+            if event.phase != .repeat { onRedraw() }
+            return true
+        }
         // The help key, before the chrome shortcuts and NOT suppressed by
         // `inputGrabbed`: a tooltip explains the control that has the focus, and
         // inside a modal that control is the one the reader is looking at. It

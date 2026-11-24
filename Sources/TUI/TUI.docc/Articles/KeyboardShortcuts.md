@@ -239,6 +239,7 @@ These keys do something by themselves, once nothing else has taken them. All but
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | F1 (fn-F1 on a Mac keyboard) | Show the list of the shortcuts in force, or take it down | Enabled by default; see "The List of Shortcuts" below |
 | F2 (fn-F2 on a Mac keyboard), or ⌃, | Open the settings panel, or close it | Enabled by default. ⌃, is the `Settings` scene's ⌘, through the command key, and arrives only under the kitty keyboard protocol, and never on Windows Terminal, which keeps it for its own settings; see "The Settings Panel" below |
+| F5 (fn-F5 on a Mac keyboard) | Redraw the whole screen (View ▸ Redraw), for a screen something else wrote over | Enabled by default; anything of yours on F5 comes first, and the menu item then names no key. See "Redrawing the Screen" below |
 | ⌥ with the help key (⌥?), or ⇧F1 | Show every tooltip on the screen at once, or hide them (Help ▸ Show All Tooltips) | Enabled by default. ⇧F1 is for a terminal that doesn't send Option; Apple Terminal sends neither by default, so there the menu item is the way |
 | ⇧F10, or the PC keyboard's Menu key | Open the context menu of what has the focus, or close an open one | Where the focused view has a `.contextMenu`, or is a list, table or tab row with one. The Menu key arrives only under the kitty keyboard protocol |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
@@ -614,6 +615,25 @@ everything of yours on the same keys comes first:
 
 A `.disabled()` split view ignores them.
 
+## Redrawing the Screen
+
+TUI writes only the cells that changed since its last frame, judged against
+its own record of what it drew, not against the terminal. Anything else that
+writes to the terminal — a `print` in an action, a library logging to
+standard error, another program writing to the same terminal, the terminal's
+own Clear command — leaves text TUI believes isn't there, and it stays until
+those cells change. F5, or View ▸ Redraw in an app with a menu bar, throws
+that record away and writes every row again on the next frame, as resizing
+the window does.
+
+Most full-screen programs redraw on ⌃L, but in TUI ⌃L reveals a list row's
+swipe actions where the terminal doesn't report Shift on the arrows. F5 means
+refresh in browsers, file managers and Windows, and none of TUI's other keys
+use it. It's a default binding, so an app that binds F5 has it, and the menu
+item then shows no key. See "The redraw key" in
+`Documentation/Terminals/Terminal compatibility survey.md` for what each
+terminal sends.
+
 ## The List of Shortcuts
 
 F1 shows a sheet listing the keys in force right now, and needs nothing from
@@ -624,7 +644,7 @@ you. Each comes from what the framework already knows, under a heading:
 | On This Screen | Each `.keyboardShortcut` on a button or toggle the page draws, by its label, then each `onKeyPress` given a `label` |
 | Each menu's title | The menu bar's commands, the scene's own included |
 | Status Bar | Its items, those of `.statusBarItems` among them |
-| General | F1, F2, Tab and Shift-Tab, F10 with a menu bar, and the help keys where a view on the screen has help |
+| General | F1, F2, F5, Tab and Shift-Tab, F10 with a menu bar, and the help keys where a view on the screen has help |
 
 "In force" is meant strictly. A disabled control isn't listed, a key the page and
 a menu both bind is listed as the page's, and a key appears once. Over a sheet or

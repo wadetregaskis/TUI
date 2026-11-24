@@ -6880,6 +6880,26 @@ after the grabber's keys: run it in Apple Terminal, iTerm2 and Ghostty from each
 default profile, and record whether F10 or fn-F10 was pressed, the
 standard-function-keys setting, and each host's Option setting.
 
+### The redraw key, F5 — chosen 2026-11-23, not measured
+
+Added with View ▸ Redraw (H-72; the owner's O-15 (a), 2026-11-21), which throws away the frame writer's picture of
+the screen and writes every row again, for a screen something else wrote over (`ScreenRedraw`). Most full-screen
+programs repaint on ⌃L, but here ⌃L is a list row's swipe actions where Shift does not arrive on the arrows (the
+owner's A48), so the key is F5: refresh or reload in browsers, file managers and Windows, free among TUI's own keys
+(F1 the list of keys, F2 the settings panel, F6 the toasts, F10 the menu bar), and, being a default binding in the
+chain's last layer, the app's first wherever it binds F5.
+
+| Key | What a host sends | TUI reads it as | Under the kitty keyboard protocol |
+|---|---|---|---|
+| **F5** | `ESC[15~`, the VT220 code, in the xterm family, Apple Terminal (which re-codes only the *shifted* function keys, above) and Windows Terminal; `ESC[[E` on the Linux console (terminfo `linux`, read since H-60) — expected from the encodings and terminfo, not measured | F5: View ▸ Redraw, where nothing of the app's takes it (`InputHandler.handleGlobalShortcut`) | `CSI 15~`, unchanged |
+
+On a Mac keyboard F5 is a media key unless fn is held or System Settings → Keyboard uses "F1, F2, etc. keys as
+standard function keys", as F1, F2 and F10 are: fn-F5 on a default Mac. ⇧F5 is not used: Apple Terminal sends F13
+for it. A host that sends nothing for F5 still has the menu item.
+
+*To measure — `Tools/TerminalProbes/key_probe.py`*: whether F5 or fn-F5 reaches the app in Apple Terminal, iTerm2,
+Ghostty, Warp and Windows Terminal from their default profiles.
+
 ### The help key, `?`, `⌥?` and `⇧F1` — ⇧F1 measured 2026-10-28, ⌥? in Ghostty only
 
 Added 2026-10-24 (lane MENUBAR; the owner's B-HELP-2 answer: no one key for

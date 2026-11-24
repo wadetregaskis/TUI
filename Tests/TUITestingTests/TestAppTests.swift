@@ -121,7 +121,7 @@ struct TestAppKeyTests {
         #expect(app.focusedID == "reset")
         app.press(.tab, modifiers: .shift)
         #expect(app.focusedID == "add")
-        #expect(!app.press(.f5))
+        #expect(!app.press(.f7))  // F7: F5 is View ▸ Redraw since H-72
     }
 
     @Test("Typing goes into the field a character at a time")

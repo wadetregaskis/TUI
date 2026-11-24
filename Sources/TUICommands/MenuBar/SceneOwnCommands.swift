@@ -34,6 +34,7 @@ import TUIFoundation
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
 /// | `help` | Keyboard Shortcuts; Show Tooltips; Show All Tooltips | the list of the keys in force, unless the scene turned it off (`Scene.keyboardShortcutOverlayDisabled`); whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each of the last two disabled where no view on the screen has help | F1, unless an app shortcut has it; —; ⌥ and the help key (⌥?), and Shift-F1, the chain's last resort, where Option does not arrive |
 /// | `accessibility` | Palette ▸, Border Style ▸, Control Style ▸; Breathing Focus; Spell Out Keys; Focus Follows Pointer; Arrows Follow Layout; Differentiate Without Color; Reduce Motion; Reduce Transparency; Increase Contrast | the three submenus choose as the settings panel's View tab does (`DisplayChoices`), left out where the commands offer them (`DisplayCommands`); each check turns its preference on or off for the rest of the run, over the system's setting, the `TUI_*` variable and the scene's modifiers (`ViewPreferenceOverrides`), checked while it is on; saved for the program's next runs. The settings panel's View and Accessibility tabs, in their order | — |
+/// | (its own, after `accessibility`) | Redraw | the whole screen written again by the frame after the menu closes, for a screen something else wrote over (`ScreenRedraw`; the owner's O-15 (a), 2026-11-21) | F5, unless an app shortcut has it |
 /// | `toolbar` | Customize Toolbar… | opens the customization panel of the page's customizable toolbar (`toolbar(id:content:)`), as its right-click does; only while the page shows one, and not where the commands offer it themselves (`ToolbarCommands`) | — |
 /// | `saveItem` | Close; Close All | closes the window in front; every window that may close but the one at the back; each disabled where it would close nothing (the Window menu's rule) | ⌘W; ⌥⌘W — a focused text field keeps Ctrl-W, its word rubout |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled where the person may not: the last, one whose content disabled its dismissal, one showing a sheet | Escape |
@@ -111,6 +112,8 @@ struct SceneOwnCommands {
             return customizeToolbarItems(environment)
         case .accessibility:
             return preferenceItems(environment)
+        case .redraw:
+            return redrawItems(environment)
         case .pasteboard:
             return Self.items("pasteboard") {
                 pressing("x", title: service.string(for: LocalizationKey.Menu.cut), environment)
@@ -178,6 +181,20 @@ struct SceneOwnCommands {
             }
             Section { toggles(ViewPreference.inTab(.view)) }
             Section { toggles(ViewPreference.inTab(.accessibility)) }
+        }
+    }
+
+    /// View ▸ Redraw: the whole screen written again by the frame after the
+    /// menu closes, as F5 does (`ScreenRedraw`; the owner's O-15 (a),
+    /// 2026-11-21). Showing F5, unless an app shortcut has it: the key is then
+    /// the app's, and the item still redraws. None outside a running app.
+    private func redrawItems(_ environment: EnvironmentValues) -> CommandItems? {
+        guard let keys = environment.keysAfterFrame else { return nil }
+        let appHasKey =
+            environment.keyboardShortcutRegistry?.hasAppShortcut(for: KeyEvent(key: ScreenRedraw.key)) ?? false
+        return Self.items("redraw") {
+            Button(LocalizationService.shared.string(for: LocalizationKey.Menu.redraw)) { keys.redraw() }
+                .keyboardShortcutHint(appHasKey ? nil : ScreenRedraw.shortcut)
         }
     }
 

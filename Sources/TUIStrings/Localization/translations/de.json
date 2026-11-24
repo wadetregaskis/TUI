@@ -179,6 +179,7 @@
   "menu.shortcutsShowTooltip": "Tooltip anzeigen",
   "menu.shortcutsContinued": "%@ (Forts.)",
   "menu.keyboardShortcuts": "Tastaturkurzbefehle",
+  "menu.redraw": "Neu zeichnen",
   "menu.settingsPanel": "Einstellungen",
   "menu.accessibility": "Bedienungshilfen",
   "menu.palette": "Palette",

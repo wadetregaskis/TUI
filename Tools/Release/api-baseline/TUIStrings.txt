@@ -170,6 +170,7 @@ LocalizationKey.Menu.open | case open
 LocalizationKey.Menu.palette | case palette
 LocalizationKey.Menu.quitApp | case quitApp
 LocalizationKey.Menu.redo | case redo
+LocalizationKey.Menu.redraw | case redraw
 LocalizationKey.Menu.reduceMotion | case reduceMotion
 LocalizationKey.Menu.reduceTransparency | case reduceTransparency
 LocalizationKey.Menu.save | case save

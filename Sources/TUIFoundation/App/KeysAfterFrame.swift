@@ -54,6 +54,11 @@ package final class KeysAfterFrame {
         /// takes the key, of the frame with the menu closed. No key goes
         /// anywhere: an app's own F1 is not what the Help menu's item means.
         case keyboardShortcutOverlay
+
+        /// The whole screen written again by the next frame, as the redraw
+        /// key asks for it (View ▸ Redraw). No key goes anywhere: an app's own
+        /// F5 is not what the View menu's item means.
+        case redraw
     }
 
     /// What is owed, in the order asked for.
@@ -90,6 +95,13 @@ package final class KeysAfterFrame {
     /// screen.
     package func showKeyboardShortcutOverlay() {
         owed.append(.keyboardShortcutOverlay)
+        requestFrame()
+    }
+
+    /// Asks for the whole screen to be written again once the next frame
+    /// is on the screen.
+    package func redraw() {
+        owed.append(.redraw)
         requestFrame()
     }
 

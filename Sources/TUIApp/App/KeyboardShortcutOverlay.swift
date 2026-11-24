@@ -157,6 +157,7 @@ extension InputHandler {
         if let settingsPanel, settingsPanel.isAvailable, let key = settingsPanel.key, tooltipState?.helpKey != key {
             addGeneral(key, .settings)
         }
+        addGeneral(ScreenRedraw.key, .redraw)
         addGeneral(.tab, .shortcutsNextControl)
         addGeneral(.tab, .shortcutsPreviousControl, shift: true)
         if let tooltipState, tooltipState.hasHelpOnScreen, tooltipState.showsTooltips {

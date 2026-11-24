@@ -379,6 +379,9 @@ public enum LocalizationKey {
         case shortcutsContinued = "menu.shortcutsContinued"
         /// The menu bar's Help ▸ Keyboard Shortcuts, and the heading of the list it shows.
         case keyboardShortcuts = "menu.keyboardShortcuts"
+        /// The menu bar's View ▸ Redraw (F5): every row of the screen written
+        /// again, for a screen something else wrote over.
+        case redraw = "menu.redraw"
         /// The settings panel's name (F2), which its tab strip is labelled with.
         case settingsPanel = "menu.settingsPanel"
         /// The settings panel's Accessibility tab.

@@ -179,6 +179,7 @@
   "menu.shortcutsShowTooltip": "Afficher la bulle d’aide",
   "menu.shortcutsContinued": "%@ (suite)",
   "menu.keyboardShortcuts": "Raccourcis clavier",
+  "menu.redraw": "Redessiner",
   "menu.settingsPanel": "Réglages",
   "menu.accessibility": "Accessibilité",
   "menu.palette": "Palette",

@@ -342,7 +342,8 @@ extension AppRunner {
             // kitty keyboard protocol each arrives as itself.
             quitByteAliasing: { [weak self, terminal] in
                 terminal.keyboardEnhancement.isEmpty ? (self?.hostQuitByteAliases ?? .all) : []
-            }
+            },
+            onRedraw: { [appState] in appState.setNeedsScreenRepaint() }
         )
     }
 

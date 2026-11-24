@@ -186,8 +186,8 @@ struct HeadlessAppTests {
 
     /// The field turns a letter away and rings the bell; the run loop writes it
     /// with the next frame, once, ahead of the frame's cells.
-    /// As an unhandled key does on a Mac (NSBeep): F5 means nothing on this
-    /// page, and nothing takes it.
+    /// As an unhandled key does on a Mac (NSBeep): F7 means nothing on this
+    /// page, and nothing takes it (F5, which this used, is now TUI's redraw).
     @Test("A key press nothing takes rings the bell; one the focused field takes does not")
     func unhandledKeyRingsTheBell() {
         let app = HeadlessApp(TypingApp(), width: 40, height: 10)
@@ -195,10 +195,10 @@ struct HeadlessAppTests {
         app.send(KeyEvent(key: .character("a")))
         app.frame(atNanos: 16_666_667)
         #expect(app.bellsWritten == 0, "the field took the letter")
-        #expect(!app.send(KeyEvent(key: .f5)), "precondition: nothing on the page takes F5")
+        #expect(!app.send(KeyEvent(key: .f7)), "precondition: nothing on the page takes F7")
         app.frame(atNanos: 33_333_334)
         #expect(app.bellsWritten == 1)
-        app.send(KeyEvent(key: .f5, phase: .release))
+        app.send(KeyEvent(key: .f7, phase: .release))
         app.frame(atNanos: 50_000_001)
         #expect(app.bellsWritten == 1, "a release rings nothing")
     }

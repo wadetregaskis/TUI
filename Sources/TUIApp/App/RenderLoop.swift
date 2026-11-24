@@ -633,6 +633,9 @@ extension RenderLoop {
         // loop has already shown it; a render called any other way has not.
         cursorTimer?.observe(nowNanos: UInt64(bitPattern: frameNowNanos))
         if writesFrame {
+            // The redraw (View ▸ Redraw, F5; `ScreenRedraw`): every row of
+            // this frame written whole, as after a resize.
+            if tuiContext.appState.consumeNeedsScreenRepaint() { invalidateDiffCache() }
             updates.noteFrameWritten()
             // The timed input — drags, spring loading, gestures — runs to this
             // frame's instant first, against the last frame's regions.

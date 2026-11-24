@@ -53,6 +53,14 @@ app's shortcut on an arrow now takes the key before the focus system moves the f
 names, Shift included (the owner's ruling O-11 (a)). The focused control and an `onMoveCommand` around it still have
 the arrow first, and an arrow no shortcut is on moves the focus as before.
 
+**F5, or View ▸ Redraw, writes the whole screen again.** TUI writes only what changed since its last frame, so text
+something else wrote over the app — a `print` in an action, a library logging to standard error, another program —
+stayed until those cells changed, and resizing the window was the only way to clear it. Every menu bar's View menu now
+ends with Redraw, on F5, which throws away TUI's record of the screen and repaints every row on the next frame, as a
+resize does; F5 does the same without a menu bar, and F1's list names it under General. ⌃L, the usual repaint key, is
+already a list row's swipe actions, so the key is F5, the refresh key of browsers and Windows. An app that binds F5
+keeps it, and the menu item then shows no key.
+
 **A filtered list that crosses 256 rows keeps the focus and its rows' state.** In scroll content, a loop beside other
 views — `LazyVStack { TextField("Filter", text: $query); ForEach(results) { … } }`, or a `GroupBox` or
 `DisclosureGroup` of a header and a loop — was drawn under an extra step of identity only while the loop had more than

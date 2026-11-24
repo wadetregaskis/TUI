@@ -243,6 +243,12 @@ Set `TUI_REDUCE_MOTION=1`, or turn on Reduce Motion in your system's settings, a
 
 Set `TUI_DIFFERENTIATE_WITHOUT_COLOR=1`, turn on Differentiate Without Color in your system's settings or, in an app with a menu bar, in its View menu. TUI's own controls then show the keyboard in reverse video and a disabled control faint, and mark a table's selected rows with a dot. `TUI_INCREASE_CONTRAST=1` asks for more contrast as well. <doc:EnvironmentVariables> lists the other settings.
 
+## Stray text over the app
+
+**Text from somewhere else is printed over the app, or the screen has shifted up a line, and it stays.**
+
+Something wrote to the terminal behind TUI's back: a `print` in your code, a library logging to standard error, or another program. TUI rewrites only what it changed, so the stray text stays until those cells change. Press F5, or choose View ▸ Redraw, and every row is written again. To keep such output, write it to a file instead.
+
 ## My terminal is messed up after a crash
 
 **After the app was killed, typing shows nothing, or mouse movements print strange text.**
