@@ -10,6 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 @testable import TUIApp
@@ -22,6 +23,9 @@ import TUITesting
 // MARK: - Fixtures
 
 /// The scene's binding and what its actions did, reachable from an `App`.
+/// Observed, as an app's state is: a page whose alert is closed is served from
+/// its memo, and a write to an unobserved class would not reach it.
+@Observable
 private final class AlertProbe: @unchecked Sendable {
     static let shared = AlertProbe()
     var isPresented = false

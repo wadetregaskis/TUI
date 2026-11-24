@@ -112,10 +112,20 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
         // rather than jumping to the top.
         guard isPresented.wrappedValue else {
             if !context.isMeasuring {
-                // Deactivation mutates focus state — a render side effect
-                // (see the presentation branch below).
-                context.environment.volatileReadTracker?.recordRenderSideEffect()
-                context.environment.focusManager?.deactivateSection(id: sectionID)
+                // Deactivation mutates focus state, a render side effect no
+                // memo can make again (see the presentation branch below), and
+                // only the first frame after a dismissal has a section to tear
+                // down. Declared on that frame alone: on every other this does
+                // nothing a memo cannot replay, so a row carrying a closed
+                // alert can be served. Declared on every frame, it kept every
+                // memo above a closed alert from storing, and fifty rows each
+                // carrying one were composed on every frame.
+                if let focusManager = context.environment.focusManager,
+                    focusManager.wouldDeactivateSection(id: sectionID)
+                {
+                    context.environment.volatileReadTracker?.recordRenderSideEffect()
+                    focusManager.deactivateSection(id: sectionID)
+                }
                 // Recentre next time it opens.
                 DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
             }

@@ -35,6 +35,8 @@ private struct StormRow: Equatable, Sendable {
     var refreshable = false
     var dimmed = false
     var boxed = false
+    /// Whether the alert every row carries is up.
+    var alerting = false
 
     var title: String { "r\(id).\(version)" }
 }
@@ -120,7 +122,11 @@ private struct StormRowView: View, @MainActor Equatable {
             view = AnyView(RefreshNote(log: log, content: view).refreshable { log.append("refresh \(row.title)") })
         }
         if row.dimmed { view = AnyView(view.dimmed()) }
-        return view
+        // Every row carries one, up or not: a closed alert is served with its
+        // row, and the frame after one closes tears its section down.
+        return view.alert("alert \(row.title)", isPresented: .constant(row.alerting)) {
+            Button("OK") { log.append("ok \(row.title)") }
+        }
     }
 }
 
@@ -248,7 +254,7 @@ extension StormPage {
     /// any, to activate once the next frame has registered it.
     mutating func mutate(_ random: inout StormRandom) -> (String, activate: String?) {
         let group = random.next(3)
-        switch random.next(11) {
+        switch random.next(12) {
         case 0: return (editRow(&random) { $0.version += 1 }, nil)
         case 1: return (editRow(&random) { $0.key = $0.key == nil ? StormKeys.rowKeys[$0.version % 4] : nil }, nil)
         case 2: return (editRow(&random) { $0.item = $0.item == nil ? StormKeys.itemKeys[$0.id % 4] : nil }, nil)
@@ -267,6 +273,7 @@ extension StormPage {
         case 9:
             sheet.toggle()
             return ("sheet \(sheet)", nil)
+        case 10: return (editRow(&random) { $0.alerting.toggle() }, nil)
         default:
             let name = "s\(random.next(5))"
             return ("activate \(name)", name)

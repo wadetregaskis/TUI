@@ -1371,7 +1371,7 @@ extension FocusManager {
     public func deactivateSection(id: String) {
         // Or a section drawn inside it: a presentation dismissed with the focus
         // in a `.focusSection` of its content gives the focus back all the same.
-        guard let active = activeSectionID, active == id || isDrawn(active, inside: id) else { return }
+        guard wouldDeactivateSection(id: id) else { return }
         rememberFocusForActiveSection()
         // The modal's control loses focus here as surely as the page's control
         // did when the modal opened (`activateSection` notifies) — and it must

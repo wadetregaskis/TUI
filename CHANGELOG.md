@@ -58,6 +58,13 @@ several times a frame, and compared it with the text its matches were of: 12.4 m
 1.3 ms with the bar down. It now reads the characters the editor keeps for the value, which cost nothing while the
 value is unchanged, and a key costs 2.3 ms.
 
+**A row carrying an `.alert` that is not up is served from the row memo.** A dismissed alert declared, on every
+frame, the one thing it does then that no memo can make again, giving back the focus a just-closed alert held, so
+nothing above it was ever kept: fifty rows each carrying an `.alert` were all composed again on every frame, and an
+`.equatable()` view holding one ran its body every frame. Only the frame after an alert closes does that now. As for
+any control in a served row, what presents the alert must be state TUI observes (`@State`, an `@Observable`): a flag
+in a plain class, read through `Binding(get:set:)`, does not reach a row the memo serves.
+
 **Content blended over its own background blends with the background.** `Text("Hi").foregroundStyle(.cyan)
 .blendMode(.multiply).background(.yellow)` drew cyan letters on yellow, and over another view multiplied the
 yellow into that view; it now draws green letters on an unblended yellow, as SwiftUI does. The same holds inside

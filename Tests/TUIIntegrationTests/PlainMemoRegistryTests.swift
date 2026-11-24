@@ -140,7 +140,7 @@ struct PlainMemoRegistryTests {
     /// it and a run of keys, comparing the registries and the log at each step.
     private func compare<Content: View>(
         _ name: String, keys: [KeyEvent] = [KeyEvent(key: .tab), KeyEvent(key: .tab), KeyEvent(key: .enter)],
-        expectServed: Bool = true, @ViewBuilder _ content: @escaping (Copy) -> Content
+        expectServed: Bool = true, holderServed: Bool = false, @ViewBuilder _ content: @escaping (Copy) -> Content
     ) {
         func run(on: Bool, step: (Int, Copy, HeadlessApp) -> Void) -> Int {
             let copy = Copy()
@@ -174,7 +174,9 @@ struct PlainMemoRegistryTests {
         var off: [(Registries, [String])] = []
         _ = run(on: false) { _, copy, app in off.append((Registries(app), copy.log)) }
         var mismatches = 0
+        var holderBodies: [Int: Int] = [:]
         let served = run(on: true) { index, copy, app in
+            holderBodies[index] = copy.bodies
             let seen = Registries(app)
             guard index < off.count, mismatches == 0 else { return }
             if seen != off[index].0 || copy.log != off[index].1 {
@@ -184,6 +186,13 @@ struct PlainMemoRegistryTests {
         }
         if expectServed {
             #expect(served > 0, "\(name): nothing was served, so nothing was tested")
+        }
+        // The app's count can be met by a composite beside the one tested (the
+        // page's `Leaf`, on the frames it is not written), so a case whose
+        // `Holder` must be served says so: frames 4 to 6 write only the leaf
+        // beside it, and a served holder evaluates no body on them.
+        if holderServed, let before = holderBodies[2], let after = holderBodies[5] {
+            #expect(after == before, "\(name): the holder's body ran \(after - before) times in three frames that wrote only its sibling")
         }
     }
 
@@ -313,7 +322,9 @@ struct PlainMemoRegistryTests {
 
     @Test("Presentations that are not up, chrome declared from below") func presentation() {
         compare("sheet") { _ in Text("x").sheet(isPresented: .constant(false)) { Text("s") } }
-        compare("alert") { _ in Text("x").alert("t", isPresented: .constant(false)) { Button("OK") {} } }
+        compare("alert", holderServed: true) { _ in
+            Text("x").alert("t", isPresented: .constant(false)) { Button("OK") {} }
+        }
         compare("toolbar", expectServed: false) { copy in
             Text("x").toolbar { ToolbarItem { Button("t") { copy.log.append("t") } } }
         }

@@ -212,6 +212,18 @@ extension FocusManager {
         return nil
     }
 
+    /// Whether ``deactivateSection(id:)`` would deactivate anything: `id` is
+    /// the active section, or the active one was drawn inside it.
+    ///
+    /// So on one frame of a dismissed presentation, the first after it was up.
+    /// A dismissed presenter asks, and declares a render side effect only when
+    /// it has a section to tear down: on every other frame it makes nothing a
+    /// memo cannot make again, and the memos above it can store.
+    package func wouldDeactivateSection(id: String) -> Bool {
+        guard let active = activeSectionIdentifier else { return false }
+        return active == id || isDrawn(active, inside: id)
+    }
+
     /// Whether `section` was drawn inside the content of `presentation`, at any
     /// depth.
     func isDrawn(_ section: String, inside presentation: String) -> Bool {
