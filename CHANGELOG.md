@@ -31,6 +31,18 @@ root. Both now behave as SwiftUI's stack does.
 `navigationDestination(for: Shape.self)`, and a destination for `Circle` answers only a value pushed as a `Circle`,
 as in SwiftUI.
 
+**An `@AppStorage` over `UserDefaults` is redrawn by a write made to `UserDefaults` itself.** A settings model that
+calls `UserDefaults.standard.set(true, forKey: "showHidden")`, a background task writing a suite, or another process's
+`defaults write` left a view reading `@AppStorage("showHidden")` showing the old value until something else redrew it,
+and asked for no frame; only a write through `@AppStorage` or a `StorageBackend` was heard. As in SwiftUI, whose `AppStorage`
+"invalidates a view on a change in value in that user default" (Apple's documentation), a change to the key however it
+is made now redraws the views that read it, on the main actor: at once for a write made there, on
+its next turn for one made elsewhere. One gap is left: another process's write to a key with a `.` in it, or one that
+begins with `@`, is drawn only when something else redraws the view, since key-value observing, which hears other
+processes, cannot take such a key, and the notification that can is not posted for them in a terminal app, which runs
+no run loop. Off Apple platforms a suite is a file of TUI's own, and every write to it in the process goes through a
+store, which was already heard.
+
 **Content blended over its own background blends with the background.** `Text("Hi").foregroundStyle(.cyan)
 .blendMode(.multiply).background(.yellow)` drew cyan letters on yellow, and over another view multiplied the
 yellow into that view; it now draws green letters on an unblended yellow, as SwiftUI does. The same holds inside

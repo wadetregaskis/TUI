@@ -18,7 +18,9 @@ import TUICore
     /// Any number of these may stand over one defaults domain — the default
     /// store, a `store: .standard`, a `UserDefaults(suiteName:)` made afresh
     /// each time a view is — and a write through any one of them redraws the
-    /// views that read the key through any other (see `sharedKeys`).
+    /// views that read the key through any other (see `sharedKeys`). So does
+    /// a write made around them all, through `UserDefaults` itself or by
+    /// another process, as under SwiftUI (`UserDefaultsWatcher`).
     ///
     /// A property-list value — a `Bool`, an `Int`, a `String` and the rest
     /// (`PropertyListValue`) — is kept as itself, as SwiftUI's `AppStorage`
@@ -40,6 +42,23 @@ import TUICore
             /// for it, the value they decoded to, and its ``StoredKey``.
             var entries: [String: StoredEntry] = [:]
 
+            /// Whether the keys this store sees are watched for changes made
+            /// around it (`UserDefaultsWatcher`): not a scene-state store's,
+            /// whose values are TUI's own, in a suite nothing else writes.
+            var watchesKeys = true
+
+            /// The keys this store has seen since it last took them
+            /// (``takeUnwatched()``), to be watched. Almost always empty: a key
+            /// is new to a store once.
+            var unwatched: [(key: String, stored: StoredKey)] = []
+
+            /// ``unwatched``, emptied.
+            mutating func takeUnwatched() -> [(key: String, stored: StoredKey)] {
+                guard !unwatched.isEmpty else { return [] }
+                defer { unwatched = [] }
+                return unwatched
+            }
+
             /// The entry for `key`, made empty if there is none, on the key's
             /// shared ``StoredKey``.
             mutating func entry(_ key: String) -> StoredEntry {
@@ -52,6 +71,7 @@ import TUICore
                 }
                 let entry = StoredEntry(key: stored)
                 entries[key] = entry
+                if watchesKeys { unwatched.append((key, stored)) }
                 return entry
             }
         }
@@ -110,6 +130,7 @@ import TUICore
         private init(sceneState defaults: UserDefaults) {
             self.defaults = defaults
             self.sceneStateSuite = nil
+            state.withLock { $0.watchesKeys = false }
         }
 
         /// The suite the scene state of a store of `suite` is kept in: the
@@ -144,14 +165,17 @@ import TUICore
             // A property-list value is read as itself, every time: there are no
             // bytes to keep a decoding of.
             if let stored = PropertyListValue.read(T.self, from: defaults, forKey: key) {
-                return (stored, state.withLock { $0.entry(key).key })
+                let (found, new) = state.withLock { ($0.entry(key).key, $0.takeUnwatched()) }
+                watch(new)
+                return (stored, found)
             }
             let data = defaults.data(forKey: key)
-            let (read, stored) = state.withLock { state -> (StoredValue<T?>, StoredKey) in
+            let (read, stored, new) = state.withLock { state -> (StoredValue<T?>, StoredKey, [(key: String, stored: StoredKey)]) in
                 let entry = state.entry(key)
                 entry.reload(data)
-                return (StoredValue(entry.value()), entry.key)
+                return (StoredValue(entry.value()), entry.key, state.takeUnwatched())
             }
+            watch(new)
             return (read.value, stored)
         }
 
@@ -163,11 +187,13 @@ import TUICore
         /// user expected to keep, so it is worth surfacing.
         public func store<T: Codable>(_ value: T, forKey key: String) -> StoredKey {
             if PropertyListValue.write(value, to: defaults, forKey: key) {
-                return state.withLock { state in
+                let (stored, new) = state.withLock { state in
                     let entry = state.entry(key)
                     entry.clear()
-                    return entry.key
+                    return (entry.key, state.takeUnwatched())
                 }
+                watch(new)
+                return stored
             }
             let data: Data
             do {
@@ -175,15 +201,19 @@ import TUICore
             } catch {
                 StorageDiagnostics.report(
                     StorageFailure(operation: .encode, key: key, underlying: error))
-                return state.withLock { $0.entry(key).key }
+                let (stored, new) = state.withLock { ($0.entry(key).key, $0.takeUnwatched()) }
+                watch(new)
+                return stored
             }
             defaults.set(data, forKey: key)
             let crossing = StoredValue(value)
-            return state.withLock { state in
+            let (stored, new) = state.withLock { state in
                 let entry = state.entry(key)
                 entry.set(crossing.value, encoded: data)
-                return entry.key
+                return (entry.key, state.takeUnwatched())
             }
+            watch(new)
+            return stored
         }
 
         /// Removes any value stored for `key`. A key that was never set is
@@ -198,6 +228,19 @@ import TUICore
                 entry.clear()
                 return entry.key
             }
+        }
+
+        /// Watches `keys`, new to this store, for changes made around it — by
+        /// `UserDefaults` itself, another process — through the watcher of
+        /// the `UserDefaults` it reads (`UserDefaultsWatcher`).
+        ///
+        /// Never with this store's lock held: the watcher reads each key, and
+        /// `UserDefaults` may run the watcher, which reads them all, while it
+        /// does. None for a scene-state store (`State.watchesKeys`).
+        private func watch(_ keys: [(key: String, stored: StoredKey)]) {
+            guard !keys.isEmpty else { return }
+            let watcher = UserDefaultsWatcher.of(defaults)
+            for (key, stored) in keys { watcher.watch(key, announcing: stored) }
         }
 
         /// Asks `UserDefaults` to flush pending writes: this store's suite's,

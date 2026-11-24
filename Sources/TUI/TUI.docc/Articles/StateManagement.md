@@ -217,7 +217,12 @@ A view that read a stored value — in its `body`, or through a control bound to
 observed like a change to an `@Observable` property, through the key's
 ``StoredKey``. That holds for a write made through the store itself
 (`StorageDefaults.backend.setValue(_:forKey:)`) as much as for one through the
-wrapper.
+wrapper. On Apple platforms it holds for a write made to `UserDefaults` itself
+too, as in SwiftUI: a settings model that calls
+`UserDefaults.standard.set(_:forKey:)`, or another process's `defaults write`,
+redraws the views that read the key through `@AppStorage`. The one gap is
+another process's write to a key with a `.` in it, or one that begins with
+`@`, which shows only when something else redraws the view.
 
 ### Which store
 
