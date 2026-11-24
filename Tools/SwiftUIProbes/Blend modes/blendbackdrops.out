@@ -1,0 +1,22 @@
+pixels r,g,b,a in sRGB; named colours as ImageRenderer resolves them (light)
+white: [255, 255, 255, 255]
+blue: [0, 122, 255, 255]
+yellow: [255, 204, 0, 255]
+cyan: [85, 190, 240, 255]
+
+(1) ZStack { page; Color.blue.opacity(0.5); Color.yellow.blendMode(.multiply) }
+blue at ½ over the white page: [128, 189, 255, 255]  (mix: [128, 189, 255])
+over the white page: [128, 151, 0, 255]
+  multiply(yellow, blue at ½ over page) = [128, 151, 0]
+  multiply(yellow, opaque blue)         = [0, 98, 0]
+over nothing (no page): [127, 150, 0, 255]
+over a black page: [0, 49, 0, 255]  (multiply(yellow, blue at ½ over black) = [0, 49, 0])
+
+(2) blended content over its own .background(Color.yellow)
+text unblended over its fill (commonest): [([255, 255, 255, 255], 4344), ([255, 204, 0, 255], 1566), ([85, 190, 240, 255], 1024)]
+text .blendMode(.multiply).background(yellow) over the page (commonest): [([255, 255, 255, 255], 4344), ([255, 204, 0, 255], 1566), ([85, 152, 0, 255], 1024)]
+  multiply(cyan, yellow) = [85, 152, 0]
+the same over an opaque blue (commonest): [([0, 122, 255, 255], 4344), ([255, 204, 0, 255], 1566), ([85, 152, 0, 255], 1024)]
+  multiply(yellow, blue) = [0, 98, 0]
+Color.cyan (20 wide) .blendMode(.multiply) .frame(40) .background(yellow), its middle: [85, 152, 0, 255]
+the same over an opaque blue: under the cyan [85, 152, 0, 255], the fill beside it [255, 204, 0, 255]

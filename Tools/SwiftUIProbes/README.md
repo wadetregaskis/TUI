@@ -922,6 +922,16 @@ messages cite that path), and what cites it.
   nothing every mode but the Porter-Duff ones draws the source unchanged; source atop and destination out draw
   nothing there, and destination over leaves the backdrop wherever there is one.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-19.
+- **Asks too (H-67):** what a mode blends against where what is behind it is not one opaque view
+  (`blendbackdrops.swift`, `blendbackdrops.out`): `Color.yellow.blendMode(.multiply)` over `Color.blue.opacity(0.5)`
+  over a page, and content blended over its own `.background(Color.yellow)`, text and a fill.
+- **Answers:** a mode blends against everything composited behind it. Over a white page the yellow (255, 204, 0)
+  draws (128, 151, 0), multiply(yellow, the blue at ½ over the page (128, 189, 255)), not multiply(yellow, opaque
+  blue) = (0, 98, 0); over a black page (0, 49, 0), the same rule. Inside `.background`, the content multiplies
+  into the fill behind it: cyan letters (85, 190, 240) on yellow draw (85, 152, 0), multiply(cyan, yellow), and a
+  cyan fill the same. The `.background`'s own fill is not blended: over an opaque blue it stays (255, 204, 0)
+  beside and around the content, and the content still draws (85, 152, 0) against it.
+- **Ran:** macOS 15.8.3, the macOS 26.2 SDK, Xcode's Swift 6.2.4, 2026-11-23.
 - **Cited by:** `Sources/TUICore/Rendering/BlendMode.swift`,
   `Sources/TUIFoundation/Styling/Color+BlendMode.swift`; `Tests/TUIFoundationTests/BlendModeTests.swift`;
   `Documentation/Colour and styling/Opacity as composition.md`,
