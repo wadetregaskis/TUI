@@ -334,6 +334,18 @@ enum AppShapeMatrix {
         scrolling("section-loop", "a lazy stack of 100 sections of 100 one- and two-line entries, headers pinned, scrolled three lines a tick (S8)") {
             AnyView(PulledPageApp(shape: .sectionLoop, entries: $0.sized(10_000), seed: $0.seed))
         },
+        scrolling("small-sections", "a lazy stack of 20 sections of 5 one- and two-line entries, scrolled three lines a tick (H71-SECTIONS)") {
+            AnyView(PulledPageApp(shape: .smallSections(perSection: 5, pinned: false), entries: $0.sized(100), seed: $0.seed))
+        },
+        scrolling("small-sections-pinned", "the same 20 sections of 5 entries, headers pinned, scrolled three lines a tick (H71-SECTIONS)") {
+            AnyView(PulledPageApp(shape: .smallSections(perSection: 5, pinned: true), entries: $0.sized(100), seed: $0.seed))
+        },
+        scrolling("many-small-sections", "a lazy stack of 50 sections of 4 one- and two-line entries, scrolled three lines a tick (H71-SECTIONS)") {
+            AnyView(PulledPageApp(shape: .smallSections(perSection: 4, pinned: false), entries: $0.sized(200), seed: $0.seed))
+        },
+        scrolling("many-small-sections-pinned", "the same 50 sections of 4 entries, headers pinned, scrolled three lines a tick (H71-SECTIONS)") {
+            AnyView(PulledPageApp(shape: .smallSections(perSection: 4, pinned: true), entries: $0.sized(200), seed: $0.seed))
+        },
         scrolling("titled-editor", "a title over a TextEditor of 10,000 wrapped paragraphs, scrolled three lines a tick") {
             AnyView(PulledEditorApp(lines: $0.sized(10_000), seed: $0.seed))
         },

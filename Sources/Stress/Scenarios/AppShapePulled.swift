@@ -56,6 +56,11 @@ enum PulledShape: Sendable {
     /// view, drawn under the column's identity step whatever its count
     /// (the owner's O-14 (c), H-71), which a loop this short did not take.
     case headedLazy, headedBox
+    /// `LazyVStack { ForEach(groups) { Section { ForEach } } }` of a few
+    /// short sections, their rows together within the lazy stack's threshold
+    /// — `perSection` entries each, headers pinned or not: the small
+    /// sectioned list the owner's H71-SECTIONS (b) prices.
+    case smallSections(perSection: Int, pinned: Bool)
 }
 
 /// A page of lazy stacks of one- and two-line entries in one scroll view, the
@@ -247,6 +252,20 @@ struct PulledPageApp: View {
                     ForEach(0..<max(1, entries / 100), id: \.self) { section in
                         Section {
                             ForEach(0..<100, id: \.self) { entry in
+                                PulledEntry(seed: seed, section: section, entry: entry)
+                            }
+                        } header: {
+                            Text(Synth.sentence(mix(seed, section), words: 3)).bold()
+                        }
+                    }
+                }
+            )
+        case .smallSections(let perSection, let pinned):
+            AnyView(
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: pinned ? .sectionHeaders : []) {
+                    ForEach(0..<max(1, entries / perSection), id: \.self) { section in
+                        Section {
+                            ForEach(0..<perSection, id: \.self) { entry in
                                 PulledEntry(seed: seed, section: section, entry: entry)
                             }
                         } header: {
