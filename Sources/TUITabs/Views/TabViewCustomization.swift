@@ -361,7 +361,7 @@ public struct TabCustomizationBehavior: Equatable, Sendable {
 // SwiftUI's forms take a `UserDefaults`, which TUI has only on Apple
 // platforms (decisions A18): there each takes one, and elsewhere none.
 
-#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+#if canImport(Darwin)
     extension SceneStorage {
         /// Creates a property that can save and restore tab view customization.
         ///

@@ -224,7 +224,7 @@ struct DefaultAppStorageTests {
         #expect(first != DefaultAppStorage(other))
         let (value, otherValue) = (DefaultAppStorage(ValueStore()), DefaultAppStorage(ValueStore()))
         #expect(value != otherValue)
-        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+        #if canImport(Darwin)
             // Each makes a new store over the object; they are equal by it.
             let (standard, standardAgain) = (DefaultAppStorage(UserDefaults.standard), DefaultAppStorage(.standard))
             #expect(standard == standardAgain)

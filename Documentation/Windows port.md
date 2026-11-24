@@ -59,7 +59,10 @@ gracefully); CI's Windows jobs build and test everything with no `continue-on-er
    - the thread walking a frame: `BindingReads` notes a binding's read only on it, and took the main thread for it
      everywhere but Linux, while a libdispatch worker drains the main actor on Windows as on Linux. Marked with
      `TlsAlloc` (2026-11-16); since 2026-11-24 one `WalkingThreadMark` marks it on every platform but Darwin (the
-     main thread) and WebAssembly (one thread), so a platform not yet run on is right by default.
+     main thread) and WebAssembly (one thread), so a platform not yet run on is right by default;
+   - `UserDefaultsStorage`: the JSON file Linux and WebAssembly have (2026-11-16), and since 2026-11-24 the
+     `#else` of `canImport(Darwin)`, as are the seven sites that name `UserDefaults` beside it, rather than lists
+     of systems.
 3. **The tests.** Build and run the whole suite on Windows (`swift test`, and `Tools/ParallelTest/parallel_test.py`,
    which runs there since 2026-11-20). Expect path, line-ending and file-system differences in the file-panel and
    persistence tests.

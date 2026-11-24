@@ -34,7 +34,7 @@ package struct DefaultAppStorage: Equatable, Sendable {
         self.identity = type(of: store) is AnyObject.Type ? ObjectIdentifier(store as AnyObject) : nil
     }
 
-    #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+    #if canImport(Darwin)
         /// A store over `defaults`, equal to any other over the same object.
         package init(_ defaults: UserDefaults) {
             self.store = UserDefaultsStorage(defaults)
@@ -66,7 +66,7 @@ extension EnvironmentValues {
 // MARK: - Public Modifiers
 
 extension View {
-    #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+    #if canImport(Darwin)
         /// The default store used by ``AppStorage`` contained within the view
         /// — mirrors SwiftUI's `defaultAppStorage(_:)`.
         ///

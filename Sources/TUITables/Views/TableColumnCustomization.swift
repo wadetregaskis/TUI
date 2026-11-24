@@ -333,7 +333,7 @@ extension SceneStorage {
 // SwiftUI's form takes a `UserDefaults`, which TUI has only on Apple
 // platforms (decisions A18): there it takes one, and elsewhere none.
 
-#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+#if canImport(Darwin)
     extension AppStorage {
         /// Creates a property that can save and restore table column state.
         ///

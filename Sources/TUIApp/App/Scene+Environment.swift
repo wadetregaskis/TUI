@@ -58,7 +58,7 @@ extension Scene {
         _EnvironmentScene(content: self) { transform(&$0[keyPath: keyPath]) }
     }
 
-    #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+    #if canImport(Darwin)
         /// The default store used by ``AppStorage`` contained within the scene
         /// and its views — mirrors SwiftUI's `Scene.defaultAppStorage(_:)`.
         ///

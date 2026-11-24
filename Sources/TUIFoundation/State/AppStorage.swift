@@ -432,7 +432,7 @@ public enum StorageDefaults {
             // honours the same override.
             return JSONFileStorage()
         }
-        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+        #if canImport(Darwin)
             return UserDefaultsStorage()
         #else
             return JSONFileStorage()
@@ -710,7 +710,7 @@ struct OptionalRawValueStorageCodec<Wrapped: RawRepresentable>: StorageCodec whe
 
 // MARK: - SwiftUI's UserDefaults Forms
 
-#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+#if canImport(Darwin)
     extension AppStorage where Value: Codable {
         /// Creates a property that reads and writes `key` in `store` —
         /// mirrors SwiftUI's `init(wrappedValue:_:store:)`.

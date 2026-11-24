@@ -10,7 +10,13 @@ import TUICore
 
 // MARK: - UserDefaults Storage (Apple Platforms)
 
-#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+// Split by what Foundation offers, not by a list of systems: where Darwin is,
+// `UserDefaults` is Apple's own, and everywhere else a JSON file stands in for
+// it, so a platform not yet named (visionOS, Android, a BSD) gets one arm or
+// the other rather than neither. Each site that names `UserDefaults` beside
+// this one (`AppStorage`, `DefaultAppStorage`, the two customization forms,
+// `Scene.defaultAppStorage`) splits the same way.
+#if canImport(Darwin)
     /// A storage backend that uses UserDefaults.
     ///
     /// Useful when running on Apple platforms with standard app conventions.
@@ -455,11 +461,12 @@ import TUICore
         }
     }
 
-// MARK: - UserDefaults Storage (Linux, WebAssembly, Windows)
+// MARK: - UserDefaults Storage (everywhere else)
 
-#elseif os(Linux) || os(WASI) || os(Windows)
-    /// A storage backend that emulates UserDefaults on Linux, WebAssembly and
-    /// Windows. On Windows the folder is `%APPDATA%\<appName>` (`appConfigDirectory()`).
+#else
+    /// A storage backend that emulates UserDefaults off Apple platforms: on
+    /// Linux, WebAssembly and Windows. On Windows the folder is
+    /// `%APPDATA%\<appName>` (`appConfigDirectory()`).
     ///
     /// Uses a JSON file at `UserDefaults.json` (or `UserDefaults-<suite>.json`)
     /// in `appConfigDirectory()` — `$XDG_CONFIG_HOME/<appName>`, else
