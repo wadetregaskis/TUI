@@ -2398,6 +2398,48 @@ the new count scrolled there afresh, then End and Home on both, and checks that 
 Before the fix it failed in the four shapes at spacing 1 cut 260 → 250: under a title, headers and no rows; without
 one, the fresh stack's Home after End landed mid-list (section 122 of 250).
 
-*Found, not fixed* (before the fix too): 250 sections of a row at spacing 1, scrolled to the end, draw their end two
-lines up after a `@State` write that changes nothing they draw — the last header on the bottom line, its row gone —
-until the next End; spacing 0 keeps it. Marked a known issue in `SectionLoopCrossingTests.writeAtTheEndKeepsTheEnd`.
+*Found* (before the fix too): 250 sections of a row at spacing 1, scrolled to the end, draw their end two lines up
+after a `@State` write that changes nothing they draw — the last header on the bottom line, its row gone — until the
+next End; spacing 0 keeps it. Marked a known issue in `SectionLoopCrossingTests.writeAtTheEndKeepsTheEnd`.
+
+**H-71e, that found issue: the column anchored the gap below a pulled row, and handed that row a top past its end**
+(2026-11-24, `StackPulledColumnFrame.swift`'s `anchorBelowPulledGap`, `StackPulledColumn.swift`'s band). Measured, not
+two lines up but the gap's lines down: one at spacing 1, two at spacing 2, the last row cut off. The lazy stack of 250
+sections is a pulled column of them: their loops together pass the threshold, so each section is a column of its parts
+whose loop is a lazy stack it pulls. A column walks its rows by pitch, each row's lines and the gap below it, so where
+the viewport's top lies in a gap the anchor is the row above with `within` past its lines: at the end on a 12-line
+screen, section 246, `within` 3 of its 3 lines. That row, pulled, was handed the viewport's place in its own lines, past
+its end, and a column's own walk holds a top past its last row to that row's last line (`advanceAnchor`'s clamp, as at
+a scroll view's end): section 246 drew its row on the viewport's top line, a line below where it lies, and reported
+itself 4 lines tall. Unseen at End, where the scroll view glued itself to the end of the total the column then reported
+(1,001 lines), a line further down, which put the misplaced row above the viewport and the rest where they belong. But
+the column kept the row's answer (`within` 4, `pulledAnchorRow`'s end 4), and the next frame, any write, handed it that
+place again from the row's own position: clamped again, the section drew a line lower still, and the end slid below the
+viewport until End placed it afresh. Not a sampled measure's arithmetic (H-71d) nor `PulledColumnFrame.height(of:)`'s
+last gap, which changes no line drawn here: an anchored row was asked for a line it does not have. Spacing 0 has no gap
+to anchor in, and 50 sections are laid out in the column's own walk, none pulled.
+
+Now, after the walk, an anchor in the gap below a pulled row moves to the row after it, the gap's lines above the
+viewport's top a negative `within`, which the fill places (it draws a row held below the top) and the row is handed as
+a top above its own (a negative offset, as a section's header lies above its loop). And the band the column answers
+starts at the viewport's top, the gap's lines blank: the row above, a pulled margin row, is not drawn, and a band that
+began at the row below the top was drawn from the viewport's top by the scroll view (`max(0, offset − sliceOriginY)`),
+a line high. Without that half, paging five screens down and then End drew the end a line high, a blank line below the last row
+(`changedCountScrolledDrawsAfresh`'s fresh stack, 260 → 250 at spacing 1); and as comparing two stacks hides a fault
+both share, the tests now also check that the last row is on the bottom line. Only a pulled row: one drawn whole is placed by the column from its pitch, never asked. The scroll
+view's offset is unchanged; the walk turns a negative `within` back into the row above as soon as a scroll moves up
+into it.
+
+`SectionLoopCrossingTests.writeAtTheEndKeepsTheEnd`'s known issue is gone (and it checks the last row is on the bottom
+line), and `endStaysTheEnd` (new) takes spacing 0, 1 and 2, sections of one row and of two, 50, 250 and 1,000 of them,
+in the four shapes, to the end, then a write, a resize (narrower and taller, so the end's offset is clamped) or a
+section inserted at the top, and compares that frame and a write after it with a fresh stack of the result at its end.
+Before the fix `writeAtTheEndKeepsTheEnd` failed in the four shapes at spacing 1, and `endStaysTheEnd` at 250 sections
+(the only count whose sections are pulled and whose end puts a gap on the top line), in all four shapes: at spacing 1,
+a write and an insert, sections of one row and of two; at spacing 2, a write and an insert, sections of one row. The
+resize passed, its new end clamped and placed afresh.
+
+*Found, not fixed* (before the fix too, and without sections): under a title, `LazyVStack { Text(title); ForEach(rows)
+}`, rows inserted at the top of the loop are not held, anywhere in the list: the rows on screen move down by the lines
+inserted. Marked a known issue in `endStaysTheEnd` (titled shapes, an insert, 50 and 1,000 sections; 250, whose
+sections are pulled, holds).

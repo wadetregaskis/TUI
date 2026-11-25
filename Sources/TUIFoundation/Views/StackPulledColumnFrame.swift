@@ -117,6 +117,34 @@ final class PulledColumnFrame {
 
     func pitch(of ordinal: Int) -> Int { height(of: ordinal) + gap(after: ordinal) }
 
+    /// Moves the anchor off the gap below a pulled row, onto the row after
+    /// it, the lines of the gap left above the viewport's top as a negative
+    /// `within`: the anchored row is handed the viewport's place in its own
+    /// lines, and a gap is no line of the row above it, whose pitch counts it.
+    ///
+    /// Left on the row above, that row was handed a top past its end, which
+    /// its own walk cannot place (`advanceAnchor` holds a top past a column's
+    /// last row to that row's last line, as a scroll view's end does): a
+    /// section of a lazy stack of 250 sections of a row at spacing 1, at the
+    /// end with the gap below section 246 on the top line, drew its row on
+    /// that line, a line low in its own lines, and reported itself a line
+    /// taller. The column took it at its word, so the next frame (a write
+    /// changing nothing drawn) handed it the gap's place again, a line further
+    /// on, and drew the end a gap's lines down, until the next End (H-71e).
+    /// A pulled row is handed a top above its own as it is a section's header
+    /// above its loop (a negative ``ScrollContentWindow/offset``), and the
+    /// band the column answers starts at the viewport's top, the gap's lines
+    /// blank, as the band must hold the viewport's lines
+    /// (`renderPulledColumn`).
+    func anchorBelowPulledGap() {
+        let ordinal = anchor.ordinal
+        guard ordinal < rowCount - 1, anchor.within >= height(of: ordinal), anchor.within < pitch(of: ordinal),
+            isPulled(ordinal)
+        else { return }
+        anchor.within -= pitch(of: ordinal)
+        anchor.ordinal = ordinal + 1
+    }
+
     /// Whether a pulled view sits below row `ordinal`, so that it is handed a
     /// request rather than drawn whole.
     func isPulled(_ ordinal: Int) -> Bool {

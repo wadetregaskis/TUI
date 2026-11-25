@@ -250,6 +250,7 @@ private enum PulledPlace {
         // onto the row above, which the seek never reaches.
         if seeking?.handed == nil {
             frame.advanceAnchor(to: window.offset, viewportHeight: window.viewportHeight, linesBelow: 0)
+            frame.anchorBelowPulledGap()
         }
         frame.anchor.key = children.key(at: frame.anchor.ordinal)
         guard !frame.sawSpacer else { return nil }
@@ -288,9 +289,14 @@ private enum PulledPlace {
             state.pulledAnchorRow = nil
         }
 
+        // From the viewport's top where the first row drawn lies below it with
+        // rows above it: the gap above an anchor moved off a pulled row
+        // (`anchorBelowPulledGap`), whose row is not drawn. The band holds the
+        // viewport's lines; begun at the row, it was drawn from the viewport's
+        // top, a gap's lines too high.
+        let bandTop = first.ordinal > 0 ? min(first.top, window.offset) : first.top
         var result = assemblePulled(
-            drawn, frame: frame, window: window, width: width, context: childContext)
-        let bandTop = first.top
+            drawn, from: bandTop, frame: frame, window: window, width: width, context: childContext)
         var memo: [String: Int] = [:]
         for piece in drawn { if let key = children.key(at: piece.ordinal) { memo[key] = piece.ordinal } }
         state.rowOrdinalMemo = memo
@@ -519,16 +525,17 @@ private enum PulledPlace {
         return context.handingPulled(request, to: identity, last: frame.state.pulledRequests[identity])
     }
 
-    /// The band: the pieces in row order, one below another. A piece placed
-    /// above the end of the one before — an extent a child refined while it
-    /// drew — is moved down to it, as the anchored window moves a row.
+    /// The band, from column line `top`: the pieces in row order, one below
+    /// another. A piece placed above the end of the one before — an extent a
+    /// child refined while it drew — is moved down to it, as the anchored
+    /// window moves a row.
     private func assemblePulled(
-        _ drawn: [PulledPiece], frame: PulledColumnFrame, window: ScrollContentWindow, width: Int,
+        _ drawn: [PulledPiece], from top: Int, frame: PulledColumnFrame, window: ScrollContentWindow, width: Int,
         context: RenderContext
     ) -> FrameBuffer {
         var result = FrameBuffer()
-        guard let first = drawn.first else { return result }
-        var cursor = first.top
+        guard !drawn.isEmpty else { return result }
+        var cursor = top
         for piece in drawn {
             if piece.top > cursor {
                 result.appendVertically(FrameBuffer(emptyWithHeight: piece.top - cursor), spacing: 0)

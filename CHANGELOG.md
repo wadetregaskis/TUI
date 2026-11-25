@@ -62,6 +62,13 @@ downloads, thirty decodes and thirty copies in memory. Loads of one URL, or of o
 cache now wait on the first, so it is one download, one decode and one picture. A view that goes while it waits
 leaves the load to the others; the load is abandoned only once every view waiting on it has gone.
 
+**A lazy stack of many sections keeps its end in place when the view redraws.** In
+`ScrollView { LazyVStack(spacing: 1) { ForEach(groups) { group in Section(group.name) { ForEach(group.rows) { … } } } }
+}` with a few hundred groups, scrolled to the end, any change of state, even one that changed nothing on screen, drew
+the end a line low (two at spacing 2), the last row cut off, until End was pressed again. With the gap between two
+sections on the top line, the section above it was asked to place the viewport past its own end, which it could not,
+and it drew its rows a line low and measured itself a line taller.
+
 **A lazy stack's sections of a few rows draw their rows after the stack's count of sections changes.** In
 `LazyVStack(spacing: 1) { Text("Groups"); ForEach(groups) { group in Section(group.name) { ForEach(group.rows) { … } } }
 }`, cutting 260 groups of a row each to 250 drew every group's header and none of its rows until something else

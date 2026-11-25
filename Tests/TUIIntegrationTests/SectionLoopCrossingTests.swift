@@ -326,10 +326,13 @@ struct SectionLoopCrossingTests {
         }
     }
 
-    /// Found by H-71d, not fixed (and so before it): 250 sections of a row at
-    /// spacing 1, scrolled to the end, draw their end two lines up after a
-    /// `@State` write that changes nothing they draw, the last header on the
-    /// bottom line and its row gone, until the next End. Spacing 0 keeps it.
+    /// H-71e: 250 sections of a row at spacing 1, scrolled to the end, drew
+    /// their end a line down after a `@State` write that changes nothing they
+    /// draw (two lines at spacing 2), the last row gone, until the next End.
+    /// At the end the viewport's top lay in the gap below a section, and the
+    /// column anchored that section and handed it a top past its end: it drew
+    /// its row on that line and reported itself a line taller, and the write's
+    /// frame handed it that place again. Failed before the fix at spacing 1.
     @Test("A write at the end of a stack of sections keeps the end", arguments: Shape.allCases)
     func writeAtTheEndKeepsTheEnd(_ shape: Shape) {
         let app = TestApp(width: 40, height: 12) {
@@ -337,11 +340,128 @@ struct SectionLoopCrossingTests {
         }
         Place.end.scroll(app)
         let before = app.screen.lines
+        #expect(Self.endsWithLastRow(app, "g249 r0"), "\(shape), End:\n\(app.screen)")
         app.type("+")
-        withKnownIssue("a write at the end at spacing 1 draws the end two lines up") {
-            #expect(app.screen.lines == before, "\(shape):\n\(app.screen)")
+        #expect(app.screen.lines == before, "\(shape):\n\(app.screen)")
+    }
+
+    /// Whether `app`'s bottom line is the row `last`: the end drawn where it
+    /// is, not only alike in two stacks that both miss it.
+    private static func endsWithLastRow(_ app: TestApp, _ last: String) -> Bool {
+        app.screen.lines.last?.trimmingCharacters(in: .whitespaces).hasPrefix(last) == true
+    }
+
+    // MARK: - The end, kept across a write, a resize and an insert
+
+    /// `count` sections of `perSection` rows, in `shape` at `spacing`, with a
+    /// section `-1` above them once `^` inserts it, or from the start
+    /// (`startsInserted`); `+` writes a state that changes nothing drawn.
+    private struct AtTheEnd: View {
+        let shape: Shape
+        let spacing: Int
+        let count: Int
+        let perSection: Int
+        let startsInserted: Bool
+        @State private var inserted: Bool?
+        @State private var written = false
+
+        var body: some View {
+            ScrollView {
+                if shape.titled {
+                    LazyVStack(alignment: .leading, spacing: spacing, pinnedViews: pins) {
+                        Text("a title")
+                        groups
+                    }
+                } else {
+                    LazyVStack(alignment: .leading, spacing: spacing, pinnedViews: pins) { groups }
+                }
+            }
+            .onKeyPress("+") {
+                written.toggle()
+                return .handled
+            }
+            .onKeyPress("^") {
+                inserted = true
+                return .handled
+            }
+        }
+
+        private var pins: PinnedScrollableViews { shape.pinned ? .sectionHeaders : [] }
+
+        private var groups: some View {
+            ForEach(((inserted ?? startsInserted) ? -1 : 0)..<count, id: \.self) { group in
+                Section {
+                    ForEach(0..<perSection, id: \.self) { Text(verbatim: "g\(group) r\($0)") }
+                } header: {
+                    Text(verbatim: "Group \(group)")
+                }
+            }
+        }
+    }
+
+    /// What is done to a stack scrolled to its end.
+    enum StepAtTheEnd: String, CaseIterable, Sendable {
+        /// A `@State` write that changes nothing drawn.
+        case write
+        /// The terminal made narrower and taller: the offset at the end is
+        /// past the new end, and clamped to it.
+        case resize
+        /// A section inserted above every other, the rows on screen held.
+        case insert
+    }
+
+    /// H-71e's variants: spacing 0, 1 and 2, sections of one row and of two,
+    /// 50, 250 and 1,000 of them (their loops together within the threshold,
+    /// past it, and the sections themselves past it), in every shape (pinned
+    /// or not, titled or not), scrolled to the end and then written, resized
+    /// or inserted into at the top: that frame, and a write after it, against
+    /// a fresh stack of the result scrolled to its end. Failed before the fix
+    /// wherever the sections are pulled (their loops together past the
+    /// threshold) at a spacing that put a gap on the end's top line.
+    @Test("The end of a stack of sections stays the end across a write, a resize and an insert at the top",
+          arguments: Shape.allCases.filter { $0.spacing == 0 }, [0, 1, 2])
+    func endStaysTheEnd(_ shape: Shape, _ spacing: Int) {
+        for count in [50, 250, 1_000] {
+            for perSection in [1, 2] {
+                for step in StepAtTheEnd.allCases {
+                    Self.checkEnd(shape, spacing: spacing, count: count, perSection: perSection, step: step)
+                }
+            }
+        }
+    }
+
+    /// One of ``endStaysTheEnd(_:_:)``'s cases.
+    private static func checkEnd(_ shape: Shape, spacing: Int, count: Int, perSection: Int, step: StepAtTheEnd) {
+        let app = TestApp(width: 40, height: 12) {
+            AtTheEnd(shape: shape, spacing: spacing, count: count, perSection: perSection, startsInserted: false)
+        }
+        Place.end.scroll(app)
+        let (width, height) = step == .resize ? (36, 14) : (40, 12)
+        switch step {
+        case .write: app.type("+")
+        case .resize: app.resize(width: width, height: height)
+        case .insert: app.type("^")
+        }
+        let fresh = TestApp(width: width, height: height) {
+            AtTheEnd(
+                shape: shape, spacing: spacing, count: count, perSection: perSection, startsInserted: step == .insert)
+        }
+        Place.end.scroll(fresh)
+        let label = "\(shape) spacing \(spacing), \(count) x \(perSection), \(step)"
+        #expect(Self.endsWithLastRow(fresh, "g\(count - 1) r\(perSection - 1)"), "\(label), fresh:\n\(fresh.screen)")
+        // Found by H-71e, not fixed (and so before it, and without sections:
+        // `LazyVStack { Text(title); ForEach(rows) }`, anywhere in the list):
+        // under a title, rows inserted at the top of the loop are not held,
+        // and the rows on screen move down by the lines inserted. Measured
+        // held at 250 sections, whose loops together pass the threshold, so
+        // that each section is pulled.
+        withKnownIssue("under a title, an insert at the top of the loop is not held") {
+            #expect(app.screen.lines == fresh.screen.lines, "\(label):\n\(app.screen)\n---\n\(fresh.screen)")
+            app.type("+")
+            #expect(
+                app.screen.lines == fresh.screen.lines, "\(label), then a write:\n\(app.screen)\n---\n\(fresh.screen)")
         } when: {
-            shape.spacing == 1
+            step == .insert && shape.titled && count != 250
         }
     }
 }
