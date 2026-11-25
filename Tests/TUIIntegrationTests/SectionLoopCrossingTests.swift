@@ -449,19 +449,12 @@ struct SectionLoopCrossingTests {
         Place.end.scroll(fresh)
         let label = "\(shape) spacing \(spacing), \(count) x \(perSection), \(step)"
         #expect(Self.endsWithLastRow(fresh, "g\(count - 1) r\(perSection - 1)"), "\(label), fresh:\n\(fresh.screen)")
-        // Found by H-71e, not fixed (and so before it, and without sections:
-        // `LazyVStack { Text(title); ForEach(rows) }`, anywhere in the list):
-        // under a title, rows inserted at the top of the loop are not held,
-        // and the rows on screen move down by the lines inserted. Measured
-        // held at 250 sections, whose loops together pass the threshold, so
-        // that each section is pulled.
-        withKnownIssue("under a title, an insert at the top of the loop is not held") {
-            #expect(app.screen.lines == fresh.screen.lines, "\(label):\n\(app.screen)\n---\n\(fresh.screen)")
-            app.type("+")
-            #expect(
-                app.screen.lines == fresh.screen.lines, "\(label), then a write:\n\(app.screen)\n---\n\(fresh.screen)")
-        } when: {
-            step == .insert && shape.titled && count != 250
-        }
+        // Under a title, an insert at the top of the loop was not held, the
+        // rows on screen moved down by the lines inserted, at 50 and 1,000
+        // sections (H-71e found it; H-71f fixed it, `TitledLoopTopRowHoldTests`).
+        #expect(app.screen.lines == fresh.screen.lines, "\(label):\n\(app.screen)\n---\n\(fresh.screen)")
+        app.type("+")
+        #expect(
+            app.screen.lines == fresh.screen.lines, "\(label), then a write:\n\(app.screen)\n---\n\(fresh.screen)")
     }
 }

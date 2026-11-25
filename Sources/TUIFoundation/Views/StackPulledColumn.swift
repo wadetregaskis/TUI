@@ -126,19 +126,87 @@ private enum PulledPlace {
     /// closure that builds every row answers for all, and which the sample has
     /// measured — when it places them as a pulled column. Filed after the
     /// answer, whose sample is what files a pulled row. A small stack's
-    /// uniform answer withdraws it; its exact walk files it on its own
+    /// uniform answer withdraws it, but for a column of several's loop
+    /// (``bandsItsFewRows(context:)``); its exact walk files it on its own
     /// (`windowSizeThatFits`).
     func filingPulled(
         _ size: ViewSize, _ collection: ChildViewCollection, measureContext: RenderContext, context: RenderContext
     ) -> ViewSize {
         guard estimatesRows(count: collection.count, context: context) else {
-            if !pullsItsRows(context: context) { notePulled(bandsRows: false, children: { [] }, context: context) }
+            if !pullsItsRows(context: context) {
+                let bands = bandsItsFewRows(context: context)
+                notePulled(
+                    bandsRows: bands,
+                    children: { bands && !collection.isEmpty ? [collection[0].identity(under: measureContext)] : [] },
+                    context: context)
+            }
             return size
         }
         notePulled(
             bandsRows: isPulledWhereItStands(context: context),
             children: { [collection[0].identity(under: measureContext)] }, context: context)
         return size
+    }
+
+    /// Whether this stack, within the threshold, bands its rows wherever a
+    /// request reaches it all the same: the loop of a lazy stack's column of
+    /// several (``_ImplicitColumnOfSeveral``), drawn as a lazy stack of its
+    /// own at its own identity (``RenderContext/drawingImplicitColumn()``),
+    /// which stands in for the stack the column stands in for. That stack,
+    /// drawn flat, takes the scroll view's window at any count and holds the
+    /// row at its top as rows come and go above it; the loop drawn whole took
+    /// none, the column drew whole, and the scroll view kept its offset in
+    /// lines, so rows inserted at the top of `LazyVStack { title;
+    /// ForEach(rows) }` moved the rows on screen down (H-71f). Pulled, the
+    /// loop is handed the window in its own lines, the hold with it, and
+    /// answers by its uniform arithmetic or its exact walk, whose total is
+    /// exact (`renderViewportWindow`'s pulled answer).
+    ///
+    /// Not under `scrollTargetLayout()`: a behaviour over a pulled column
+    /// settles short of a move of more than a screen (`ColumnOfSeveralReadBackTests`,
+    /// 23 lines down landed 15 short, 60 up 35 short; so it does past the
+    /// threshold, where that test leaves those steps out), and drawn whole the
+    /// column settles as the flat stack does. Such a stack keeps the offset in
+    /// lines through an insert above, as before.
+    func bandsItsFewRows(context: RenderContext) -> Bool {
+        context.environment.implicitColumnDrawnAt == context.identity && !context.environment.isScrollTargetLayout
+            && isPulledWhereItStands(context: context)
+    }
+
+    /// A request read by the exact walk, whose lines are exact: a pulled one
+    /// counted from this stack's end (``PullEdge/end``) is put in its own
+    /// lines from the total the walk measured, as ``PulledBandRequest/band(total:seekLine:)``
+    /// puts it for a view that knows its total. Its top or its own position
+    /// is a line of it already, and any other request is the scroll view's.
+    static func enteringPulledExactWalk(_ window: ScrollContentWindow, total: Int) -> ScrollContentWindow {
+        guard window.isPulled, window.edge == .end else { return window }
+        var window = window
+        window.offset = window.offset.saturatingAdding(total)
+        window.edge = .position
+        return window
+    }
+
+    /// Answers the column that pulled the exact walk (this file) as a band
+    /// of its `total` lines — the rows from the first `rendersRow` draws to
+    /// the last, which its canvas holds (those between blank placeholders) —
+    /// and where the viewport's top fell in its lines, after a seek or the
+    /// top-row hold moved it (``ScrollContentReply/pulledPosition``); and
+    /// returns that band, `nil` when the walk is not pulled, or draws no row.
+    /// A column of several's loop within the threshold is pulled so
+    /// (``bandsItsFewRows(context:)``, H-71f).
+    static func answerPulledExactWalk(
+        _ rendersRow: [Bool], slots: [RowSlot], window: ScrollContentWindow, total: Int
+    ) -> ClosedRange<Int>? {
+        guard window.isPulled, let reply = window.reply else { return nil }
+        let band = rendersRow.firstIndex(of: true).flatMap { first in rendersRow.lastIndex(of: true).map { first...$0 } }
+        reply.drawnLines = nil
+        reply.sliceOriginY = band.map { slots[$0.lowerBound].y - slots[$0.lowerBound].spacingBefore } ?? 0
+        reply.sliceTotalHeight = total
+        reply.sliceTotalIsEstimate = false
+        reply.sliceHoldsFirstRow = band.map { $0.lowerBound == 0 } ?? true
+        reply.sliceHoldsLastRow = band.map { $0.upperBound == slots.count - 1 } ?? true
+        reply.pulledPosition = window.offset
+        return band
     }
 
     /// Whether this stack places its rows as a pulled column: then it is
@@ -503,8 +571,13 @@ private enum PulledPlace {
             request.offset = edge == .end ? within - height : within
             // The row at the viewport's top is this child's: held as the
             // scroll view asks, where it stays, and so is a row the app
-            // holds, if it is one of this child's.
-            if edge == .position { request.topRowHold = window.topRowHold }
+            // holds, if it is one of this child's. Placed afresh from an
+            // edge, it holds nothing this frame but remembers its top row,
+            // so the next frame's change above it is held: handed nothing, a
+            // jump into it (End) left nothing remembered, and rows inserted
+            // at the top of a titled loop in the frame after moved the rows
+            // on screen down (H-71f).
+            request.topRowHold = edge == .position || window.topRowHold == .off ? window.topRowHold : .tracking
             request.holdsDesignatedRow = frame.heldRow != nil
         }
         if let seek {

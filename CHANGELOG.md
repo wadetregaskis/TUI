@@ -73,6 +73,14 @@ downloads, thirty decodes and thirty copies in memory. Loads of one URL, or of o
 cache now wait on the first, so it is one download, one decode and one picture. A view that goes while it waits
 leaves the load to the others; the load is abandoned only once every view waiting on it has gone.
 
+**A lazy stack with a title above or below its loop keeps the rows on screen in place as rows come and go above
+them.** In `ScrollView { LazyVStack { Text("Inbox"); ForEach(messages) { … } } }`, scrolled down, messages inserted at
+the top of the loop pushed the rows on screen down by their lines, and messages removed from it pulled them up, where
+the same stack without the title, and SwiftUI's, keep the row at the top where it is. With a few hundred rows or
+fewer, the loop was drawn whole beside the title and nothing held its rows; with more, the frame after a jump into the
+loop (End) remembered no row to hold. Still not held: such a stack marked `scrollTargetLayout()`, with 256 rows or
+fewer.
+
 **A lazy stack of many sections keeps its end in place when the view redraws.** In
 `ScrollView { LazyVStack(spacing: 1) { ForEach(groups) { group in Section(group.name) { ForEach(group.rows) { … } } } }
 }` with a few hundred groups, scrolled to the end, any change of state, even one that changed nothing on screen, drew

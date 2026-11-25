@@ -354,7 +354,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
         let slots = naturalRowSlots(
             width: asksIdealWidth ? nil : widthLimit, context: measureContext, keepsMeasuresLive: true)
-        notePulled(bandsRows: false, children: { slots.map { $0.child.identity(under: measureContext) } }, context: context)
+        notePulled(bandsRows: bandsItsFewRows(context: context), children: { slots.map { $0.child.identity(under: measureContext) } }, context: context)
 
         var widthFlexible = false
         var heightFlexible = false
@@ -982,7 +982,8 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // path, the slots carrying every row's true y (`placingExactWalk`).
         let topRows = TopRowGeometry(
             count: slots.count, key: { slots[$0].child.identityChildKey }, y: { slots[$0].y })
-        let (window, verified) = placingExactWalk(window, slots: slots, rows: topRows, context: context)
+        let walkedTotal = slots.last.map { $0.y + $0.height } ?? 0
+        let (window, verified) = placingExactWalk(Self.enteringPulledExactWalk(window, total: walkedTotal), slots: slots, rows: topRows, context: context)
 
         // The offset can be STALE beyond the walked content — the data
         // shrank this frame, and the ScrollView clamps only after this
@@ -991,9 +992,10 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // ScrollView could repair only by rendering again, from the drawn
         // band reported below. Clamp to the real extent so the tail rows
         // render at their true y the first time; the ScrollView's own clamp
-        // then lands the clip exactly on them.
-        let walkedTotal = slots.last.map { $0.y + $0.height } ?? 0
-        let top = min(window.offset, max(0, walkedTotal - window.viewportHeight))
+        // then lands the clip exactly on them. Not a pulled stack's: the
+        // column it is a child of places the viewport anywhere in its lines,
+        // above its top or past its end (a title below it on screen).
+        let top = window.isPulled ? window.offset : min(window.offset, max(0, walkedTotal - window.viewportHeight))
         let bottom = top + window.viewportHeight
         uniformWindowState(context: context).rememberTopRow(
             atLine: top, of: walkedTotal, hold: window.topRowHold,
@@ -1084,12 +1086,16 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         var fade = WindowedRowFade(context: context)
         var zOrder = WindowedZOrder()
         var result = FrameBuffer()
+        // Pulled, the canvas is the band from the first row drawn to the last,
+        // and the column that pulled it is told so (`answerPulledExactWalk`).
+        let band = Self.answerPulledExactWalk(rendersRow, slots: slots, window: window, total: walkedTotal)
         for (index, slot) in slots.enumerated() {
             let slotHeight = slot.spacingBefore + slot.height
 
             if !rendersRow[index] {
-                // Off-window: a blank placeholder of the same height.
-                result.appendVertically(FrameBuffer(emptyWithHeight: slotHeight), spacing: 0)
+                // Off-window: a blank placeholder of the same height; none
+                // outside a pulled walk's band.
+                if band?.contains(index) ?? true { result.appendVertically(FrameBuffer(emptyWithHeight: slotHeight), spacing: 0) }
                 continue
             }
 

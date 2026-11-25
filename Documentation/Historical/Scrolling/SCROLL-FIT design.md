@@ -2442,4 +2442,48 @@ resize passed, its new end clamped and placed afresh.
 *Found, not fixed* (before the fix too, and without sections): under a title, `LazyVStack { Text(title); ForEach(rows)
 }`, rows inserted at the top of the loop are not held, anywhere in the list: the rows on screen move down by the lines
 inserted. Marked a known issue in `endStaysTheEnd` (titled shapes, an insert, 50 and 1,000 sections; 250, whose
-sections are pulled, holds).
+sections are pulled, holds). Fixed by H-71f, below.
+
+**H-71f, that found issue: a column of several's loop took no window at or below the threshold, and a jump into it
+remembered no top row** (2026-11-24, `StackPulledColumn.swift`'s `bandsItsFewRows` and `pulledRequest`, `VStack.swift`'s
+`answerPulledExactWalk`). What SwiftUI does: a lazy stack keeps the row at the top of its viewport where it is as rows
+are inserted above it, and at offset 0 keeps the offset, so the rows inserted show
+(`Tools/SwiftUIProbes/Scroll anchoring/hold.out`, cases 1 and 4); TUI's top-row hold does the same without a title,
+and also holds a removal above, which SwiftUI does not (a recorded deviation, R14 of
+`Documentation/Layout and scrolling/Scroll anchoring.md`; `ScrollWindowHoldTests`). Measured, by printing the top-row hold's
+memory and the pulled column's anchor each frame, over `LazyVStack { Text(title); ForEach(rows) }` at the end and in
+the middle, a row inserted at the top of the loop. Two causes, by the loop's count:
+
+- *At or below the threshold* (50 and 250 rows) no hold ran at all. The stack is drawn as a column of its views
+  (`_ImplicitColumnOfSeveral`, O-14 (c)), the loop a lazy stack of its own; a lazy stack of so few is never filed as
+  pulled (its uniform answer withdraws it, its exact walk files none), so the column, an eager stack, drew whole, no
+  window reached the loop, and the scroll view kept its offset in lines. Before O-14 (c) the loop was taken apart into
+  the stack's own rows, which the stack drawn flat holds. Now the loop of a lazy stack's column
+  (`implicitColumnDrawnAt` its own identity) bands its rows wherever a request reaches it, at any count: the column
+  pulls it, hands it the window in its own lines with the hold, and it answers by its uniform arithmetic (which
+  answered pulled requests already) or its exact walk, which now answers one too: a request from its end placed by
+  the walked total, the band from the first row drawn to the last, exact, and where the viewport's top fell after the
+  hold. Its total stays exact, so the scroll bar is the flat stack's. *Tried and dropped:* pricing the loop by a sample
+  whatever its count (`estimatesWhateverItsCount`, as a lazy stack's sections' loops are): it held, but the scroll
+  bar of a small loop of uneven rows became an estimate (`ColumnOfSeveralCrossingTests`' small loop drew its thumb a
+  cell off), and a 40-row loop's rows read back as a 300-row one's. And drawing the column as a lazy stack of its own
+  views, the loop taken apart (`takesFewApart`): a row taken apart out of a tuple is keyed `slot#key` under the
+  column, not under the loop's step as the loop's own stack keys it, so a loop crossing the threshold started every
+  row afresh (`SectionLoopCrossingTests.crossingKeepsState`, `ColumnOfSeveralCrossingTests`).
+- *Past it* (1,000) the loop is pulled, and holds as the column's anchored child, handed the hold only when the
+  anchor stayed in it (`.position`). A jump into it, End, enters it from its end, and it was handed no hold
+  (`.off`), so it remembered no top row; an insert in the very next frame found nothing to hold. After a few pages
+  (each a `.position` frame) it held. Now a child placed afresh from an edge is handed `.tracking`: it remembers its
+  top row and moves nothing that frame.
+
+Not done: a stack marked `scrollTargetLayout()` with a loop of 256 rows or fewer stays drawn whole, unheld, as before.
+Pulled, a behaviour over it settled short of a move of more than a screen (23 lines down landed 15 short, 60 up 35
+short, `ColumnOfSeveralReadBackTests`), as it does past the threshold, where that test leaves those steps out; drawn
+whole it settles as the flat stack does.
+
+`TitledLoopTopRowHoldTests` (new): no title, a title above, two above, one below, two below, one above and one below;
+spacing 0 and 1; 50, 250 and 1,000 rows; one and ten rows inserted at the top of the loop, one and ten removed; at the
+top, in the middle (five pages down) and at the end; the frame of the change and a write after it keep the lines on
+screen, and at the top they are a fresh stack's of the changed rows. Before the fix 122 of its 432 cases failed: every
+titled shape at 50 and 250 rows, inserts in the middle and at the end and removals in the middle, and at 1,000 an
+insert at the end; none untitled, none at the top. `endStaysTheEnd`'s known issue is gone.
