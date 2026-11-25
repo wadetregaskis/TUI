@@ -30,10 +30,10 @@ struct URLImageHTTPFailureTests {
     /// that, so at the default 30 s all three tests here failed with "The
     /// request timed out." about a server that answers in milliseconds, and
     /// passed alone. What they discriminate is a status, which a stalled load
-    /// would never report, so the bound only has to stay clear of a suite's
-    /// length (see `URLImageDownloadTests.promptly`); a passing run doesn't
-    /// wait for it.
-    private static let timeout: TimeInterval = 300
+    /// would never report, so the bound only has to stay clear of a run's
+    /// length, which 300 s no longer did (a group of one gate ran 465 s): it is
+    /// `LocalHTTPServer.requestTimeout` now. A passing run doesn't wait for it.
+    private static let timeout = LocalHTTPServer.requestTimeout
 
     /// How a load of `status` with `body` fails, or `nil` if it succeeds.
     private func failure(status: String, body: Data) async throws -> ImageLoadError? {

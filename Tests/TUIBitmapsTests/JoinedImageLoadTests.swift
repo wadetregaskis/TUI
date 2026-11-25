@@ -177,14 +177,14 @@ struct JoinedURLImageViewTests {
             environment.urlImageCache = cache
             environment.imageCellAspect = 2.0
             // The server holds the one download open until every view has
-            // joined it, which takes as long as this process's main actor and
-            // pool take to run twenty views' tasks: under a full parallel run,
-            // longer than the default 30 s request timeout. The download then
-            // timed out, every view drew its placeholder, and no frame after
-            // could draw a picture (one gate in many). 300 s, as
-            // `URLImageHTTPFailureTests.timeout`, stays clear of any suite's
-            // length; a passing run never waits for it.
-            environment.imageURLTimeout = 300
+            // joined it, which takes as long as this process's main actor takes
+            // to run twenty views' tasks: under a full parallel run, minutes
+            // (one yield came back after 381 s). The download then timed out,
+            // at the default 30 s and later at 300 s, every view drew its
+            // placeholder, and no frame after could draw a picture. So the
+            // request has no bound a test run can reach
+            // (`LocalHTTPServer.requestTimeout`); the server answers when told.
+            environment.imageURLTimeout = LocalHTTPServer.requestTimeout
             environment.imageCellPixels = TerminalCellPixels(width: 8, height: 16)
             let context = RenderContext(availableWidth: 20, availableHeight: 400, environment: environment, tuiContext: tui)
             tui.lifecycle.beginRenderPass()

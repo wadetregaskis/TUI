@@ -42,10 +42,11 @@ struct SharedURLImageTests {
     /// What 8 × 8 pixels cost the image cache.
     private let pictureBytes = 8 * 8 * 4
 
-    /// Far past the default 30 s: the server holds each request open until the
-    /// rest arrive, and a full suite's stalls (up to 140 s) outlast 30 s; see
-    /// `URLImageHTTPFailureTests.timeout`. A passing run never reaches it.
-    private static let timeout: TimeInterval = 300
+    /// No bound a test run can reach: the server holds each request open until
+    /// the rest arrive, which under a full parallel run takes as long as the
+    /// main actor takes to come back to this test, and that has been minutes
+    /// (see `LocalHTTPServer.requestTimeout`). A passing run never reaches it.
+    private static let timeout = LocalHTTPServer.requestTimeout
 
     private func asyncImage(_ address: String) -> some View {
         AsyncImage(url: URL(string: address)) { $0.frame(width: 4, height: 2) } placeholder: { Text("waiting") }
@@ -67,6 +68,10 @@ struct SharedURLImageTests {
             // One request a URL: loads of one URL at once are one load.
             server.requestCount == Set(keys).count && keys.contains { cache.get($0) != nil }
         })
+        // Lets go of any request still held, which only a failing run has: one
+        // whose loads never all asked would otherwise wait out the timeout in
+        // `finishStartedTasks`, rather than report what it found.
+        server.answerHeld()
         // The second landing, and both hops to the main actor to publish: the
         // load tasks' own ends.
         await finishStartedTasks(of: harness.tui.lifecycle)

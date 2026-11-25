@@ -42,6 +42,22 @@ final class LocalHTTPServer: @unchecked Sendable {
     private let lock = NSCondition()
     private var requests = 0
 
+    /// The request timeout a load from this server runs with: a day, which is
+    /// no bound at all on a test's run, so that what a test waits on is the
+    /// load's progress and never the wall clock.
+    ///
+    /// A request timeout is wall-clock time, and it runs on while the test that
+    /// asked is not being served. In a full parallel run thousands of
+    /// `@MainActor` tests share one main actor, and a single `Task.yield()` of
+    /// one has come back after **381 s** (gate 85, 2026-11-24, in a group 465 s
+    /// long): past the 300 s these tests used before, so a request the server
+    /// held for the rest of a test's loads to join timed out while the test was
+    /// queued, and every view drew its placeholder. Nothing here needs the
+    /// timeout to end a wait: a held request is let go by ``answerHeld()``, at
+    /// the latest by ``stop()``, and the test's own waits are hang-breakers
+    /// (`settle(until:)`).
+    static let requestTimeout: TimeInterval = 86_400
+
     /// The requests that have arrived so far.
     var requestCount: Int { lock.withLock { requests } }
 
@@ -116,8 +132,11 @@ final class LocalHTTPServer: @unchecked Sendable {
         }
     }
 
-    /// Stops listening. The accept loop ends when its `accept` fails.
+    /// Stops listening, and answers every request still held, so that no load
+    /// of a test that gave up waits out ``requestTimeout``. The accept loop ends
+    /// when its `accept` fails.
     func stop() {
+        answerHeld()
         // `shutdown` wakes an `accept` blocked on another thread, which a
         // `close` alone does not on Linux.
         #if canImport(Darwin)
