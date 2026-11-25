@@ -15,7 +15,8 @@ import TUITestProcess
 /// the overlay split and the painters: 2,565 escapes in one 120×40 frame. It
 /// built a parameter array for each (CORE1-10, WRITER-10), and a `String` and
 /// a split for each colon-form parameter, which TUI itself writes for an
-/// underline's shape and colour. Each is counted here in this test's task alone,
+/// underline's shape and colour. The painted-cell scans split every escape
+/// into substrings (CORE1-13). Each is counted here in this test's task alone,
 /// the smallest of a few tries, so a stray allocation in the runtime cannot
 /// fail it and a per-escape one cannot pass.
 @Suite("SGR walks: allocations", .enabled(if: AllocationCount.isAvailable))
@@ -46,5 +47,26 @@ struct SGRAllocationTests {
             }
         }
         #expect(count == 0, "\(count) allocations for 100 applies of \(sequence.debugDescription)")
+    }
+
+    /// A 100-cell row with 20 escapes, each short enough to be a small string,
+    /// so the segment walk itself allocates nothing either.
+    private let styledRow = (0..<20).map { index in
+        ["\u{1B}[3\(index % 8)m", "\u{1B}[4\(index % 8);1m", "\u{1B}[38;5;\(index)m", "\u{1B}[7m", "\u{1B}[0m"][index % 5]
+            + "abcde"
+    }.joined()
+
+    @Test("the painted-cell scans allocate nothing per escape")
+    func paintedScansAllocateNothingPerEscape() {
+        // The segment walk boxes its own state once a walk in a debug build,
+        // and the result is one array: neither is per escape.
+        var runs: [Range<Int>] = []
+        let painted = fewest { runs = styledRow.paintedRuns() }
+        #expect(painted <= 2, "\(painted) allocations for paintedRuns() of a row with 20 escapes")
+        #expect(runs == [0..<100])
+        var width = 0
+        let trailing = fewest { width = styledRow.visibleWidthBeforeTrailingBlanks() }
+        #expect(trailing <= 1, "\(trailing) allocations for visibleWidthBeforeTrailingBlanks()")
+        #expect(width == 100)
     }
 }

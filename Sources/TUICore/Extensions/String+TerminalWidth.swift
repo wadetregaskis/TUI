@@ -819,6 +819,9 @@ extension String {
     /// D2S-SCROLLCLIP).
     func paintedRuns() -> [Range<Int>] {
         var runs: [Range<Int>] = []
+        // The run the walk is in, appended once it ends rather than widened in
+        // the array cell by cell.
+        var current: Range<Int>?
         var (width, marks) = (0, BlankMarks())
         forEachANSISegment { segment in
             switch segment {
@@ -828,15 +831,17 @@ extension String {
                 let start = width
                 width += character.terminalWidth
                 if character != " " || !marks.isEmpty {
-                    if let last = runs.last, last.upperBound == start {
-                        runs[runs.count - 1] = last.lowerBound..<width
+                    if let open = current, open.upperBound == start {
+                        current = open.lowerBound..<width
                     } else {
-                        runs.append(start..<width)
+                        if let open = current { runs.append(open) }
+                        current = start..<width
                     }
                 }
             }
             return true
         }
+        if let current { runs.append(current) }
         return runs
     }
 
@@ -855,12 +860,13 @@ extension String {
         static let strikethrough = Self(rawValue: 1 << 3)
         static let overline = Self(rawValue: 1 << 4)
 
-        /// These marks after the SGR attribute `code`, whose whole `parameter`
-        /// carries the colon form's sub-parameters.
-        mutating func apply(_ code: Int, parameter: Substring) {
+        /// These marks after the SGR attribute `code`; `endsInColonZero` says
+        /// whether its whole parameter, the colon form's sub-parameters
+        /// included, ends in `:0`.
+        mutating func apply(_ code: Int, endsInColonZero: Bool) {
             if code == 0 {
                 self = []
-            } else if code == 4, parameter.hasSuffix(":0") {
+            } else if code == 4, endsInColonZero {
                 remove(.underline)  // the colon form's "no underline"; `4:1`… are its styles
             } else if let mark = Self.mark(setBy: code) {
                 insert(mark)
@@ -895,55 +901,88 @@ extension String {
     /// The ``BlankMarks`` in force after `sequence`, given those that `were`
     /// before. Parameters are applied in order, so `ESC[0;41m` ends up with a
     /// background and `ESC[41;0m` with none.
+    ///
+    /// Read off the bytes, as `isSGRReset` reads them. This runs on every escape
+    /// of every line an offset view, a drag preview or an overflow cut scans,
+    /// every frame, and it split each escape into an array of substrings to do
+    /// it (CORE1-13).
     private static func blankMarks(after sequence: String, were: BlankMarks) -> BlankMarks {
-        var marks = were
-        let body = sequence.dropFirst(2).dropLast()  // strip "ESC[" and the final "m"
-        let parameters = body.split(separator: ";", omittingEmptySubsequences: false)
-        if parameters.isEmpty { return [] }  // a bare ESC[m is a reset
-        var index = 0
-        while index < parameters.count {
-            let parameter = parameters[index]
-            // Only the LEADING sub-parameter names the attribute. In the colon
-            // form (`38:5:104`) the whole colour lives inside one `;` parameter,
-            // so the components never reach this switch at all — and reading the
-            // parameter whole would fail to parse and fall to 0, which is a
-            // RESET. That is how a foreground colour used to clear a background.
-            // An empty parameter is ECMA-48's default of 0.
-            let attribute = parameter.prefix { $0 != ":" }
-            let code = Int(attribute) ?? 0
-            marks.apply(code, parameter: parameter)
-            // 38, 48 and 58 INTRODUCE a colour. In the `;` form its components
-            // follow as further parameters — `5;n` or `2;r;g;b` — and walking
-            // those through the switch above reads a colour channel as an
-            // attribute: `ESC[38;2;200;40;90m` "sets" a background on the green
-            // 40, and `ESC[38;2;255;0;0m` clears one on the blue 0. Skip them.
-            // (In the colon form they are already inside `parameter`, so the
-            // `attribute.count == parameter.count` test leaves those alone.)
-            if code == 38 || code == 48 || code == 58, attribute.count == parameter.count {
-                index += extendedColorArgumentCount(after: index, in: parameters)
-            }
-            index += 1
+        if let marks = sequence.utf8.withContiguousStorageIfAvailable({ unsafe blankMarks(after: $0, were: were) }) {
+            return marks
         }
-        return marks
+        return Array(sequence.utf8).withUnsafeBufferPointer { unsafe blankMarks(after: $0, were: were) }
     }
 
-    /// How many parameters after `index` are the arguments of a `;`-form
-    /// extended-colour introducer (38 / 48 / 58).
-    ///
-    /// The selector says how many follow: `5` (indexed) takes one, `2`
-    /// (truecolor) takes three. Anything else — a truncated sequence, or a
-    /// selector this does not know — takes none, so an unparseable tail is
-    /// walked normally rather than swallowing the rest of the sequence.
-    private static func extendedColorArgumentCount(
-        after index: Int, in parameters: [Substring]
-    ) -> Int {
-        let available = parameters.count - index - 1
-        guard available > 0 else { return 0 }
-        switch Int(parameters[index + 1].prefix { $0 != ":" }) ?? -1 {
-        case 5: return Swift.min(2, available)  // selector + one index
-        case 2: return Swift.min(4, available)  // selector + r, g, b
-        default: return 0
+    /// ``blankMarks(after:were:)`` on a sequence's bytes, `ESC [` and the final
+    /// `m` included.
+    private static func blankMarks(after bytes: UnsafeBufferPointer<UInt8>, were: BlankMarks) -> BlankMarks {
+        var marks = were
+        // The parameters: past "ESC[", short of the final "m". No parameters is
+        // one empty parameter, ECMA-48's default of 0: a bare ESC[m resets.
+        var cursor = Swift.min(2, bytes.count)
+        let end = Swift.max(cursor, bytes.count - 1)
+        // 38, 48 and 58 INTRODUCE a colour. In the `;` form its components
+        // follow as further parameters — `5;n` or `2;r;g;b` — and walking those
+        // as attributes reads a colour channel as one: `ESC[38;2;200;40;90m`
+        // "sets" a background on the green 40, and `ESC[38;2;255;0;0m` clears
+        // one on the blue 0. So the parameter after an introducer is read as a
+        // selector, which says how many follow: `5` one, `2` three, and
+        // anything else none, so an unparseable tail is walked normally rather
+        // than swallowing the rest of the sequence. In the colon form
+        // (`38:5:104`) the whole colour lives inside one `;` parameter, and its
+        // components never reach the switch.
+        var awaitingSelector = false
+        var passing = 0  // the colour's arguments still to pass over
+        while true {
+            let start = cursor
+            var colon: Int?
+            while cursor < end, unsafe bytes[cursor] != 0x3B {  // ';'
+                if colon == nil, unsafe bytes[cursor] == 0x3A { colon = cursor }  // ':'
+                cursor += 1
+            }
+            // Only the LEADING sub-parameter names the attribute: read whole, a
+            // colon-form colour would fail to parse and fall to 0, which is a
+            // RESET. That is how a foreground colour used to clear a background.
+            // An empty parameter is ECMA-48's default of 0.
+            let lead = unsafe number(in: bytes, start..<(colon ?? cursor))
+            if passing > 0 {
+                passing -= 1
+            } else if awaitingSelector, lead == 5 || lead == 2 {
+                awaitingSelector = false
+                passing = lead == 5 ? 1 : 3
+            } else {
+                awaitingSelector = false
+                let code = lead ?? 0
+                let endsInColonZero = unsafe cursor - start >= 2 && bytes[cursor - 2] == 0x3A && bytes[cursor - 1] == 0x30
+                marks.apply(code, endsInColonZero: endsInColonZero)
+                if code == 38 || code == 48 || code == 58, colon == nil { awaitingSelector = true }
+            }
+            guard cursor < end else { return marks }
+            cursor += 1
         }
+    }
+
+    /// The bytes in `range` read as `Int(_:)` reads a decimal number — digits
+    /// after an optional sign — or `nil` for anything else: an empty range, a
+    /// stray byte, a number past `Int`'s range.
+    private static func number(in bytes: UnsafeBufferPointer<UInt8>, _ range: Range<Int>) -> Int? {
+        var cursor = range.lowerBound
+        let negative = unsafe cursor < range.upperBound && bytes[cursor] == 0x2D  // '-'
+        if cursor < range.upperBound, unsafe negative || bytes[cursor] == 0x2B { cursor += 1 }  // '+'
+        guard cursor < range.upperBound else { return nil }
+        var value = 0
+        while cursor < range.upperBound {
+            let byte = unsafe bytes[cursor]
+            guard byte >= 0x30, byte <= 0x39 else { return nil }
+            let digit = Int(byte - 0x30)
+            let (shifted, overflowed) = value.multipliedReportingOverflow(by: 10)
+            let (next, carried) =
+                negative ? shifted.subtractingReportingOverflow(digit) : shifted.addingReportingOverflow(digit)
+            guard !overflowed, !carried else { return nil }
+            value = next
+            cursor += 1
+        }
+        return value
     }
 
     /// The state after `value` when a scan has just seen an `ESC`, and whether

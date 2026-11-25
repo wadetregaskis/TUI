@@ -11,17 +11,23 @@
 
 extension FrameBuffer {
 
+    /// A stretch of rows over which an overlay's footprint spans the same
+    /// columns.
+    typealias FootprintBand = (rows: Range<Int>, columns: Range<Int>)
+
     /// The overlay's per-row visible footprint — the cells its composite
     /// replaces — banded: consecutive rows of equal span collapse into one
     /// entry, so a rectangular overlay is one band.
-    func footprintBands(
-        of overlay: Self, at position: (x: Int, y: Int)
-    ) -> [(rows: Range<Int>, columns: Range<Int>)] {
-        var bands: [(rows: Range<Int>, columns: Range<Int>)] = []
+    ///
+    /// Each row's width is the one the overlay knows (`knownWidth(ofRow:line:)`:
+    /// its width where its lines are uniform, its `lineWidths` where it has
+    /// them), measured only where it knows none.
+    func footprintBands(of overlay: Self, at position: (x: Int, y: Int)) -> [FootprintBand] {
+        var bands: [FootprintBand] = []
         for (index, line) in overlay.lines.enumerated() {
             // An empty line replaces nothing — the compositors skip it — so it
             // punches nothing either.
-            let visible = line.strippedLength
+            let visible = overlay.knownWidth(ofRow: index, line: line)
             guard visible > 0 else { continue }
             let row = position.y + index
             let columns = position.x..<(position.x + visible)
@@ -34,13 +40,32 @@ extension FrameBuffer {
         return bands
     }
 
+    /// This buffer's runs and regions with the overlay's footprint punched out
+    /// of them: what a composite leaves of the claims under it.
+    ///
+    /// The footprint is banded once for both, and only when there is a claim to
+    /// punch. Each kind banded it for itself, which on a base carrying both
+    /// measured every overlay line twice (CORE1-13).
+    func claimsPunched(
+        by overlay: Self, at position: (x: Int, y: Int)
+    ) -> (animatedCells: [AnimatedCellRun], opacityRegions: [OpacityRegion]) {
+        guard !animatedCells.isEmpty || !opacityRegions.isEmpty else { return ([], []) }
+        let bands = footprintBands(of: overlay, at: position)
+        return (animatedCellsPunched(by: bands), opacityRegionsPunched(by: bands))
+    }
+
     /// This buffer's regions with the overlay's footprint removed — see the
     /// note at the assignment above.
     func opacityRegionsPunched(
         by overlay: Self, at position: (x: Int, y: Int)
     ) -> [OpacityRegion] {
         guard !opacityRegions.isEmpty else { return [] }
-        let bands = footprintBands(of: overlay, at: position)
+        return opacityRegionsPunched(by: footprintBands(of: overlay, at: position))
+    }
+
+    /// This buffer's regions with `bands` removed.
+    private func opacityRegionsPunched(by bands: [FootprintBand]) -> [OpacityRegion] {
+        guard !opacityRegions.isEmpty else { return [] }
         guard !bands.isEmpty else { return opacityRegions }
         var result = opacityRegions
         for band in bands {
@@ -86,7 +111,12 @@ extension FrameBuffer {
         by overlay: Self, at position: (x: Int, y: Int)
     ) -> [AnimatedCellRun] {
         guard !animatedCells.isEmpty else { return [] }
-        let bands = footprintBands(of: overlay, at: position)
+        return animatedCellsPunched(by: footprintBands(of: overlay, at: position))
+    }
+
+    /// This buffer's runs with the cells `bands` cover taken out of them.
+    private func animatedCellsPunched(by bands: [FootprintBand]) -> [AnimatedCellRun] {
+        guard !animatedCells.isEmpty else { return [] }
         guard !bands.isEmpty else { return animatedCells }
         var kept: [AnimatedCellRun] = []
         kept.reserveCapacity(animatedCells.count)

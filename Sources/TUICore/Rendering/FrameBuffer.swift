@@ -821,8 +821,7 @@ extension FrameBuffer {
         }
 
         coverOverflow(under: other, at: (x: 0, y: top))
-        animatedCells = animatedCellsPunched(by: other, at: (x: 0, y: top))
-        opacityRegions = opacityRegionsPunched(by: other, at: (x: 0, y: top))
+        (animatedCells, opacityRegions) = claimsPunched(by: other, at: (x: 0, y: top))
 
         storage.replaceSubrange(top..., with: joined.lines)
         if footprint > 0 { storage.append(contentsOf: repeatElement("", count: footprint)) }
@@ -1085,9 +1084,9 @@ extension FrameBuffer {
         // still showing, not dropped whole — `FrameBuffer+Punching.swift` has
         // the reasoning (688a9aa7; it used to be dropped, and a spinner half
         // under a popover froze). The in-place twin below defers here.
+        let punched = claimsPunched(by: overlay, at: position)
         composited.animatedCells =
-            animatedCellsPunched(by: overlay, at: position)
-            + overlay.shiftedRuns(groundedOn: fields, byX: position.x, y: position.y)
+            punched.animatedCells + overlay.shiftedRuns(groundedOn: fields, byX: position.x, y: position.y)
         // BOTH sides. The result is built from a bare `Self(lines:)`, so the
         // DESTINATION's own regions are as easy to drop here as the overlay's
         // — and dropping them un-fades a faded buffer the moment anything is
@@ -1101,8 +1100,7 @@ extension FrameBuffer {
         // `.opacity(0.5).overlay { … }`, where the overlay applies to the
         // already-faded view.
         composited.opacityRegions =
-            opacityRegionsPunched(by: overlay, at: position)
-            + overlay.shiftedOpacityRegions(byX: position.x, y: position.y)
+            punched.opacityRegions + overlay.shiftedOpacityRegions(byX: position.x, y: position.y)
         return composited
     }
 
@@ -1233,10 +1231,9 @@ extension FrameBuffer {
         // Punched, then lifted — same reasoning as the copying twin above: the
         // overlay replaced base cells that pending regions were claiming and
         // runs were repainting.
-        animatedCells = animatedCellsPunched(by: overlay, at: position)
+        (animatedCells, opacityRegions) = claimsPunched(by: overlay, at: position)
         animatedCells.append(
             contentsOf: overlay.shiftedRuns(groundedOn: fields, byX: position.x, y: position.y))
-        opacityRegions = opacityRegionsPunched(by: overlay, at: position)
         opacityRegions.append(
             contentsOf: overlay.shiftedOpacityRegions(byX: position.x, y: position.y))
     }
