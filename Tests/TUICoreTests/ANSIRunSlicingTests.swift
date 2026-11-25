@@ -27,6 +27,8 @@ struct ANSIRunSlicingTests {
         "emoji 👍🏽 and ✂️ mixed",
         "\u{1B}]8;;https://example.com\u{1B}\\linked text\u{1B}]8;;\u{1B}\\ after",
         "\u{1B}]8;;https://example.com\u{1B}\\link never closed",
+        // A link over wide glyphs, which a one-cell cut splits at column zero.
+        "\u{1B}]8;;https://example.com\u{1B}\\漢字 link\u{1B}]8;;\u{1B}\\ after",
         "\u{1B}[1m\u{1B}[4m\u{1B}[7m",
         "",
         "x",

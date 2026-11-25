@@ -286,6 +286,39 @@ struct HyperlinkCutTests {
         #expect(!Self.leavesLinkOpen(slice))
     }
 
+    /// A wide glyph a slice's edge cuts is drawn as blanks, and no glyph is
+    /// there to be the link's text: a blank that underlines on hover, or opens
+    /// the link when clicked, would be a surprise. So its blanks are outside
+    /// the link at either edge, at column zero and after it, in the single
+    /// slice and in the batched cut, which used to keep them inside everywhere
+    /// but the single slice at column zero.
+    @Test(
+        "A wide glyph cut at a slice's edge leaves its blanks outside the link",
+        arguments: [[2, 2, 3], [1, 2, 2, 2], [3, 2, 2], [1, 3, 3], [Int](repeating: 1, count: 7)])
+    func cutGlyphBlanksAreNotLinked(widths: [Int]) {
+        // a 漢 b 字 c, all linked: columns 0, 1–2, 3, 4–5, 6.
+        let line = Self.linked("a漢b字c")
+        let glyphs = [0..<1, 1..<3, 3..<4, 4..<6, 6..<7]
+        func links(_ text: String) -> [String?] {
+            ANSIRunSlicingStateTests.drawn(text, in: ANSIRunSlicingStateTests.contexts[0]).cells.map(\.link)
+        }
+        let pieces = line.ansiAwareSlices(runWidths: widths)
+        var start = 0
+        for (piece, width) in zip(pieces, widths) {
+            let run = start..<(start + width)
+            // A cell is linked unless the glyph it belongs to is cut by the run.
+            let expected: [String?] = run.map { column in
+                let glyph = glyphs.first { $0.contains(column) }!
+                return glyph.clamped(to: run) == glyph ? Self.opening : nil
+            }
+            let single = line.ansiAwareSlice(visibleStart: start, visibleCount: width)
+            #expect(links(single) == expected, "slice at \(start): \(single.debugDescription)")
+            #expect(links(piece) == expected, "piece at \(start) of \(widths): \(piece.debugDescription)")
+            #expect(!Self.leavesLinkOpen(single) && !Self.leavesLinkOpen(piece))
+            start += width
+        }
+    }
+
     @Test("A slice past the link carries nothing")
     func sliceOutsideCarriesNothing() {
         let line = Self.linked("Docs") + " and more text"

@@ -470,7 +470,8 @@ extension String {
     /// not carry every escape it scrolled past. Non-SGR escapes
     /// (cursor moves) in the dropped region are not replayed. A wide character that
     /// straddles either edge cannot be shown whole; its IN-WINDOW cells become
-    /// spaces, so the gap it leaves still occupies its columns. (Dropping it with
+    /// spaces, outside any hyperlink it was in, so the gap it leaves still
+    /// occupies its columns. (Dropping it with
     /// no gap — the old behaviour — let everything after a left-edge straddle
     /// render one cell left of its neighbours: aligned columns went ragged,
     /// jittering as each wide glyph crossed the window edge while scrolling.)
@@ -521,6 +522,12 @@ extension String {
             enteredWindow = true
             body += link.reopening
         }
+        // The blanks of a wide glyph cut by either edge are never inside the
+        // link, the rule `closingCut` gives a clip: no glyph is there to be the
+        // link's text. A glyph cut by the left edge does not enter the window,
+        // so the link is restated after its blanks; one cut by the right edge
+        // closes it before them, and that is the window's close.
+        var closedAtCut = false
 
         // Streaming, and it stops at the right edge: past `end` every arm below
         // is a no-op — an escape is neither carried nor kept, a character can
@@ -544,8 +551,12 @@ extension String {
                     enterWindow()
                     body.append(character)
                 } else if charEnd > visibleStart {
-                    // Straddles an edge: blank its in-window cells.
-                    enterWindow()
+                    // Straddles an edge: blank its in-window cells, outside
+                    // the link.
+                    if charEnd > end {
+                        if enteredWindow { body += link.closingIfOpen }
+                        closedAtCut = true
+                    }
                     body += String(
                         repeating: " ",
                         count: min(charEnd, end) - max(visible, visibleStart))
@@ -554,7 +565,7 @@ extension String {
             }
             return true
         }
-        return carriedStyle.prefix() + body + link.closingIfOpen
+        return carriedStyle.prefix() + body + (closedAtCut ? "" : link.closingIfOpen)
     }
 
     /// Like ``ansiAwarePrefix(visibleCount:)`` but cursor-aware — clips so

@@ -20,6 +20,11 @@ before it is drawn, as a stack's children are, whose body took real time kept wh
 and so was never kept from one frame to the next: its `body` ran sixty times a second beside a 60 Hz timeline. It is now kept across frames as other views above a live timeline
 are, and runs again only when its value, its state or what it read changes.
 
+**A wide glyph cut at the edge of a scrolled window or a gradient's run is no longer a blank part of its link.** The
+cell or two a cut glyph leaves are drawn as spaces, and inside a hyperlink those spaces were part of the link
+everywhere but a clip and a window starting at column zero, so on a terminal that underlines links or opens them on a
+click, a blank cell did. They are now outside the link at every cut.
+
 **A gradient background behind text that changes colour at every cell writes a few kilobytes a row, not a hundred.**
 A ramped fill cuts its row at every column, and each cut opened with every colour escape the columns before it had
 stated, so a 120-cell row whose text was itself inked by a ramp built about 130 KB of escapes, to be netted away

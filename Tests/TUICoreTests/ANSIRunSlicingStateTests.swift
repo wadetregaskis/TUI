@@ -62,17 +62,29 @@ struct ANSIRunSlicingStateTests {
             var start = 0
             var referenceJoined = ""
             for (piece, runWidth) in zip(pieces, widths) {
-                // A run at column zero carries nothing across a cut, so it is
-                // not what this is about, and the cut and the slice function
-                // already part company there: the slice keeps the escapes at
-                // its right edge, which the cut hands to the next run, and
-                // closes a link before the blanks of a wide glyph it cuts.
+                let reference = Self.historySlice(row, visibleStart: start, visibleCount: runWidth)
+                // A run at column zero carries nothing across a cut, and there
+                // the cut and the slice function part company in one way only:
+                // the slice keeps the escapes at its right edge, which the cut
+                // hands to the next run. They draw nothing, so the piece's
+                // cells and the link it leaves open must agree, but not the
+                // state after it; the joined pieces below, where the next
+                // run's prefix states those escapes, must agree again.
                 guard start > 0 else {
-                    referenceJoined += piece
+                    referenceJoined += reference
+                    for context in Self.contexts {
+                        let expected = Self.drawn(reference, in: context)
+                        let drawn = Self.drawn(piece, in: context)
+                        #expect(
+                            drawn.cells == expected.cells && drawn.link == expected.link,
+                            """
+                            \(row.debugDescription) cut at \(widths), run at 0: \(piece.debugDescription) \
+                            against \(reference.debugDescription) in \(context)
+                            """)
+                    }
                     start += max(0, runWidth)
                     continue
                 }
-                let reference = Self.historySlice(row, visibleStart: start, visibleCount: runWidth)
                 referenceJoined += reference
                 let single = row.ansiAwareSlice(visibleStart: start, visibleCount: runWidth)
                 for context in Self.contexts {
@@ -190,6 +202,9 @@ struct ANSIRunSlicingStateTests {
 
     /// `ansiAwareSlice(visibleStart:visibleCount:)` as it was before the
     /// netting: the escapes before the window replayed one after another.
+    /// With one change since, which is not the netting's: a wide glyph cut by
+    /// either edge leaves its blanks outside the link, as the column-zero
+    /// slice always did (H-85b).
     static func historySlice(_ row: String, visibleStart: Int, visibleCount: Int) -> String {
         guard visibleCount > 0 else { return "" }
         guard visibleStart > 0 else { return row.ansiAwareSlice(visibleStart: 0, visibleCount: visibleCount) }
@@ -199,6 +214,7 @@ struct ANSIRunSlicingStateTests {
         var visible = 0
         var link = HyperlinkScan()
         var entered = false
+        var closed = false
         func enter() {
             guard !entered else { return }
             entered = true
@@ -221,14 +237,17 @@ struct ANSIRunSlicingStateTests {
                     enter()
                     body.append(character)
                 } else if charEnd > visibleStart {
-                    enter()
+                    if charEnd > end {
+                        if entered { body += link.closingIfOpen }
+                        closed = true
+                    }
                     body += String(repeating: " ", count: min(charEnd, end) - max(visible, visibleStart))
                 }
                 visible = charEnd
             }
             return true
         }
-        return carried + body + link.closingIfOpen
+        return carried + body + (closed ? "" : link.closingIfOpen)
     }
 
     // MARK: - Random rows

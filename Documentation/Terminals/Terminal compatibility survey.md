@@ -4567,6 +4567,31 @@ rule needs an exception there. The answer is `hyperlink_probe.py`'s three
 alongside Ghostty and kitty. Until it is recorded here, nothing about
 host-named file links on iTerm2 is established.
 
+### A cut wide glyph's blanks are outside the link — rule 2026-11-24, unmeasured
+
+A wide glyph that a cut divides cannot be half-drawn, so every cut draws its
+cells on the near side of the cut as spaces (a clip, `ansiAwarePrefixWithWidth`;
+a window, `ansiAwareSlice`; a row cut into runs, `ansiAwareSlicedRuns`, which a
+gradient background and a shape clip use). Inside an OSC 8 link those spaces
+are written **after the link is closed**, at a right edge, and **before it is
+restated**, at a left one. Until H-85b only the clip and the window at column
+zero did that; every later window and every run of the batched cut wrote them
+inside the link.
+
+The reasoning, not a measurement: no glyph is there to be the link's text, and
+on a host that underlines a link (iTerm2's `underlineHyperlinks`), or follows
+one on a click (iTerm2 ⌘-click, VTE Ctrl+click, the table above), a blank cell
+that underlines on hover or opens the link would be a surprise. Applied at both
+edges because a batched cut divides one glyph between two runs: closing the
+link only at a right edge left one of its two blanks linked and the other not.
+
+**UNMEASURED:** whether a host treats the two halves of a link split this way,
+the same URI on each side of an unlinked blank and no `id=`, as one link when
+hovering or underlining; no host here was probed with such a gap
+(`hyperlink_probe.py` has no row for it). If one shows them as two, that is
+the price of the rule, and it shows only where a wide glyph inside a link
+meets a cut.
+
 ---
 
 ## The window title: OSC 2, and its stack (XTWINOPS 22 and 23) — measured 2026-10-19

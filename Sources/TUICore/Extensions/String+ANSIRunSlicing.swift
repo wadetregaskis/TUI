@@ -79,12 +79,16 @@ extension String {
         var style = CarriedStyle()
         var link = HyperlinkScan()
         var visible = 0
+        // Whether this piece closed the link at its right edge already, before
+        // the blanks of a glyph cut there (see the straddle below).
+        var closedAtCut = false
 
         func finishPiece() {
-            receive(index, width(index) > 0 ? prefix + scratch + link.closingIfOpen : "")
+            receive(index, width(index) > 0 ? prefix + scratch + (closedAtCut ? "" : link.closingIfOpen) : "")
             index += 1
             scratch.removeAll(keepingCapacity: true)
             entered = false
+            closedAtCut = false
             prefix = style.prefix()
             start = end
             end = start + (index < runCount ? max(0, width(index)) : 0)
@@ -100,6 +104,18 @@ extension String {
             guard !entered else { return }
             entered = true
             scratch += link.reopening
+        }
+        /// A glyph over `column ..< charEnd` straddles this piece's edge: its
+        /// in-window cells are blanked, so the piece is the width it claims,
+        /// and outside the link, as the single slice's are. Cut by the left
+        /// edge it does not enter the piece, so the link is restated after the
+        /// blanks; cut by the right edge, the link is closed before them.
+        func blankStraddler(from column: Int, to charEnd: Int) {
+            if charEnd > end {
+                if entered { scratch += link.closingIfOpen }
+                closedAtCut = true
+            }
+            scratch += String(repeating: " ", count: min(charEnd, end) - max(column, start))
         }
 
         forEachANSISegment { segment in
@@ -124,14 +140,11 @@ extension String {
                 let charEnd = visible + charWidth
                 while index < runCount, start < charEnd {
                     if end > visible {
-                        enterPiece()
                         if visible >= start && charEnd <= end {
+                            enterPiece()
                             scratch.append(character)
                         } else {
-                            // Straddles this piece's edge: its in-window cells
-                            // are blanked, so the piece is the width it claims.
-                            scratch += String(
-                                repeating: " ", count: min(charEnd, end) - max(visible, start))
+                            blankStraddler(from: visible, to: charEnd)
                         }
                     }
                     guard end <= charEnd else { break }
