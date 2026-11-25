@@ -44,8 +44,29 @@ import TUIView
 /// `@inlinable` `FocusRegistration.register(context:handler:focusID:)` reads (module split step A3).
 @usableFromInline
 package final class AssignedFocusID {
-    /// The id `.focused(_:equals:)` forces on its target.
-    let id: String
+    /// The id `.focused(_:equals:)` forces on its target: `"<prefix>-<path>"`
+    /// of the place it was offered at, written out the first time it is asked
+    /// for.
+    ///
+    /// Not before, because an offer is made on every measure as well as every
+    /// render, and a measure never asks (``claim(_:)`` is render-only), while
+    /// the path is the whole identity chain rendered into a string — 461 bytes
+    /// for a field in Stress's `controls/focused`. Built up front, the measures'
+    /// strings alone were 6% of that page's CPU (H-99, FOCUS-8).
+    var id: String {
+        if let resolvedID { return resolvedID }
+        let id = place.map { "\(prefix)-\($0.path)" } ?? prefix
+        resolvedID = id
+        return id
+    }
+
+    /// The id once written out, or as given.
+    private var resolvedID: String?
+
+    /// What the id is written from when it was not given whole: the prefix,
+    /// and the place whose path follows it.
+    private let prefix: String
+    private let place: ViewIdentity?
 
     /// Whose it is. `nil` until the first focusable renders below the modifier.
     private var claimant: ViewIdentity?
@@ -58,7 +79,16 @@ package final class AssignedFocusID {
     package private(set) var claimantFocusID: String?
 
     package init(id: String) {
-        self.id = id
+        resolvedID = id
+        prefix = id
+        place = nil
+    }
+
+    /// An offer of `"\(prefix)-\(place.path)"`, written out only if something
+    /// asks for it.
+    package init(prefix: String, place: ViewIdentity) {
+        self.prefix = prefix
+        self.place = place
     }
 
     /// The forced id if `identity` may use it — because nothing has taken it
@@ -341,10 +371,11 @@ nonisolated struct _FocusedModifier<Content: View, Value: Hashable>: View {
 
     @MainActor var body: some View { content }
 
-    /// The forced id — stable across frames (structural identity of this
-    /// modifier), distinct per `.focused` usage.
-    @MainActor fileprivate func forcedID(_ context: RenderContext) -> String {
-        "focused-\(context.identity.path)"
+    /// The offer of the forced id, `"focused-<path>"` — stable across frames
+    /// (structural identity of this modifier), distinct per `.focused` usage —
+    /// whose string is written out only if a render asks for it.
+    @MainActor fileprivate func offer(_ context: RenderContext) -> AssignedFocusID {
+        AssignedFocusID(prefix: "focused", place: context.identity)
     }
 }
 
@@ -353,7 +384,7 @@ nonisolated struct _FocusedModifier<Content: View, Value: Hashable>: View {
         // A fresh offer per render: the claim is this render's, so the same
         // control takes the id again next frame rather than the offer staying
         // spent.
-        let offer = AssignedFocusID(id: forcedID(context))
+        let offer = self.offer(context)
         let env = context.environment.setting(\.assignedFocusID, to: offer)
         let buffer = TUIView.renderToBuffer(content, context: context.withEnvironment(env))
         // Bound after the content, to the id the control below registered
@@ -448,7 +479,7 @@ extension FocusBindingRegistrar {
     /// identity this modifier assigns.
     fileprivate func modifiedContext(_ context: RenderContext) -> RenderContext {
         context.withEnvironment(
-            context.environment.setting(\.assignedFocusID, to: AssignedFocusID(id: forcedID(context))))
+            context.environment.setting(\.assignedFocusID, to: offer(context)))
     }
 }
 
