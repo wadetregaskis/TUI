@@ -26,6 +26,13 @@
 //  leaf's write runs the leaf. The scopes its evaluation armed live as long as
 //  it is kept (its lease), so a later write to what it read still finds it.
 //
+//  A body is kept where it is evaluated after such a frame: at its draw, or
+//  at the measure before it where the measure keeps what it evaluated for
+//  the draw (`BodyKeep`), since that draw takes the measure's and evaluates
+//  nothing to keep. Kept only at the draw, a body `BodyKeep` keeps (a slow
+//  type's, a stack's child) was never kept across frames, and ran at every
+//  entry of the timeline below it (VIEWR-3).
+//
 //  Only an app's own composite the plain memo could compare, whose
 //  properties read nothing the walk decides (`BodyKeep.mayKeepAcrossFrames`),
 //  whose evaluation read nothing volatile, and only after a frame has shown a
@@ -279,6 +286,32 @@ func keepFrameBody<V: View>(_ body: V.Body, plan: FrameBodyPlan<V>, context: Ren
     let lease = cache.leases.endComputation(plan.mark)
     guard (context.environment.volatileReadTracker?.cacheUnsafeCount ?? 0) == plan.unsafeBefore else { return false }
     cache.plainMemo.frameBodies.keep(body, key: plan.key, identity: context.identity, lease: lease)
+    return true
+}
+
+/// Keeps across frames what a measure evaluated to keep for this pass's draw
+/// (`BodyKeep`), at a view a live timeline was drawn below last frame: the
+/// draw would take the pass's keep and never come to keep its own. Whether
+/// it kept it; if not, the pass's keep is the caller's.
+///
+/// The measure's body is one `BodyKeep` hands the draw, so it is one the
+/// draw may be walked from, and a kept body is prepared again on the view of
+/// each walk that takes it. Not kept: one whose evaluation read something
+/// volatile, as at the draw; and one under an environment with no stamp,
+/// whose key compares equal with none, so that the draw, finding nothing it
+/// can take here, takes the pass's keep (`ab701fc43`'s case).
+///
+/// Out of line, so a measure that keeps for the pass alone asks the runtime
+/// for no `PlainKey<V>?` metadata.
+@inline(never)
+@MainActor
+func keepMeasuredFrameBody<V: View>(
+    _ body: V.Body, of view: V, lease: ObservationLease?, unsafeBefore: Int, context: RenderContext
+) -> Bool {
+    guard let cache = context.renderCache, let key = context.frameBodyKey(of: view), key.stamp != nil,
+        (context.environment.volatileReadTracker?.cacheUnsafeCount ?? 0) == unsafeBefore
+    else { return false }
+    cache.plainMemo.frameBodies.keep(body, key: key, identity: context.identity, lease: lease)
     return true
 }
 

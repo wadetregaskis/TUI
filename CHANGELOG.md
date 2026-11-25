@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A slow view in a stack above a running `TimelineView` no longer runs its `body` at every entry.** A view measured
+before it is drawn, as a stack's children are, whose body took real time kept what its measure ran for the draw,
+and so was never kept from one frame to the next: its `body` ran sixty times a second beside a 60 Hz timeline. It is now kept across frames as other views above a live timeline
+are, and runs again only when its value, its state or what it read changes.
+
 **A hidden `TextEditor` lays out only the lines a key changes.** Redacted, or privacy-sensitive under privacy
 redaction, an editor laid its whole hidden text out again on every key, and wrapped all of it; it now carries the
 layout it draws through the edit, as it does its text's own.

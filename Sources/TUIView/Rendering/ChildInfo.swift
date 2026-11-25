@@ -981,6 +981,13 @@ private func measureCompositeBody<V: View>(
             return measureChild(kept, proposal: proposal, context: childContext)
         }
         let mark = cache.leases.beginComputation()
+        // A live timeline was drawn below this view last frame, and its body
+        // was not kept across frames (`FrameBodyKeep`): what is evaluated
+        // here is kept there, not for this pass alone. The draw would take
+        // this pass's keep, and so never reach its own keep across frames,
+        // and the body ran at every entry of the timeline (VIEWR-3).
+        let framesWant = cache.plainMemo.frameBodies.wants(context.identity)
+        let unsafeBefore = framesWant ? context.environment.volatileReadTracker?.cacheUnsafeCount ?? 0 : 0
         let sentinel = cache.scopeSentinel(forReader: V.self, at: context.identity)
         let body = withObservationTracking(
             {
@@ -991,7 +998,10 @@ private func measureCompositeBody<V: View>(
             onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))
         let lease = cache.leases.endComputation(mark)
         BodyChangeReport.noteBodyEvaluated(view, context: context)
-        cache.bodyKeep.keep(body, of: view, lease: lease, context: context, cache: cache)
+        let keptAcrossFrames =
+            framesWant
+            && keepMeasuredFrameBody(body, of: view, lease: lease, unsafeBefore: unsafeBefore, context: context)
+        if !keptAcrossFrames { cache.bodyKeep.keep(body, of: view, lease: lease, context: context, cache: cache) }
         return measureChild(body, proposal: proposal, context: childContext)
     }
     // As the render path evaluates it, `update()` inside the scope where there
