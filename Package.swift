@@ -949,7 +949,7 @@ let package = Package(
         .testTarget(
             name: "TUIIntegrationTests",
             dependencies: umbrellaTestDependencies + [
-                "TUIAppTestSupport", "TUIListsTestSupport", "TUITabsTestSupport", "TUITestSupport",
+                "TUIAppTestSupport", "TUIListsTestSupport", "TUITabsTestSupport", "TUITestProcess", "TUITestSupport",
             ]
         ),
         .testTarget(

@@ -17,6 +17,7 @@
 import Foundation
 import Observation
 import Testing
+import TUITestProcess
 
 @testable import TUI
 @testable import TUIApp
@@ -66,45 +67,6 @@ private enum BodyLog {
         return runs
     }
 }
-
-// MARK: - Counting allocations
-
-#if canImport(Darwin)
-/// Allocations, by libmalloc's logging hook: a count, so it needs no quiet box.
-/// In a debug build, where generics are not specialised, so the absolute number
-/// is not a release build's; what the study reads is the difference between
-/// configurations of one binary.
-private enum AllocationCount {
-    nonisolated(unsafe) static var count = 0
-    typealias Logger = @convention(c) (UInt32, UInt, UInt, UInt, UInt, UInt32) -> Void
-    nonisolated(unsafe) private static let slot: UnsafeMutablePointer<Logger?>? = {
-        guard let symbol = unsafe dlsym(UnsafeMutableRawPointer(bitPattern: -2), "malloc_logger") else { return nil }
-        return unsafe symbol.assumingMemoryBound(to: Logger?.self)
-    }()
-
-    static func during(_ work: () -> Void) -> Int {
-        guard let slot = unsafe slot else {
-            work()
-            return -1
-        }
-        unsafe count = 0
-        // MALLOC_LOG_TYPE_ALLOCATE is 2. A realloc logs as both.
-        unsafe slot.pointee = { type, _, _, _, _, _ in
-            if type & 2 != 0 { unsafe Self.count &+= 1 }
-        }
-        work()
-        unsafe slot.pointee = nil
-        return unsafe count
-    }
-}
-#else
-private enum AllocationCount {
-    static func during(_ work: () -> Void) -> Int {
-        work()
-        return -1
-    }
-}
-#endif
 
 // MARK: - The views
 
