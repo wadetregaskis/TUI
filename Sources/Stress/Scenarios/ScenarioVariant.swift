@@ -57,6 +57,7 @@ enum ScenarioVariants {
         PickerRowsMatrix.scenarioID: PickerRowsMatrix.variants,
         TranslucentScenario.scenarioID: TranslucentScenario.variants,
         AlphaRampsScenario.scenarioID: AlphaRampsScenario.variants,
+        GradientsScenario.scenarioID: GradientsScenario.variants,
         GlideMatrix.scenarioID: GlideMatrix.variants,
         CaseMatrix.scenarioID: CaseMatrix.variants,
     ]

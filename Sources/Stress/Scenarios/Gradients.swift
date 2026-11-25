@@ -50,8 +50,29 @@ enum GradientsScenario {
         blurb: "A subtree ramp down a long list, per-leaf ramps, four geometries, ramped fills, meshes.",
         stresses:
             "ramp quantisation · per-cell geometry · origin propagation · re-ink on move · SGR runs · mesh patches",
-        make: { config in AnyView(GradientsView(config: config)) }
+        make: { config in
+            ScenarioVariants.resolve(config, in: scenarioID)?.make(config) ?? AnyView(GradientsView(config: config))
+        }
     )
+
+    /// The registry's key: the descriptor's own id, so the two cannot drift.
+    @MainActor
+    static var scenarioID: String { descriptor.id }
+
+    /// The five bands (the default), and the one shape no band draws: a row
+    /// whose own text changes colour at every cell, over a ramp that changes
+    /// at every cell too.
+    @MainActor
+    static let variants: [ScenarioVariant] = [
+        ScenarioVariant(
+            id: "bands", summary: "the five bands: subtree, per-leaf, geometries, fills, meshes", axis: "ramp",
+            make: { config in AnyView(GradientsView(config: config)) }),
+        ScenarioVariant(
+            id: "styled-over-ramp",
+            summary: "per-cell-coloured rows over a per-cell ramp: a cut per column through an SGR per cell",
+            axis: "ramp",
+            make: { config in AnyView(StyledOverRampView(config: config)) }),
+    ]
 }
 
 private struct GradientsView: View {
@@ -120,13 +141,40 @@ private struct GradientsView: View {
     /// Rotated by the tick so consecutive frames are genuinely different work,
     /// and rotated rather than randomised so a `--selfcheck` at a given frame
     /// is still reproducible.
-    private static func ramp(rotatedBy tick: Int) -> Gradient {
+    static func ramp(rotatedBy tick: Int) -> Gradient {
         let colours: [Color] = [
             .rgb(220, 60, 90), .rgb(230, 140, 50), .rgb(220, 210, 70),
             .rgb(70, 190, 110), .rgb(60, 140, 210), .rgb(140, 90, 210),
         ]
         let offset = tick % colours.count
         return Gradient(colors: Array(colours[offset...] + colours[..<offset]))
+    }
+}
+
+/// Rows of text inked by a ramp across the row, each over a fill ramped the
+/// other way: the background cuts its row at every column and every column
+/// states a colour of its own, so a cut carries the style of every column
+/// before it. Replayed escape by escape, that was about W²/2 escapes per row
+/// (CORE1-6); netted, it is one. Neither band 2 (ink, no fill) nor band 4
+/// (fill under plain text) has both.
+private struct StyledOverRampView: View {
+    let config: StressConfig
+
+    /// The harness's frame counter, rotating the ramps, as on the bands page.
+    @Environment(StressClock.self) private var clock
+
+    var body: some View {
+        let ramp = GradientsView.ramp(rotatedBy: clock.tick)
+        let fill = GradientsView.ramp(rotatedBy: clock.tick + 3)
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<config.sized(40), id: \.self) { index in
+                Text(Synth.sentence(mix(config.seed, index &+ 23_001), words: 30))
+                    .lineLimit(1)
+                    .foregroundStyle(LinearGradient(gradient: ramp, startPoint: .leading, endPoint: .trailing))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(LinearGradient(gradient: fill, startPoint: .trailing, endPoint: .leading))
+            }
+        }
     }
 }
 
