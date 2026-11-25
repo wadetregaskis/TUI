@@ -20,6 +20,12 @@ before it is drawn, as a stack's children are, whose body took real time kept wh
 and so was never kept from one frame to the next: its `body` ran sixty times a second beside a 60 Hz timeline. It is now kept across frames as other views above a live timeline
 are, and runs again only when its value, its state or what it read changes.
 
+**A gradient background behind text that changes colour at every cell writes a few kilobytes a row, not a hundred.**
+A ramped fill cuts its row at every column, and each cut opened with every colour escape the columns before it had
+stated, so a 120-cell row whose text was itself inked by a ramp built about 130 KB of escapes, to be netted away
+again before it reached the terminal. Each cut now opens with the styling those escapes leave, as one escape: 4.4 KB
+for that row. A horizontally scrolled line carries one escape for the columns scrolled past, not all of theirs.
+
 **A hidden `TextEditor` lays out only the lines a key changes.** Redacted, or privacy-sensitive under privacy
 redaction, an editor laid its whole hidden text out again on every key, and wrapped all of it; it now carries the
 layout it draws through the edit, as it does its text's own.

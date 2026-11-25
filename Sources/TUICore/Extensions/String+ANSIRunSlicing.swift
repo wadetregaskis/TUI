@@ -67,14 +67,16 @@ extension String {
         // first is a snapshot taken as the piece begins and the last is the link
         // scan's state as the walk leaves it — which is why one pass can answer
         // for every piece, and why each can be handed over the moment its last
-        // column goes by.
+        // column goes by. The style is netted (`CarriedStyle`), not the escapes
+        // before the piece one after another: replayed, a row with an SGR per
+        // cell cut into one-cell runs carried about W²/2 escapes.
         var scratch = ""
         var index = 0
         var start = 0
         var end = max(0, width(0))
         var entered = false
         var prefix = ""
-        var styleSoFar = ""
+        var style = CarriedStyle()
         var link = HyperlinkScan()
         var visible = 0
 
@@ -83,7 +85,7 @@ extension String {
             index += 1
             scratch.removeAll(keepingCapacity: true)
             entered = false
-            prefix = styleSoFar
+            prefix = style.prefix()
             start = end
             end = start + (index < runCount ? max(0, width(index)) : 0)
         }
@@ -113,7 +115,7 @@ extension String {
                     scratch += sequence
                 }
                 if isSGR {
-                    styleSoFar += sequence
+                    style.note(sequence)
                 } else {
                     link.note(sequence)
                 }

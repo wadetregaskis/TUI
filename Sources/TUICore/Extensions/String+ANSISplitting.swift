@@ -464,8 +464,10 @@ extension String {
     ///
     /// This is the column-windowing primitive for horizontal scrolling. The dropped
     /// leading columns' SGR (colour/style) escapes are *carried* onto the front of
-    /// the result, so the slice keeps whatever styling was active at `visibleStart`
-    /// even though the codes that set it scrolled out of view. Non-SGR escapes
+    /// the result, netted into one (`CarriedStyle`), so the slice keeps whatever
+    /// styling was active at `visibleStart` even though the codes that set it
+    /// scrolled out of view — and a window scrolled far along a styled line does
+    /// not carry every escape it scrolled past. Non-SGR escapes
     /// (cursor moves) in the dropped region are not replayed. A wide character that
     /// straddles either edge cannot be shown whole; its IN-WINDOW cells become
     /// spaces, so the gap it leaves still occupies its columns. (Dropping it with
@@ -499,7 +501,7 @@ extension String {
         }
 
         let end = visibleStart + visibleCount
-        var carriedStyle = ""  // SGR history replayed so the slice starts correctly styled
+        var carriedStyle = CarriedStyle()  // the SGR before the window, netted
         var body = ""
         var visible = 0
         // A hyperlink is carried across the left edge for the same reason the
@@ -508,10 +510,10 @@ extension String {
         // stronger one: a window that keeps an opening sequence and drops the
         // closing one hands the link to every cell drawn after it.
         //
-        // It cannot ride along in `carriedStyle`, which accumulates: a link
-        // opened and closed before the window would be replayed as an open.
-        // The scan holds the state instead, and the sequence is restated ONCE,
-        // as the window is entered.
+        // It does not ride along in `carriedStyle`, which nets SGR alone. The
+        // scan holds the link's state instead, so one opened and closed before
+        // the window is not replayed as an open, and the sequence is restated
+        // ONCE, as the window is entered.
         var link = HyperlinkScan()
         var enteredWindow = false
         func enterWindow() {
@@ -529,7 +531,7 @@ extension String {
             switch segment {
             case .ansi(let sequence, let isSGR):
                 if visible < visibleStart {
-                    if isSGR { carriedStyle += sequence } else { link.note(sequence) }
+                    if isSGR { carriedStyle.note(sequence) } else { link.note(sequence) }
                 } else {
                     enterWindow()
                     body += sequence
@@ -552,7 +554,7 @@ extension String {
             }
             return true
         }
-        return carriedStyle + body + link.closingIfOpen
+        return carriedStyle.prefix() + body + link.closingIfOpen
     }
 
     /// Like ``ansiAwarePrefix(visibleCount:)`` but cursor-aware — clips so

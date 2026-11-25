@@ -211,7 +211,9 @@ package struct SGRState: Sendable, Equatable {
     package var underlineColour: Colour?
 
     /// Codes this model does not understand, kept verbatim and in order.
-    private var passthrough: [String] = []
+    /// Readable in the module for the tests that compare two states up to a
+    /// code repeated, as a replay repeats one and a netting does not.
+    private(set) var passthrough: [String] = []
 
     /// Whether the state is the terminal's default — nothing to emit.
     public var isDefault: Bool {
@@ -345,7 +347,8 @@ package struct SGRState: Sendable, Equatable {
     ///
     /// - Parameter sequence: A full escape, `ESC [ … m`.
     public mutating func apply(_ sequence: String) {
-        applyReportingBackground(sequence)
+        var writes = Writes()
+        apply(sequence, noting: &writes)
     }
 
     /// What an SGR sequence said about the background.
@@ -373,15 +376,24 @@ package struct SGRState: Sendable, Equatable {
     /// - Returns: What the sequence last said about the background.
     @discardableResult
     package mutating func applyReportingBackground(_ sequence: String) -> BackgroundStatement? {
+        var writes = Writes()
+        return apply(sequence, noting: &writes)
+    }
+
+    /// Folds `sequence` into the state as ``applyReportingBackground(_:)`` does,
+    /// and notes in `writes` what it wrote that the state cannot show: a reset,
+    /// and the slots it turned off (``Writes``).
+    @discardableResult
+    mutating func apply(_ sequence: String, noting writes: inout Writes) -> BackgroundStatement? {
         // Read in place. Until 2026-11-24 every sequence was first parsed into
         // an array of parameters — one allocation per escape, in the collapse,
         // the cell diff, the overlay split and the painters, 2,565 of them in a
         // 120×40 frame — and a colon-form parameter into a `String` and a split
         // (CORE1-10, WRITER-10).
-        if let statement = sequence.utf8.withContiguousStorageIfAvailable({ unsafe fold($0) }) {
+        if let statement = sequence.utf8.withContiguousStorageIfAvailable({ unsafe fold($0, noting: &writes) }) {
             return statement
         }
-        return Array(sequence.utf8).withUnsafeBufferPointer { unsafe fold($0) }
+        return Array(sequence.utf8).withUnsafeBufferPointer { unsafe fold($0, noting: &writes) }
     }
 
     /// A `38`, `48` or `58` in the `;` form, whose arguments are the
@@ -414,7 +426,7 @@ package struct SGRState: Sendable, Equatable {
     /// Folds the parameters of `bytes`, a whole `ESC [ … m`, and returns what
     /// they last said about the background.
     private mutating func fold(
-        _ bytes: UnsafeBufferPointer<UInt8>
+        _ bytes: UnsafeBufferPointer<UInt8>, noting writes: inout Writes
     ) -> BackgroundStatement? {
         let count = bytes.count
         guard count > 0, unsafe bytes[count - 1] == 0x6D else { return nil }  // 'm'
@@ -441,11 +453,11 @@ package struct SGRState: Sendable, Equatable {
             }
             // An empty parameter — a bare ESC[m, an empty slot — is 0.
             let parameter: Parameter = cursor == start || numeric ? .number(value) : .text(start..<cursor)
-            unsafe fold(parameter, of: bytes, group: &group, statement: &statement)
+            unsafe fold(parameter, of: bytes, group: &group, statement: &statement, noting: &writes)
             guard cursor < end else { break }
             cursor += 1
             if cursor == end {  // a trailing ';'
-                unsafe fold(.number(0), of: bytes, group: &group, statement: &statement)
+                unsafe fold(.number(0), of: bytes, group: &group, statement: &statement, noting: &writes)
                 break
             }
         }
@@ -457,7 +469,7 @@ package struct SGRState: Sendable, Equatable {
     /// belongs to.
     private mutating func fold(
         _ parameter: Parameter, of bytes: UnsafeBufferPointer<UInt8>, group: inout ExtendedColour,
-        statement: inout BackgroundStatement?
+        statement: inout BackgroundStatement?, noting writes: inout Writes
     ) {
         if group.introducer != 0 {
             if group.selector == 0 {
@@ -487,7 +499,7 @@ package struct SGRState: Sendable, Equatable {
                 if group.valid {
                     let colour: Colour =
                         group.selector == 5 ? .indexed(group.first) : .rgb(group.first, group.second, group.third)
-                    setExtendedColour(colour, introducer: group.introducer, statement: &statement)
+                    setExtendedColour(colour, introducer: group.introducer, statement: &statement, noting: &writes)
                 }
                 group = ExtendedColour()
                 return
@@ -495,34 +507,39 @@ package struct SGRState: Sendable, Equatable {
         }
         switch parameter {
         case .text(let range):
-            guard unsafe !applySubparameters(bytes, range, statement: &statement) else { return }
+            guard unsafe !applySubparameters(bytes, range, statement: &statement, noting: &writes) else { return }
             // swiftlint:disable:next optional_data_string_conversion
             passthrough.append(unsafe String(decoding: UnsafeBufferPointer(rebasing: bytes[range]), as: UTF8.self))
         case .number(let value):
-            apply(value, group: &group, statement: &statement)
+            apply(value, group: &group, statement: &statement, noting: &writes)
         }
     }
 
     /// Folds one numeric parameter.
     private mutating func apply(
-        _ value: Int, group: inout ExtendedColour, statement: inout BackgroundStatement?
+        _ value: Int, group: inout ExtendedColour, statement: inout BackgroundStatement?, noting writes: inout Writes
     ) {
         switch value {
         case 0:
             self = Self()
             statement = .reset
+            writes = Writes(reset: true)
         case 1...9, 21, 22, 23, 24, 25, 27, 28, 29, 59:
-            applyAttribute(value)
+            applyAttribute(value, noting: &writes)
         case 30...37, 90...97:
             foreground = .named(value)
+            writes.foreground = false
         case 39:
             foreground = nil
+            writes.foreground = true
         case 40...47, 100...107:
             background = .named(value)
             statement = .colour
+            writes.background = false
         case 49:
             background = nil
             statement = .terminalDefault
+            writes.background = true
         case 38, 48, 58:
             group = ExtendedColour()
             group.introducer = value
@@ -533,31 +550,37 @@ package struct SGRState: Sendable, Equatable {
 
     /// Puts a colour read from a 38, 48 or 58 in its slot.
     private mutating func setExtendedColour(
-        _ colour: Colour, introducer: Int, statement: inout BackgroundStatement?
+        _ colour: Colour, introducer: Int, statement: inout BackgroundStatement?, noting writes: inout Writes
     ) {
         switch introducer {
         case 38:
             foreground = colour
+            writes.foreground = false
         case 48:
             background = colour
             statement = .colour
+            writes.background = false
         default:
             underlineColour = colour
+            writes.underlineColour = false
         }
     }
 
     /// Folds an attribute's on or off code, or 59, which clears the
     /// underline's colour. A plain 4 is a single line, whatever shape one
     /// before it had, and 24 ends the line in every shape.
-    private mutating func applyAttribute(_ code: Int) {
+    private mutating func applyAttribute(_ code: Int, noting writes: inout Writes) {
         switch code {
         case 1...9:
             attributes |= Self.bit(code)
+            writes.attributes &= ~Self.bit(code)
             if code == 4 { underlineShape = 0 }
         case 59:
             underlineColour = nil
+            writes.underlineColour = true
         default:
             attributes &= ~Self.attributesOff(by: code)
+            writes.attributes |= Self.attributesOff(by: code)
             if code == 24 { underlineShape = 0 }
         }
     }
@@ -577,7 +600,8 @@ package struct SGRState: Sendable, Equatable {
     /// - Parameter statement: Set as ``apply(_:)``'s `;` form sets it, when the
     ///   parameter states a background.
     private mutating func applySubparameters(
-        _ bytes: UnsafeBufferPointer<UInt8>, _ range: Range<Int>, statement: inout BackgroundStatement?
+        _ bytes: UnsafeBufferPointer<UInt8>, _ range: Range<Int>, statement: inout BackgroundStatement?,
+        noting writes: inout Writes
     ) -> Bool {
         // The leading field names the attribute, spelled exactly: `04:3` is not
         // an underline's shape.
@@ -587,21 +611,23 @@ package struct SGRState: Sendable, Equatable {
             lead == 4 || lead == 38 || lead == 48 || lead == 58
         else { return false }
         guard let arguments = unsafe ColonArguments(bytes, from: leadEnd, to: range.upperBound) else { return false }
-        if lead == 4 { return applyUnderlineShape(arguments) }
+        if lead == 4 { return applyUnderlineShape(arguments, noting: &writes) }
         guard let colour = arguments.colour else { return false }
-        setExtendedColour(colour, introducer: lead, statement: &statement)
+        setExtendedColour(colour, introducer: lead, statement: &statement, noting: &writes)
         return true
     }
 
     /// Folds `4:n`, an underline's shape, and says whether it was one: a single
     /// argument, 0 (none) to 5.
-    private mutating func applyUnderlineShape(_ arguments: ColonArguments) -> Bool {
+    private mutating func applyUnderlineShape(_ arguments: ColonArguments, noting writes: inout Writes) -> Bool {
         guard arguments.count == 1, let shape = arguments.values.0, shape <= 5 else { return false }
         if shape == 0 {
             attributes &= ~Self.bit(4)
+            writes.attributes |= Self.bit(4)
             underlineShape = 0
         } else {
             attributes |= Self.bit(4)
+            writes.attributes &= ~Self.bit(4)
             underlineShape = shape == 1 ? 0 : UInt8(shape)
         }
         return true

@@ -8743,7 +8743,11 @@ painters disagree about a stated 49:
   its pieces puts its own colour in front of a slice of the row that opens with
   the row's styling so far (`BackgroundModifier`, `ansiAwareSlicedRuns`), a
   stated 49 included, so the 49 lasts until the frame's next reset, as it does
-  under a flat one.
+  under a flat one. Since 2026-11-24 that styling is netted into one escape
+  (`CarriedStyle`) rather than every escape before the cut, and the netting
+  keeps the 49 for this reason: it states a slot turned off (49, 39, 22 …)
+  and a reset as such, since a painter puts its fill back after a reset and
+  not after a 49.
 - Compositing (`String.paintedOver(background:)`: a `ZStack`, an `.overlay`)
   reads it as no field and fills it with the field it lands on. A floating
   layer made opaque (`OverlayLayer.isOpaque`) fills it too, but with its own
