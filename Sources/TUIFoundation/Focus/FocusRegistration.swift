@@ -155,7 +155,7 @@ package enum FocusRegistration {
     @inlinable
     package static func register(context: RenderContext, handler: Focusable, focusID: String) {
         guard !context.isMeasuring else { return }
-        repointPersistedHandler(handler, to: focusID)
+        repointPersistedHandler(handler, to: focusID, context: context)
         let sectionID = context.environment.activeFocusSectionID
         // Read BEFORE the claim below, because claiming is what consumes it.
         // `.focused($x, equals:)` offers an id to the first focusable that
@@ -217,11 +217,14 @@ package enum FocusRegistration {
     /// would make anyway.
     @MainActor
     @usableFromInline
-    static func repointPersistedHandler(_ handler: Focusable, to focusID: String) {
+    static func repointPersistedHandler(_ handler: Focusable, to focusID: String, context: RenderContext) {
         // ``Focusable`` refines `AnyObject`, so the binding is the handler the
         // ring holds, and `repoint` lands on it.
         if let persisted = handler as? any PersistedFocusable, persisted.focusID != focusID {
             persisted.repoint(focusID: focusID)
+            // If this pass filed it already, under the old id, the sections'
+            // counts of ids (`FocusSection.reindex()`) are counted again.
+            context.environment.focusManager?.reindexSections()
         }
     }
 

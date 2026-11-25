@@ -81,7 +81,7 @@ extension Focusable {
 /// `@usableFromInline`
 /// (step A3): the `@inlinable`
 /// `FocusRegistration.register(context:handler:focusID:)` reaches it only through
-/// the out-of-line `FocusRegistration.repointPersistedHandler(_:to:)`, which says why.
+/// the out-of-line `FocusRegistration.repointPersistedHandler(_:to:context:)`, which says why.
 ///
 /// A method, not a settable `focusID` requirement: a settable requirement of a
 /// protocol other modules can see hands every conformer's stored `focusID` to

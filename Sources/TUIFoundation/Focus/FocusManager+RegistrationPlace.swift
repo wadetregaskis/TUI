@@ -76,4 +76,10 @@ extension FocusManager {
         }
         return body()
     }
+
+    /// Counts again the focus ids filed in this pass's sections, after a
+    /// persisted handler answered to a new one (`FocusSection.reindex()`).
+    func reindexSections() {
+        for section in sections { section.reindex() }
+    }
 }
