@@ -356,7 +356,7 @@ enum Sessions {
         ]
         let inboxes: [SessionDescriptor] = InboxVariant.allCases.map { InboxVariantSession.descriptor($0) }
         let logs: [SessionDescriptor] = LogVariant.allCases.map { LogVariantSession.descriptor($0) }
-        let pages: [SessionDescriptor] = [
+        var pages: [SessionDescriptor] = [
             AccumulateSession.descriptor,
             ImageRowsSession.descriptor,
             MenusSession.descriptor,
@@ -373,6 +373,7 @@ enum Sessions {
             BigTextUndoSession.descriptor,
             LongLinesSession.descriptor,
         ]
+        pages += FocusPage.allCases.map { FocusPageSession.descriptor($0) }
         // Last: every perf case, `case:<id>`, its script looped.
         return apps + inboxes + logs + pages + CaseSession.descriptors
     }()

@@ -173,7 +173,7 @@ private struct ResizingScrollView: View {
 /// the tick, so the lines of buttons are served from the memo, their
 /// registrations replayed — unless `live`, when the page reads the tick and
 /// every button is measured and rendered again each frame.
-private struct ButtonGrid: View {
+struct ButtonGrid: View {
     let config: StressConfig
     let count: Int
     var live = false
@@ -220,7 +220,7 @@ private struct ButtonLine: View {
 /// scroll view inside a scroll view, the first focused: a form of editable
 /// rows. Their text moves with the tick, so every row is measured and rendered
 /// each frame, and the page holding the `@FocusState` evaluates its body.
-private struct FocusedFields: View {
+struct FocusedFields: View {
     let config: StressConfig
     @FocusState private var focus: Int?
     @Environment(StressClock.self) private var clock
