@@ -338,9 +338,10 @@ package struct SGRState: Sendable, Equatable {
     /// Non-SGR sequences (anything not ending in `m`) are ignored: they move the
     /// cursor or clear the screen, and neither is "styling in force".
     ///
-    /// Walks the bytes and parses each parameter in place: no split, no
-    /// `String` per code. A parameter that is not a number is passed through
-    /// as the text it was.
+    /// Walks the bytes and folds each parameter into the state as it is read:
+    /// no list of parameters, no `String` per code. A parameter that is not a
+    /// number, and not a colon form this model reads, is passed through as the
+    /// text it was.
     ///
     /// - Parameter sequence: A full escape, `ESC [ … m`.
     public mutating func apply(_ sequence: String) {
@@ -372,148 +373,177 @@ package struct SGRState: Sendable, Equatable {
     /// - Returns: What the sequence last said about the background.
     @discardableResult
     package mutating func applyReportingBackground(_ sequence: String) -> BackgroundStatement? {
-        let utf8 = sequence.utf8
-        guard utf8.last == 0x6D else { return nil }  // 'm'
-        // NOT the `reserveCapacity` that measured SLOWER on `Table.alignText`:
-        // that one is about String's inline small-string storage, which an
-        // Array does not have, so here it is strictly fewer allocations. The
-        // list grows 1→2→4→8, so `ESC[38;2;r;g;bm` reallocates four times
-        // for five parameters and throws three buffers away.
-        //
-        // Eight is the common ceiling, not a bound. A collapsed run carrying a
-        // truecolour foreground AND background is spelled
-        // `ESC[0;38;2;r;g;b;48;2;r;g;bm` — eleven parameters — which is what
-        // `collapsingAdjacentSGR()` emits and what the cell diff re-parses; it
-        // grows past this reservation exactly as it grew before.
-        //
-        // Below the guard, not above it: the opacity blend hands this every
-        // cursor move and erase in a row as well as every colour, and those
-        // must go on allocating nothing.
-        var codes: [Parameter] = []
-        codes.reserveCapacity(8)
+        // Read in place. Until 2026-11-24 every sequence was first parsed into
+        // an array of parameters — one allocation per escape, in the collapse,
+        // the cell diff, the overlay split and the painters, 2,565 of them in a
+        // 120×40 frame — and a colon-form parameter into a `String` and a split
+        // (CORE1-10, WRITER-10).
+        if let statement = sequence.utf8.withContiguousStorageIfAvailable({ unsafe fold($0) }) {
+            return statement
+        }
+        return Array(sequence.utf8).withUnsafeBufferPointer { unsafe fold($0) }
+    }
+
+    /// A `38`, `48` or `58` in the `;` form, whose arguments are the
+    /// parameters after it: a selector (`5` or `2`), then one index or three
+    /// channels. Held while they are read, so a parameter can be folded the
+    /// moment it is parsed.
+    private struct ExtendedColour {
+        /// The introducer, or 0 when no colour is being read.
+        var introducer = 0
+        /// `5` or `2` once read; 0 while the selector is awaited.
+        var selector = 0
+        /// The arguments read after the selector, and how many it takes.
+        var count = 0
+        var needed = 0
+        /// False once an argument is not a number: the group is consumed and
+        /// ignored, as a malformed colour is.
+        var valid = true
+        var first = 0
+        var second = 0
+        var third = 0
+    }
+
+    /// One parameter, as the walk reads it: a number (an empty one is 0), or
+    /// the bytes of one that is not.
+    private enum Parameter {
+        case number(Int)
+        case text(Range<Int>)
+    }
+
+    /// Folds the parameters of `bytes`, a whole `ESC [ … m`, and returns what
+    /// they last said about the background.
+    private mutating func fold(
+        _ bytes: UnsafeBufferPointer<UInt8>
+    ) -> BackgroundStatement? {
+        let count = bytes.count
+        guard count > 0, unsafe bytes[count - 1] == 0x6D else { return nil }  // 'm'
         // The parameters run from after '[' to before 'm'; a sequence with no
         // '[' has no parameters, which is the same as an empty list.
-        var index = utf8.startIndex
-        while index < utf8.endIndex, utf8[index] != 0x5B { index = utf8.index(after: index) }  // '['
-        if index < utf8.endIndex { index = utf8.index(after: index) }
-        let end = utf8.index(before: utf8.endIndex)
-        var start = index
+        var cursor = 0
+        while cursor < count, unsafe bytes[cursor] != 0x5B { cursor += 1 }  // '['
+        if cursor < count { cursor += 1 }
+        let end = count - 1
+        var statement: BackgroundStatement?
+        var group = ExtendedColour()
         while true {
-            var cursor = start
+            let start = cursor
             var value = 0
             var numeric = true
-            var empty = true
-            while cursor < end, utf8[cursor] != 0x3B {  // ';'
-                let byte = utf8[cursor]
+            while cursor < end, unsafe bytes[cursor] != 0x3B {  // ';'
+                let byte = unsafe bytes[cursor]
                 if numeric, byte >= 0x30, byte <= 0x39, value < 100_000_000 {
                     value = value * 10 + Int(byte - 0x30)
                 } else {
                     numeric = false
                 }
-                empty = false
-                cursor = utf8.index(after: cursor)
+                cursor += 1
             }
-            if empty {
-                codes.append(.number(0))  // a bare ESC[m, or an empty slot, is 0
-            } else if numeric {
-                codes.append(.number(value))
-            } else {
-                codes.append(.text(String(sequence[start..<cursor])))
-            }
+            // An empty parameter — a bare ESC[m, an empty slot — is 0.
+            let parameter: Parameter = cursor == start || numeric ? .number(value) : .text(start..<cursor)
+            unsafe fold(parameter, of: bytes, group: &group, statement: &statement)
             guard cursor < end else { break }
-            start = utf8.index(after: cursor)
-            if start == end { codes.append(.number(0)); break }  // a trailing ';'
-        }
-        return apply(codes)
-    }
-
-    /// One parsed parameter: a number, or text this model cannot read.
-    private enum Parameter {
-        case number(Int)
-        case text(String)
-
-        var text: String {
-            switch self {
-            case .number(let value): return String(value)
-            case .text(let text): return text
+            cursor += 1
+            if cursor == end {  // a trailing ';'
+                unsafe fold(.number(0), of: bytes, group: &group, statement: &statement)
+                break
             }
         }
-    }
-
-    /// Folds `codes` in, and returns what they last said about the background.
-    private mutating func apply(_ codes: [Parameter]) -> BackgroundStatement? {
-        var statement: BackgroundStatement?
-        var index = 0
-        while index < codes.count {
-            guard case .number(let value) = codes[index] else {
-                if case .text(let text) = codes[index], applySubparameters(text, statement: &statement) {
-                    index += 1
-                    continue
-                }
-                passthrough.append(codes[index].text)
-                index += 1
-                continue
-            }
-            switch value {
-            case 0:
-                self = Self()
-                statement = .reset
-            case 1...9, 21, 22, 23, 24, 25, 27, 28, 29, 59:
-                applyAttribute(value)
-            case 30...37, 90...97:
-                foreground = .named(value)
-            case 39:
-                foreground = nil
-            case 40...47, 100...107:
-                background = .named(value)
-                statement = .colour
-            case 49:
-                background = nil
-                statement = .terminalDefault
-            case 38, 48, 58:
-                let (consumed, applied) = applyExtendedColour(value, codes, from: index)
-                if applied, value == 48 { statement = .colour }
-                index += consumed
-                continue
-            default:
-                passthrough.append(String(value))
-            }
-            index += 1
-        }
+        // A colour still awaiting arguments is incomplete, and ignored.
         return statement
     }
 
-    /// Folds a `38;…`, `48;…` or `58;…` parameter group, and reports how many
-    /// parameters it consumed and whether it was read as a colour. An incomplete
-    /// group is consumed and ignored: it cannot be read as a colour, and its
-    /// digits are not attributes.
-    private mutating func applyExtendedColour(
-        _ introducer: Int, _ codes: [Parameter], from index: Int
-    ) -> (consumed: Int, applied: Bool) {
-        let span = Self.extendedColourSpan(codes, from: index)
-        let parameters = codes[index..<min(codes.count, index + span)]
-        let colour: Colour?
-        switch (parameters.count, parameters.dropFirst().first) {
-        case (3, .number(5)):
-            if case .number(let value) = parameters[index + 2] { colour = .indexed(value) } else { colour = nil }
-        case (5, .number(2)):
-            if case .number(let red) = parameters[index + 2], case .number(let green) = parameters[index + 3],
-                case .number(let blue) = parameters[index + 4]
-            {
-                colour = .rgb(red, green, blue)
+    /// Folds one parameter, in the context of the `;`-form colour, if any, it
+    /// belongs to.
+    private mutating func fold(
+        _ parameter: Parameter, of bytes: UnsafeBufferPointer<UInt8>, group: inout ExtendedColour,
+        statement: inout BackgroundStatement?
+    ) {
+        if group.introducer != 0 {
+            if group.selector == 0 {
+                // The selector, or not a colour: an introducer followed by
+                // anything else is consumed alone, and what follows it is a
+                // parameter of its own.
+                if case .number(let selector) = parameter, selector == 5 || selector == 2 {
+                    group.selector = selector
+                    group.needed = selector == 5 ? 1 : 3
+                    return
+                }
+                group = ExtendedColour()
             } else {
-                colour = nil
+                // An argument, whatever it holds: the colour's span is its
+                // selector's, so a malformed argument is consumed with it.
+                if case .number(let value) = parameter {
+                    switch group.count {
+                    case 0: group.first = value
+                    case 1: group.second = value
+                    default: group.third = value
+                    }
+                } else {
+                    group.valid = false
+                }
+                group.count += 1
+                guard group.count == group.needed else { return }
+                if group.valid {
+                    let colour: Colour =
+                        group.selector == 5 ? .indexed(group.first) : .rgb(group.first, group.second, group.third)
+                    setExtendedColour(colour, introducer: group.introducer, statement: &statement)
+                }
+                group = ExtendedColour()
+                return
             }
+        }
+        switch parameter {
+        case .text(let range):
+            guard unsafe !applySubparameters(bytes, range, statement: &statement) else { return }
+            // swiftlint:disable:next optional_data_string_conversion
+            passthrough.append(unsafe String(decoding: UnsafeBufferPointer(rebasing: bytes[range]), as: UTF8.self))
+        case .number(let value):
+            apply(value, group: &group, statement: &statement)
+        }
+    }
+
+    /// Folds one numeric parameter.
+    private mutating func apply(
+        _ value: Int, group: inout ExtendedColour, statement: inout BackgroundStatement?
+    ) {
+        switch value {
+        case 0:
+            self = Self()
+            statement = .reset
+        case 1...9, 21, 22, 23, 24, 25, 27, 28, 29, 59:
+            applyAttribute(value)
+        case 30...37, 90...97:
+            foreground = .named(value)
+        case 39:
+            foreground = nil
+        case 40...47, 100...107:
+            background = .named(value)
+            statement = .colour
+        case 49:
+            background = nil
+            statement = .terminalDefault
+        case 38, 48, 58:
+            group = ExtendedColour()
+            group.introducer = value
         default:
-            colour = nil
+            passthrough.append(String(value))
         }
-        guard let colour else { return (span, false) }
+    }
+
+    /// Puts a colour read from a 38, 48 or 58 in its slot.
+    private mutating func setExtendedColour(
+        _ colour: Colour, introducer: Int, statement: inout BackgroundStatement?
+    ) {
         switch introducer {
-        case 38: foreground = colour
-        case 48: background = colour
-        default: underlineColour = colour
+        case 38:
+            foreground = colour
+        case 48:
+            background = colour
+            statement = .colour
+        default:
+            underlineColour = colour
         }
-        return (span, true)
     }
 
     /// Folds an attribute's on or off code, or 59, which clears the
@@ -539,65 +569,107 @@ package struct SGRState: Sendable, Equatable {
     /// and `48:…` — and says whether it was one. Any other is left for the
     /// passthrough.
     ///
+    /// Read in place, as the `;` parameters are. An argument is a number when
+    /// it is digits and nothing else: a sign is not an SGR parameter byte, so
+    /// `4:+3` is a code this model does not read, where `UInt8("+3")` once
+    /// read it as 3.
+    ///
     /// - Parameter statement: Set as ``apply(_:)``'s `;` form sets it, when the
     ///   parameter states a background.
-    private mutating func applySubparameters(_ text: String, statement: inout BackgroundStatement?) -> Bool {
-        let fields = text.split(separator: ":", omittingEmptySubsequences: false)
-        switch fields.first {
-        case "4":
-            guard fields.count == 2, let shape = UInt8(fields[1]), shape <= 5 else { return false }
-            if shape == 0 {
-                attributes &= ~Self.bit(4)
-                underlineShape = 0
-            } else {
-                attributes |= Self.bit(4)
-                underlineShape = shape == 1 ? 0 : shape
+    private mutating func applySubparameters(
+        _ bytes: UnsafeBufferPointer<UInt8>, _ range: Range<Int>, statement: inout BackgroundStatement?
+    ) -> Bool {
+        // The leading field names the attribute, spelled exactly: `04:3` is not
+        // an underline's shape.
+        let (lead, leadEnd) = unsafe Self.colonField(bytes, from: range.lowerBound, to: range.upperBound)
+        guard let lead, leadEnd < range.upperBound,
+            leadEnd - range.lowerBound == (lead == 4 ? 1 : 2),
+            lead == 4 || lead == 38 || lead == 48 || lead == 58
+        else { return false }
+        guard let arguments = unsafe ColonArguments(bytes, from: leadEnd, to: range.upperBound) else { return false }
+        if lead == 4 { return applyUnderlineShape(arguments) }
+        guard let colour = arguments.colour else { return false }
+        setExtendedColour(colour, introducer: lead, statement: &statement)
+        return true
+    }
+
+    /// Folds `4:n`, an underline's shape, and says whether it was one: a single
+    /// argument, 0 (none) to 5.
+    private mutating func applyUnderlineShape(_ arguments: ColonArguments) -> Bool {
+        guard arguments.count == 1, let shape = arguments.values.0, shape <= 5 else { return false }
+        if shape == 0 {
+            attributes &= ~Self.bit(4)
+            underlineShape = 0
+        } else {
+            attributes |= Self.bit(4)
+            underlineShape = shape == 1 ? 0 : UInt8(shape)
+        }
+        return true
+    }
+
+    /// The arguments after a colon-form parameter's leading field, read in
+    /// place: at most five (`2::r:g:b`), each a number or `nil`.
+    private struct ColonArguments {
+        var values: (Int?, Int?, Int?, Int?, Int?) = (nil, nil, nil, nil, nil)
+        var count = 0
+
+        /// The arguments from `start`, the `:` after the leading field, to
+        /// `end`, or `nil` when there are more than five.
+        init?(_ bytes: UnsafeBufferPointer<UInt8>, from start: Int, to end: Int) {
+            var cursor = start
+            while cursor < end {
+                guard count < 5 else { return nil }
+                let (value, fieldEnd) = unsafe SGRState.colonField(bytes, from: cursor + 1, to: end)
+                switch count {
+                case 0: values.0 = value
+                case 1: values.1 = value
+                case 2: values.2 = value
+                case 3: values.3 = value
+                default: values.4 = value
+                }
+                count += 1
+                cursor = fieldEnd
             }
-            return true
-        case "38":
-            guard let colour = Self.colonColour(fields) else { return false }
-            foreground = colour
-            return true
-        case "48":
-            guard let colour = Self.colonColour(fields) else { return false }
-            background = colour
-            statement = .colour
-            return true
-        case "58":
-            guard let colour = Self.colonColour(fields) else { return false }
-            underlineColour = colour
-            return true
-        default:
-            return false
+        }
+
+        /// The colour they name after a 38, 48 or 58 — `5:i`, `2::r:g:b` or
+        /// `2:r:g:b` — or `nil` for one this model does not read.
+        var colour: Colour? {
+            switch (values.0, count) {
+            case (5, 2):
+                guard let index = values.1 else { return nil }
+                return .indexed(index)
+            case (2, 4):
+                guard let red = values.1, let green = values.2, let blue = values.3 else { return nil }
+                return .rgb(red, green, blue)
+            case (2, 5):
+                guard let red = values.2, let green = values.3, let blue = values.4 else { return nil }
+                return .rgb(red, green, blue)
+            default:
+                return nil
+            }
         }
     }
 
-    /// The colour a colon-form `38`, `48` or `58` names — `n:5:i`, `n:2::r:g:b`
-    /// or `n:2:r:g:b` — or `nil` for one this model does not read.
-    private static func colonColour(_ fields: [Substring]) -> Colour? {
-        let arguments = fields.dropFirst().map { Int($0) }
-        switch (arguments.first, arguments.count) {
-        case (5, 2):
-            guard let index = arguments[1] else { return nil }
-            return .indexed(index)
-        case (2, 4), (2, 5):
-            let channels = arguments.suffix(3)
-            guard let red = channels[channels.startIndex], let green = channels[channels.startIndex + 1],
-                let blue = channels[channels.startIndex + 2]
-            else { return nil }
-            return .rgb(red, green, blue)
-        default:
-            return nil
+    /// The colon-separated field starting at `start`: its value, or `nil` when
+    /// it is empty or not all digits, and the offset of the `:` that ends it
+    /// (or `end`).
+    private static func colonField(
+        _ bytes: UnsafeBufferPointer<UInt8>, from start: Int, to end: Int
+    ) -> (value: Int?, end: Int) {
+        var cursor = start
+        var value = 0
+        var numeric = true
+        while cursor < end, unsafe bytes[cursor] != 0x3A {  // ':'
+            let byte = unsafe bytes[cursor]
+            if numeric, byte >= 0x30, byte <= 0x39, value < 100_000_000 {
+                value = value * 10 + Int(byte - 0x30)
+            } else {
+                numeric = false
+            }
+            cursor += 1
         }
-    }
-
-    private static func extendedColourSpan(_ codes: [Parameter], from index: Int) -> Int {
-        guard index + 1 < codes.count else { return 1 }
-        switch codes[index + 1] {
-        case .number(5): return min(3, codes.count - index)
-        case .number(2): return min(5, codes.count - index)
-        default: return 1
-        }
+        return (numeric && cursor > start ? value : nil, cursor)
     }
 
     /// The shortest sequence that puts a default terminal into this state, or
