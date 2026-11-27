@@ -29,10 +29,22 @@ import Testing
         @Test("The thread that marks itself is marked, and no other is")
         func marksOnlyTheCaller() async {
             let mark = WalkingThreadMark()
-            let markedThreadSeesIt = await onAnotherThread {
-                mark.set()
-                return mark.isCallingThread
+            // Keep the marking thread alive while the other threads check it:
+            // `WalkingThreadMark` identifies a thread by its `Thread` object's
+            // address, which is unique only while that thread runs. Once an
+            // exited `Thread` is freed, a cooperative pool thread's first lazy
+            // `Thread.current` (or another spawned `Thread`) can reuse its
+            // address.
+            let release = DispatchSemaphore(value: 0)
+            let markedThreadSeesIt: Bool = await withCheckedContinuation { continuation in
+                Thread {
+                    mark.set()
+                    continuation.resume(returning: mark.isCallingThread)
+                    release.wait()
+                    mark.clear()
+                }.start()
             }
+            defer { release.signal() }
             #expect(markedThreadSeesIt)
             #expect(!mark.isCallingThread, "this test's thread found itself marked")
             #expect(await onAnotherThread { !mark.isCallingThread }, "a third thread found itself marked")
