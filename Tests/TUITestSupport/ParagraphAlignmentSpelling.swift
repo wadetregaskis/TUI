@@ -38,13 +38,17 @@ package enum ParagraphAlignmentSpelling: String, CaseIterable, Sendable, CustomS
     ) {
         switch self {
         case .alignment:
-            guard #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) else {
+            // `if #available` rather than `guard #available` before a `switch`:
+            // Swift 6.5-dev's availability verifier aborts (`AvailabilityScope.cpp`)
+            // when a `guard` fallthrough inside a `case` ends at a `switch`.
+            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                switch side {
+                case .leading: string[range].alignment = .left
+                case .center: string[range].alignment = .center
+                case .trailing: string[range].alignment = .right
+                }
+            } else {
                 preconditionFailure("SwiftUI's alignment needs macOS 26 here; run only `available` spellings")
-            }
-            switch side {
-            case .leading: string[range].alignment = .left
-            case .center: string[range].alignment = .center
-            case .trailing: string[range].alignment = .right
             }
         case .paragraphAlignment:
             string[range].paragraphAlignment = side
@@ -55,14 +59,15 @@ package enum ParagraphAlignmentSpelling: String, CaseIterable, Sendable, CustomS
     package func alignment(of run: AttributedString.Runs.Run) -> TextAlignment? {
         switch self {
         case .alignment:
-            guard #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) else {
+            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                switch run.alignment {
+                case .left: return .leading
+                case .center: return .center
+                case .right: return .trailing
+                default: return nil
+                }
+            } else {
                 preconditionFailure("SwiftUI's alignment needs macOS 26 here; run only `available` spellings")
-            }
-            switch run.alignment {
-            case .left: return .leading
-            case .center: return .center
-            case .right: return .trailing
-            default: return nil
             }
         case .paragraphAlignment:
             return run.paragraphAlignment
