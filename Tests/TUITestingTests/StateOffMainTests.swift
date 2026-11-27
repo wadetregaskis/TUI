@@ -13,6 +13,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+#if canImport(Dispatch)
+    import Dispatch
+#endif
 import Foundation
 import Synchronization
 import Testing
@@ -48,25 +51,27 @@ private func sendableClosure(_ body: @escaping @Sendable () -> Void) {
 
 private func requireSendable<T: Sendable>(_: T.Type) {}
 
-/// What a thread of its own read, handed back to the test.
-private final class Handoff: Sendable {
-    let read = Mutex<[Int]?>(nil)
-}
-
-/// Runs `body` on a thread of its own while the main actor waits for it
-/// synchronously — as a semaphore, a `DispatchQueue.sync` or a group's
-/// `wait()` would — and returns whether it finished within ten seconds: it
-/// does in microseconds unless something it does waits for the main actor,
-/// which is then a deadlock the time limit breaks.
-@MainActor
-private func whileMainActorWaits(_ body: @escaping @Sendable () -> Void) -> Bool {
-    let finished = DispatchSemaphore(value: 0)
-    Thread.detachNewThread {
-        body()
-        finished.signal()
+#if canImport(Dispatch)  // A second thread, which wasip1 does not have.
+    /// What a thread of its own read, handed back to the test.
+    private final class Handoff: Sendable {
+        let read = Mutex<[Int]?>(nil)
     }
-    return finished.wait(timeout: .now() + .seconds(10)) == .success
-}
+
+    /// Runs `body` on a thread of its own while the main actor waits for it
+    /// synchronously — as a semaphore, a `DispatchQueue.sync` or a group's
+    /// `wait()` would — and returns whether it finished within ten seconds: it
+    /// does in microseconds unless something it does waits for the main actor,
+    /// which is then a deadlock the time limit breaks.
+    @MainActor
+    private func whileMainActorWaits(_ body: @escaping @Sendable () -> Void) -> Bool {
+        let finished = DispatchSemaphore(value: 0)
+        Thread.detachNewThread {
+            body()
+            finished.signal()
+        }
+        return finished.wait(timeout: .now() + .seconds(10)) == .success
+    }
+#endif
 
 /// What a test hands a view that reads its `@State` more than once in a body,
 /// and what each read gave.
@@ -230,94 +235,96 @@ struct StateOffMainTests {
         #expect(app.screen.text == "Count: \(width)")
     }
 
-    @Test("The first read off the main actor waits for nothing: the main actor waiting on that thread is no deadlock")
-    func firstOffMainReadNeverWaits() throws {
-        let captured = Captured()
-        let app = TestApp(width: 20, height: 1) { Log(captured: captured) }
-        #expect(app.screen.text == "Count: 0")
-        let binding = try #require(captured.binding)
-        binding.wrappedValue = [7]
-        let handoff = Handoff()
-        // The box's first read off the main actor, while the main actor is
-        // blocked until it returns. SwiftUI's never waits (O-25-FIRSTREAD).
-        let finished = whileMainActorWaits {
-            let value = binding.wrappedValue
-            handoff.read.withLock { $0 = value }
+    #if canImport(Dispatch)  // A second thread, which wasip1 does not have.
+        @Test("The first read off the main actor waits for nothing: the main actor waiting on that thread is no deadlock")
+        func firstOffMainReadNeverWaits() throws {
+            let captured = Captured()
+            let app = TestApp(width: 20, height: 1) { Log(captured: captured) }
+            #expect(app.screen.text == "Count: 0")
+            let binding = try #require(captured.binding)
+            binding.wrappedValue = [7]
+            let handoff = Handoff()
+            // The box's first read off the main actor, while the main actor is
+            // blocked until it returns. SwiftUI's never waits (O-25-FIRSTREAD).
+            let finished = whileMainActorWaits {
+                let value = binding.wrappedValue
+                handoff.read.withLock { $0 = value }
+            }
+            #expect(finished)
+            #expect(handoff.read.withLock { $0 } == [7])
         }
-        #expect(finished)
-        #expect(handoff.read.withLock { $0 } == [7])
-    }
 
-    @Test("A write off the main actor waits for nothing, its thread reads it back at once, and the main actor's next turn sees it")
-    func offMainWriteNeverWaits() async throws {
-        let captured = Captured()
-        let app = TestApp(width: 20, height: 1) { Log(captured: captured) }
-        #expect(app.screen.text == "Count: 0")
-        let binding = try #require(captured.binding)
-        let handoff = Handoff()
-        let finished = whileMainActorWaits {
-            binding.wrappedValue = [42]
-            let value = binding.wrappedValue
-            handoff.read.withLock { $0 = value }
+        @Test("A write off the main actor waits for nothing, its thread reads it back at once, and the main actor's next turn sees it")
+        func offMainWriteNeverWaits() async throws {
+            let captured = Captured()
+            let app = TestApp(width: 20, height: 1) { Log(captured: captured) }
+            #expect(app.screen.text == "Count: 0")
+            let binding = try #require(captured.binding)
+            let handoff = Handoff()
+            let finished = whileMainActorWaits {
+                binding.wrappedValue = [42]
+                let value = binding.wrappedValue
+                handoff.read.withLock { $0 = value }
+            }
+            #expect(finished)
+            #expect(handoff.read.withLock { $0 } == [42])
+            // One turn of the main actor: whatever the write left to make there
+            // was posted before it.
+            await Task.yield()
+            #expect(binding.wrappedValue == [42])
+            #expect(app.screen.text == "Count: 1")
         }
-        #expect(finished)
-        #expect(handoff.read.withLock { $0 } == [42])
-        // One turn of the main actor: whatever the write left to make there
-        // was posted before it.
-        await Task.yield()
-        #expect(binding.wrappedValue == [42])
-        #expect(app.screen.text == "Count: 1")
-    }
 
-    @Test("A body's reads of its state agree when a write off the main actor lands between them; the next frame shows it")
-    func bodyReadsAgreeAcrossAnOffMainWrite() async throws {
-        let reads = Reads()
-        let app = TestApp(width: 20, height: 1) { ReadsTwice(reads: reads) }
-        #expect(app.screen.text == "Count: 0")
-        let binding = try #require(reads.binding)
-        // Between the next body's two reads, a write from a thread of its own,
-        // which the body waits for: no timing, the write has landed.
-        reads.between = {
-            #expect(whileMainActorWaits { binding.wrappedValue = [1, 2] })
+        @Test("A body's reads of its state agree when a write off the main actor lands between them; the next frame shows it")
+        func bodyReadsAgreeAcrossAnOffMainWrite() async throws {
+            let reads = Reads()
+            let app = TestApp(width: 20, height: 1) { ReadsTwice(reads: reads) }
+            #expect(app.screen.text == "Count: 0")
+            let binding = try #require(reads.binding)
+            // Between the next body's two reads, a write from a thread of its own,
+            // which the body waits for: no timing, the write has landed.
+            reads.between = {
+                #expect(whileMainActorWaits { binding.wrappedValue = [1, 2] })
+            }
+            reads.bodies.removeAll()
+            // A write on the main actor, so the next frame runs the body.
+            binding.wrappedValue = [1]
+            #expect(app.screen.text == "Count: 1")
+            #expect(reads.between == nil, "the body ran")
+            #expect(reads.bodies.allSatisfy { $0 == [[1], [1]] }, "\(reads.bodies)")
+            // The write's report, posted to the main actor, asks for the next
+            // frame, a pass of its own, which reads the write.
+            await Task.yield()
+            reads.bodies.removeAll()
+            #expect(app.screen.text == "Count: 2")
+            #expect(!reads.bodies.isEmpty, "the body ran again")
+            #expect(reads.bodies.allSatisfy { $0 == [[1, 2], [1, 2]] }, "\(reads.bodies)")
         }
-        reads.bodies.removeAll()
-        // A write on the main actor, so the next frame runs the body.
-        binding.wrappedValue = [1]
-        #expect(app.screen.text == "Count: 1")
-        #expect(reads.between == nil, "the body ran")
-        #expect(reads.bodies.allSatisfy { $0 == [[1], [1]] }, "\(reads.bodies)")
-        // The write's report, posted to the main actor, asks for the next
-        // frame, a pass of its own, which reads the write.
-        await Task.yield()
-        reads.bodies.removeAll()
-        #expect(app.screen.text == "Count: 2")
-        #expect(!reads.bodies.isEmpty, "the body ran again")
-        #expect(reads.bodies.allSatisfy { $0 == [[1, 2], [1, 2]] }, "\(reads.bodies)")
-    }
 
-    @Test("A child reads through a Binding what its parent read, a write off the main actor landing between them")
-    func bindingReadAgreesWithParent() async throws {
-        let reads = Reads()
-        let app = TestApp(width: 20, height: 1) { HandsDown(reads: reads) }
-        #expect(app.screen.text == "Count: 0")
-        let binding = try #require(reads.binding)
-        reads.between = {
-            #expect(whileMainActorWaits { binding.wrappedValue = [1, 2] })
+        @Test("A child reads through a Binding what its parent read, a write off the main actor landing between them")
+        func bindingReadAgreesWithParent() async throws {
+            let reads = Reads()
+            let app = TestApp(width: 20, height: 1) { HandsDown(reads: reads) }
+            #expect(app.screen.text == "Count: 0")
+            let binding = try #require(reads.binding)
+            reads.between = {
+                #expect(whileMainActorWaits { binding.wrappedValue = [1, 2] })
+            }
+            reads.bodies.removeAll()
+            reads.children.removeAll()
+            binding.wrappedValue = [1]
+            #expect(app.screen.text == "Count: 1")
+            #expect(reads.between == nil, "the parent's body ran")
+            #expect(!reads.children.isEmpty, "the child's body ran")
+            #expect(reads.bodies.allSatisfy { $0 == [[1]] }, "\(reads.bodies)")
+            #expect(reads.children.allSatisfy { $0 == [1] }, "\(reads.children)")
+            await Task.yield()
+            reads.children.removeAll()
+            #expect(app.screen.text == "Count: 2")
+            #expect(!reads.children.isEmpty, "the child's body ran again")
+            #expect(reads.children.allSatisfy { $0 == [1, 2] }, "\(reads.children)")
         }
-        reads.bodies.removeAll()
-        reads.children.removeAll()
-        binding.wrappedValue = [1]
-        #expect(app.screen.text == "Count: 1")
-        #expect(reads.between == nil, "the parent's body ran")
-        #expect(!reads.children.isEmpty, "the child's body ran")
-        #expect(reads.bodies.allSatisfy { $0 == [[1]] }, "\(reads.bodies)")
-        #expect(reads.children.allSatisfy { $0 == [1] }, "\(reads.children)")
-        await Task.yield()
-        reads.children.removeAll()
-        #expect(app.screen.text == "Count: 2")
-        #expect(!reads.children.isEmpty, "the child's body ran again")
-        #expect(reads.children.allSatisfy { $0 == [1, 2] }, "\(reads.children)")
-    }
+    #endif
 
     @Test("A body that writes its state on the main actor reads its write back")
     func bodyReadsItsOwnWriteBack() {
