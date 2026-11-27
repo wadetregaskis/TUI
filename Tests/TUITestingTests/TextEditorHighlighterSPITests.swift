@@ -45,7 +45,10 @@ struct TextEditorHighlighterSPITests {
     /// Pure red, as 24-bit colour sends it.
     static let red = "38;2;255;0;0"
 
-    @Test("A highlighter given with the SPI modifier styles the editor's text", .timeLimit(.minutes(10)))
+    // A full CI run on macOS 15 queues thousands of `@MainActor` tests in one
+    // process, so a 10-minute limit can expire before this test runs; 45 minutes
+    // matches the other highlighter suites and still breaks a genuine hang.
+    @Test("A highlighter given with the SPI modifier styles the editor's text", .timeLimit(.minutes(45)))
     func highlights() async throws {
         let app = TestApp(width: 30, height: 3) {
             TextEditor(text: .constant("func body\nlet value"))
