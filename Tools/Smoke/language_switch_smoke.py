@@ -62,6 +62,7 @@ class App:
     def __init__(self, binary, config_dir):
         self.screen = pyte.Screen(COLS, ROWS)
         self.stream = pyte.ByteStream(self.screen)
+        self.exit_status = None
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             try:
@@ -81,6 +82,18 @@ class App:
             os._exit(127)  # exec failed: end here, never in this script's code or its cleanup
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
 
+    def alive(self):
+        if self.exit_status is not None:
+            return False
+        try:
+            finished, status = os.waitpid(self.pid, os.WNOHANG)
+        except ChildProcessError:
+            return False
+        if finished == self.pid:
+            self.exit_status = status
+            return False
+        return True
+
     def drain(self, seconds):
         end = time.time() + seconds
         while time.time() < end:
@@ -88,7 +101,10 @@ class App:
             if not ready:
                 continue
             try:
-                self.stream.feed(os.read(self.fd, 65536))
+                data = os.read(self.fd, 65536)
+                if not data:
+                    return
+                self.stream.feed(data)
             except OSError:
                 return
 
@@ -117,6 +133,9 @@ class App:
         while time.time() < end:
             if self.reads_in(language):
                 return True
+            if not self.alive():
+                self.drain(0.05)
+                return self.reads_in(language)
             self.drain(0.1)
         return self.reads_in(language)
 
@@ -141,14 +160,20 @@ class App:
         return True
 
     def quit(self):
+        if self.exit_status is not None:
+            return False
         # Escape to the menu first: a page may hold something that asks.
         os.write(self.fd, b"\x1b")
         self.drain(0.4)
         os.write(self.fd, b"\x11")  # ⌃Q
         self.drain(0.6)
         for _ in range(60):
-            finished, _ = os.waitpid(self.pid, os.WNOHANG)
+            try:
+                finished, status = os.waitpid(self.pid, os.WNOHANG)
+            except ChildProcessError:
+                return True
             if finished == self.pid:
+                self.exit_status = status
                 return True
             time.sleep(0.05)
         self.kill()
@@ -182,16 +207,21 @@ def main():
 
     try:
         # 1. A fresh directory: English, then a click on Deutsch.
+        # In a silent PTY the four 0.5 s startup terminal queries take ~2.0 s
+        # before the first frame, and ThemePage's first debug-build render takes
+        # ~1.3 s locally (more on a busy CI runner), so 20 s gives generous
+        # headroom while returning as soon as the frame appears.
         app = App(args.binary, config_dir)
-        if not app.wait_for("en", 5.0):
-            print(f"!! the Theme page never read in English ({summary(app)})")
+        if not app.wait_for("en", 20.0):
+            status = f", exit={app.exit_status}" if app.exit_status is not None else ""
+            print(f"!! the Theme page never read in English ({summary(app)}{status})")
             print(app.text())
             app.kill()
             return 2
         print(f"run 1 (launch)   {summary(app)}")
         if not app.choose("de"):
             failures.append(f"no {OPTION['de']!r} option on the Theme page")
-        elif not app.wait_for("de", 2.0):
+        elif not app.wait_for("de", 10.0):
             failures.append("clicking Deutsch did not redraw the page and the status bar in German")
         print(f"run 1 (Deutsch)  {summary(app)}")
         if not app.quit():
@@ -199,14 +229,14 @@ def main():
 
         # 2. The same directory: German from the first frame.
         app = App(args.binary, config_dir)
-        if not app.wait_for("de", 5.0):
+        if not app.wait_for("de", 20.0):
             failures.append("the relaunch did not open in German: the choice was not stored")
         print(f"run 2 (relaunch) {summary(app)}")
 
         # 3. And back.
         if not app.choose("en"):
             failures.append(f"no {OPTION['en']!r} option on the relaunched page")
-        elif not app.wait_for("en", 2.0):
+        elif not app.wait_for("en", 10.0):
             failures.append("clicking English did not redraw the page in English")
         print(f"run 2 (English)  {summary(app)}")
         app.quit()
@@ -222,4 +252,5 @@ def main():
     return 1 if failures else 0
 
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())
